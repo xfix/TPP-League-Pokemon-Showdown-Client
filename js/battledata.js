@@ -280,9 +280,7 @@ var baseSpeciesChart = {
 var Tools = {
 
 	resourcePrefix: (function() {
-		var prefix = '';
-		if (document.location.protocol === 'file:') prefix = 'http:';
-		return prefix + '//play.pokemonshowdown.com/';
+		return '/';
 	})(),
 
 	resolveAvatar: function(avatar) {
