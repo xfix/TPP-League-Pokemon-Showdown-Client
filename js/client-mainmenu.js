@@ -41,14 +41,7 @@
 			}
 
 			buf += '<div class="menugroup"><p><button class="button" name="joinRoom" value="teambuilder">Teambuilder</button></p>';
-			if (app.down) {
-				buf += '<p><button class="button disabled" name="joinRoom" value="ladder" disabled>Ladder</button></p>';
-			} else {
-				buf += '<p><button class="button" name="joinRoom" value="ladder">Ladder</button></p>';
-			}
 			buf += '<p><button class="button" name="credits">Credits</button></p></div></div>';
-
-			if (!app.down) buf += '<div class="menugroup"><p><button class="button" name="roomlist">Watch a battle</button></p></div>';
 
 			this.$('.mainmenu').html(buf);
 
