@@ -66,10 +66,15 @@ function BattleChart()
 	this.pokemonRow = function(pokemon, attrs, match, isFirst) {
 		var text = '<li class="result'+(isFirst?' firstresult':'')+'"><a'+attrs+' data-name="'+Tools.escapeHTML(pokemon.species)+'">';
 
-		var tier = pokemon.tier;
-		if (!tier) tier = Tools.getTemplate(pokemon.baseSpecies).tier || 'Illegal';
+		var baseTemplate = Tools.getTemplate(pokemon.baseSpecies);
+		var tier = '';
+		if (!baseTemplate.tpp) {
+			tier = 'T-Rule '
+		}
+		tier += pokemon.tier;
+		if (!tier) tier = baseTemplate.tier || 'Illegal';
 
-		text += '<span class="col numcol">'+tier+'</span> ';
+		text += '<span class="col numcol"><span class="tiercol">'+tier+'</span></span> ';
 
 		var name = Tools.escapeHTML(pokemon.name);
 

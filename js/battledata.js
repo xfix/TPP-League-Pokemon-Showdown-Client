@@ -666,6 +666,7 @@ var Tools = {
 			if (template.exists === undefined) template.exists = true;
 			if (window.BattleFormatsData && window.BattleFormatsData[id]) {
 				template.tier = window.BattleFormatsData[id].tier;
+				template.tpp = !!window.BattleFormatsData[id].tpp;
 				template.isNonstandard = window.BattleFormatsData[id].isNonstandard;
 				template.unreleasedHidden = window.BattleFormatsData[id].unreleasedHidden;
 			}
