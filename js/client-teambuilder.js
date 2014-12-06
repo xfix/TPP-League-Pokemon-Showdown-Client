@@ -119,13 +119,11 @@
 			}
 
 			if (!teams) {
-				buf = '<div class="pad"><p>lol zarel this is a horrible teambuilder</p>';
-				buf += '<p>that\'s because we\'re not done loading it...</p></div>';
+				buf = '<div class="pad"><p>Loading...</div>';
 				this.$el.html(buf);
 				return;
 			}
-			buf = '<div class="pad"><p>y\'know zarel this is a pretty good teambuilder</p>';
-			buf += '<p>aww thanks I\'m glad you like it :)</p>';
+			buf = '<div class="pad">';
 			buf += this.clipboardHTML();
 			buf += '<ul>';
 			if (!window.localStorage && !window.nodewebkit) buf += '<li>== CAN\'T SAVE ==<br /><small>Your browser doesn\'t support <code>localStorage</code> and can\'t save teams! Update to a newer browser.</small></li>';
@@ -134,7 +132,7 @@
 				if (this.deletedTeamLoc >= 0) {
 					buf += '<li><button name="undoDelete"><i class="icon-undo"></i> Undo Delete</button></li>';
 				}
-				buf += '<li><em>you don\'t have any teams lol</em></li>';
+				buf += '<li><em>No teams available.</em></li>';
 			} else {
 				buf += '<li><button name="newTop"><i class="icon-plus-sign"></i> New team</button></li>';
 				for (var i=0; i<teams.length+1; i++) {
@@ -299,7 +297,7 @@
 					buf += '</select></li>';
 				}
 				if (!this.curTeam.team.length) {
-					buf += '<li><em>you have no pokemon lol</em></li>';
+					buf += '<li><em>Your team doesn\'t have any Pokémon.</em></li>';
 				}
 				for (i=0; i<this.curTeam.team.length; i++) {
 					if (this.curTeam.team.length < 6 && this.deletedSet && i === this.deletedSetLoc) {
