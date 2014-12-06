@@ -339,25 +339,13 @@ var Tools = {
 				}
 				// Insert http:// before URIs without a URI scheme specified.
 				var fulluri = uri.replace(/^([a-z]*[^a-z:])/g, 'http://$1');
-				var onclick;
+				var onclick = "";
 				var r = new RegExp('^https?://' +
 					document.location.hostname.replace(/\./g, '\\.') +
 					'/([a-zA-Z0-9-]+)$');
 				var m = r.exec(fulluri);
 				if (m) {
 					onclick = "return selectTab('" + m[1] + "');";
-				} else {
-					var event;
-					if (Tools.interstice.isWhitelisted(fulluri)) {
-						event = 'External link';
-					} else {
-						event = 'Interstice link';
-						fulluri = Tools.escapeHTML(Tools.interstice.getURI(
-								Tools.unescapeHTML(fulluri)
-						));
-					}
-					onclick = 'if (window.ga) ga(\'send\', \'event\', \'' +
-							event + '\', \'' + Tools.escapeQuotes(fulluri) + '\');';
 				}
 				return '<a href="' + fulluri +
 					'" target="_blank" onclick="' + onclick + '"' + classbit +
@@ -479,11 +467,6 @@ var Tools = {
 
 				for (var i = 0; i < attribs.length - 1; i += 2) {
 					switch (attribs[i]) {
-						case 'href':
-							if (!Tools.interstice.isWhitelisted(attribs[i + 1])) {
-								attribs[i + 1] = Tools.interstice.getURI(attribs[i + 1]);
-							}
-							break;
 						case 'target':
 							targetIdx = i + 1;
 							break;
@@ -515,35 +498,6 @@ var Tools = {
 		};
 		return function(input) {
 			return html.sanitizeWithPolicy(input, tagPolicy);
-		};
-	})(),
-
-	interstice: (function() {
-		var patterns = (function(whitelist) {
-			var patterns = [];
-			for (var i = 0; i < whitelist.length; ++i) {
-				patterns.push(new RegExp('https?://([A-Za-z0-9-]*\\.)?' +
-					whitelist[i] +
-					'(/.*)?', 'i'));
-			}
-			return patterns;
-		})((window.Config && Config.whitelist) ? Config.whitelist : []);
-		return {
-			isWhitelisted: function(uri) {
-				if ((uri[0] === '/') && (uri[1] !== '/')) {
-					// domain-relative URIs are safe
-					return true;
-				}
-				for (var i = 0; i < patterns.length; ++i) {
-					if (patterns[i].test(uri)) {
-						return true;
-					}
-				}
-				return false;
-			},
-			getURI: function(uri) {
-				return 'http://pokemonshowdown.com/interstice?uri=' + encodeURIComponent(uri);
-			}
 		};
 	})(),
 
