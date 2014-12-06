@@ -1246,6 +1246,14 @@
 			pokemon: function(pokemon) {
 				if (!pokemon) {
 					if (this.curTeam) {
+						if (this.curTeam.format === 'TPP League') {
+							return [
+								'OU', 'Uber', 'BL', 'UU', 'BL2','RU','BL3','NU','PU','NFE','LC Uber','LC',
+								'T-Rule OU', 'T-Rule BL', 'T-Rule UU', 'T-Rule BL2',
+								'T-Rule RU', 'T-Rule BL3', 'T-Rule NU', 'T-Rule PU', 'T-Rule NFE',
+								'T-Rule LC Uber', 'T-Rule LC'
+							];
+						}
 						if (this.curTeam.format === 'ou') return ['OU','BL','UU','BL2','RU','BL3','NU','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'cap') return ['CAP','OU','BL','UU','BL2','RU','BL3','NU','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'uu') return ['UU','BL2','RU','BL3','NU','PU','NFE','LC Uber','LC'];
@@ -1258,6 +1266,12 @@
 				}
 				var tierData = exports.BattleFormatsData[toId(pokemon.species)];
 				if (!tierData) return 'Illegal';
+				if (this.curTeam.format === 'TPP League') {
+					var tpp = tierData.tpp;
+					if (!tpp) {
+						return 'T-Rule ' + tierData.tier;
+					}
+				}
 				return tierData.tier;
 			},
 			item: function(item) {
