@@ -1276,18 +1276,21 @@
 			},
 			move: function(move) {
 				if (!this.curSet) return;
+				var speciesid = toId(this.curSet.species);
+				function viable(move) {
+					return exports.BattleFormatsData[speciesid].randomBattleMoves.indexOf(toId(move.name)) !== -1;
+				}
 				if (!move) return ['Usable Moves', 'Moves', 'Usable Sketch Moves', 'Sketch Moves'];
 				var movelist = this.movelist;
 				if (!movelist) return 'Illegal';
 				if (!movelist[move.id]) {
 					if (movelist['sketch']) {
-						if (move.isViable) return 'Usable Sketch Moves';
+						if (viable(move)) return 'Usable Sketch Moves';
 						else if (move.id !== 'chatter' && move.id !== 'struggle') return 'Sketch Moves';
 					}
 					if (!this.curTeam || this.curTeam.format !== 'balancedhackmons') return 'Illegal';
 				}
-				var speciesid = toId(this.curSet.species);
-				if (move.isViable) return 'Usable Moves';
+				if (viable(move)) return 'Usable Moves';
 				return 'Moves';
 			}
 		},
