@@ -19,11 +19,9 @@
 	// `defaultserver` specifies the server to use when the domain name in the
 	// address bar is `Config.origindomain`.
 	Config.defaultserver = {
-		id: 'showdown',
-		host: 'sim.smogon.com',
-		port: 443,
-		httpport: 8000,
-		altport: 80,
+		id: 'tppleague',
+		host: '206.253.167.172',
+		port: 80,
 		registered: true
 	};
 	Config.sockjsprefix = '/showdown';
