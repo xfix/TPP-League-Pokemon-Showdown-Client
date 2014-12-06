@@ -946,29 +946,32 @@
 						name = name.substr(0,name.length-1);
 					}
 					var id = toId(name);
-					var isTeambuilderFormat = searchShow && !team;
+					var formats = {
+						gymbattle: 'TPP League',
+						tppla: 'TPPLA',
+						tppladoubles: 'TPPLA',
+						tpplatriples: 'TPPLA'
+					};
+					var isTeambuilderFormat = formats[id];
 					var teambuilderFormat = '';
 					if (isTeambuilderFormat) {
-						var parenPos = name.indexOf('(');
-						if (parenPos > 0 && name.charAt(name.length-1) === ')') {
-							// variation of existing tier
-							teambuilderFormat = toId(name.substr(0, parenPos));
-							if (BattleFormats[teambuilderFormat]) {
-								BattleFormats[teambuilderFormat].isTeambuilderFormat = true;
-							} else {
-								BattleFormats[teambuilderFormat] = {
-									id: teambuilderFormat,
-									name: $.trim(name.substr(0, parenPos)),
-									team: team,
-									section: section,
-									column: column,
-									rated: false,
-									isTeambuilderFormat: true,
-									effectType: 'Format'
-								};
-							}
-							isTeambuilderFormat = false;
+						// variation of existing tier
+						teambuilderFormat = formats[id];
+						if (BattleFormats[teambuilderFormat]) {
+							BattleFormats[teambuilderFormat].isTeambuilderFormat = true;
+						} else {
+							BattleFormats[teambuilderFormat] = {
+								id: toId(teambuilderFormat),
+								name: teambuilderFormat,
+								team: team,
+								section: section,
+								column: column,
+								rated: false,
+								isTeambuilderFormat: true,
+								effectType: 'Format'
+							};
 						}
+						isTeambuilderFormat = false;
 					}
 					if (BattleFormats[id] && BattleFormats[id].isTeambuilderFormat) {
 						isTeambuilderFormat = true;
