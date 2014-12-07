@@ -330,7 +330,11 @@
 				buf += '</li>';
 				return buf;
 			}
-			buf += '<div class="setmenu"><button name="copySet"><i class="icon-copy"></i>Copy</button> <button name="importSet"><i class="icon-upload-alt"></i>Import/Export</button> <button name="moveSet"><i class="icon-move"></i>Move</button> <button name="deleteSet"><i class="icon-trash"></i>Delete</button></div>';
+			buf += '<div class="setmenu"><button name="copySet"><i class="icon-copy"></i>Copy</button> <button name="importSet"><i class="icon-upload-alt"></i>Import/Export</button> <button name="moveSet"><i class="icon-move"></i>Move</button> <button name="deleteSet"><i class="icon-trash"></i>Delete</button>';
+			if (set.level !== 100) {
+				buf += '<button name="levelUp"><i class="icon-plus"></i>Level Up</button>';
+			}
+			buf += '</div>';
 			buf += '<div class="setchart-nickname">';
 			buf += '<label>Nickname</label><input type="text" value="'+Tools.escapeHTML(set.name||set.species)+'" name="nickname" />';
 			buf += '</div>';
@@ -580,6 +584,13 @@
 		copySet: function(i, button) {
 			i = +($(button).closest('li').attr('value'));
 			this.clipboardAdd($.extend(true, {}, this.curTeam.team[i]));
+			button.blur();
+		},
+		levelUp: function(i, button) {
+			i = +($(button).closest('li').attr('value'));
+			this.curTeam.team[i].level += 1;
+			this.update();
+			this.save();
 			button.blur();
 		},
 		wasViewingPokemon: false,
