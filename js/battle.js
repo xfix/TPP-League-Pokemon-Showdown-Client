@@ -5744,7 +5744,7 @@ var Battle = (function () {
 		}
 	};
 	Battle.prototype.preloadBgm = function () {
-		var bgmNum = Math.floor(Math.random() * 13);
+		var bgmNum = Math.floor(Math.random() * 14);
 
 		if (window.forceBgm || window.forceBgm === 0) bgmNum = window.forceBgm;
 		window.bgmNum = bgmNum;
@@ -5800,6 +5800,10 @@ var Battle = (function () {
 		case 11:
 			BattleSound.loadBgm('audio/xy-worldchampion.mp3', 33290, 104042);
 			this.bgm = 'audio/xy-worldchampion.mp3';
+			break;
+		case 12:
+			BattleSound.loadBgm('audio/th8-marisa.mp3', 13887, 63000);
+			this.bgm = 'audio/th8-marisa.mp3';
 			break;
 		default:
 			BattleSound.loadBgm('audio/xy-rival.mp3', 7802, 58634);
