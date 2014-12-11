@@ -61,16 +61,43 @@ class Users {
 	function getAssertion($userid, $hostname, $userdata,
 	                      $challenge_key, $challenge_value, $challenge_prefix) {
 		global $pkey, $curuser;
+		$user = $userdata ?: $curuser;
 		$args = func_get_args();
 		if ($userid === "" || substr($userid, 0, 5) === 'guest') {
 			return ";;";
 		}
-		if ((!$curuser['loggedin'] || $userid !== $curuser['userid']) && $this->passwordVerify($userid, "") !== NULL) {
+		if ((!$user['loggedin'] || $userid !== $user['userid']) && $this->passwordVerify($userid, "") !== NULL) {
 			return ";";
 		}
 		$message = "$challenge_value,$userid,2," . time() . ",tokenhost";
 		openssl_sign($message, $signature, $pkey, OPENSSL_ALGO_SHA1);
 		return $message . ';' . bin2hex($signature);
+	}
+
+	function addUser($user, $password) {
+		global $db;
+		$user = $user['username'];
+		$userid = $this->userid($user);
+		$query = "
+			INSERT INTO users (userid, password_hash)
+			SELECT $1, $2
+			WHERE NOT EXISTS (SELECT 1 FROM users WHERE userid = $1)
+			RETURNING TRUE
+		";
+		$result = pg_query_params($db, $query, array($userid, $password));
+		$success = pg_fetch_result($result, 0);
+		if ($success) {
+			return array(
+				'loggedin' => true,
+				'username' => $user,
+				'userid' => $userid,
+			);
+		}
+	}
+
+	// This is placeholder.
+	function getRecentRegistrationCount() {
+		return 0;
 	}
 }
 
