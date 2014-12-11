@@ -31,9 +31,11 @@ class Users {
 	function login($name, $password) {
 		/* Pretty sure this function writes $curuser. */
 		global $curuser;
+		$userid = $this->userid($name);
+		$verified = $this->passwordVerify($userid, $password);
 
 		$curuser = array(
-			'loggedin' => $this->passwordVerify($userid, $password),
+			'loggedin' => $verified,
 			'username' => $name,
 			'userid' => $userid,
 		);
@@ -58,11 +60,12 @@ class Users {
 
 	function getAssertion($userid, $hostname, $userdata,
 	                      $challenge_key, $challenge_value, $challenge_prefix) {
-		global $pkey;
+		global $pkey, $curuser;
+		$args = func_get_args();
 		if ($userid === "" || substr($userid, 0, 5) === 'guest') {
 			return ";;";
 		}
-		if (($a = $this->passwordVerify($userid, "")) !== NULL) {
+		if ((!$curuser['loggedin'] || $userid !== $curuser['userid']) && $this->passwordVerify($userid, "") !== NULL) {
 			return ";";
 		}
 		$message = "$challenge_value,$userid,2," . time() . ",tokenhost";
