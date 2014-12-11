@@ -59,7 +59,7 @@ class ActionDispatcher {
 
 	public function findServer() {
 		if (in_array($this->getIp(), array('127.0.0.1', '::1'))) {
-			return 'tppleague';
+			return array('id' => 'tppleague');
 		}
 	}
 
