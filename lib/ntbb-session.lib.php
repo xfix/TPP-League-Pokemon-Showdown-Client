@@ -78,6 +78,7 @@ class Users {
 		global $db;
 		$user = $user['username'];
 		$userid = $this->userid($user);
+		$password = password_hash($password, PASSWORD_DEFAULT);
 		$query = "
 			INSERT INTO users (userid, password_hash)
 			SELECT $1, $2
