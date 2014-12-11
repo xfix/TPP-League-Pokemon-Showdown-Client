@@ -58,36 +58,9 @@ class ActionDispatcher {
 	}
 
 	public function findServer() {
-		global $PokemonServers;
-
-		$serverid = @$this->reqData['serverid'];
-		$server = null;
-		$ip = $this->getIp();
-		if (!isset($PokemonServers[$serverid])) {
-			// Try to find the server by source IP, rather than by serverid.
-			foreach ($PokemonServers as &$i) {
-				if (!isset($i['ipcache'])) {
-					$i['ipcache'] = gethostbyname($i['server']);
-				}
-				if ($i['ipcache'] === $ip) {
-					$server =& $i;
-					break;
-				}
-			}
-			if (!$server) return null;
-		} else {
-			$server =& $PokemonServers[$serverid];
-			if (empty($server['skipipcheck'])) {
-				if (!isset($server['ipcache'])) {
-					$server['ipcache'] = gethostbyname($server['server']);
-				}
-				if ($ip !== $server['ipcache']) return null;
-			}
+		if (in_array($this->getIp(), array('127.0.0.1', '::1'))) {
+			return 'tppleague';
 		}
-		if (!empty($server['token'])) {
-			if ($server['token'] !== md5($this->reqData['servertoken'])) return null;
-		}
-		return $server;
 	}
 
 	public function executeActions() {
