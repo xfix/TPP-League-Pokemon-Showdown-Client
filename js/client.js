@@ -14,7 +14,6 @@
 	}
 
 	Config.version = '0.9.2';
-	Config.origindomain = 'play.pokemonshowdown.com';
 
 	// `defaultserver` specifies the server to use when the domain name in the
 	// address bar is `Config.origindomain`.
@@ -411,12 +410,7 @@
 		 *     triggered if the SockJS socket closes
 		 */
 		initializeConnection: function() {
-			if ((document.location.hostname !== Config.origindomain) && !Config.testclient) {
-				// Handle *.psim.us.
-				return this.initializeCrossDomainConnection();
-			} else if (Config.testclient) {
-				this.initializeTestClient();
-			} else if (document.location.protocol === 'https:') {
+			if (document.location.protocol === 'https:') {
 				/* if (!$.cookie('showdown_ssl')) {
 					// Never used HTTPS before, so we have to copy over the
 					// HTTP origin localStorage. We have to redirect to the
