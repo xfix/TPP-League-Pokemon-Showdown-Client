@@ -9,8 +9,7 @@ License: GPLv2 or later
 
 error_reporting(E_ALL);
 
-include_once '../pokemonshowdown.com/lib/ntbb-session.lib.php';
-include_once '../pokemonshowdown.com/config/servers.inc.php';
+include_once 'lib/ntbb-session.lib.php';
 include_once 'lib/dispatcher.lib.php';
 
 $dispatcher = new ActionDispatcher(array(
