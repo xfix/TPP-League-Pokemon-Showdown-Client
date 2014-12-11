@@ -157,7 +157,7 @@ class DefaultActionHandler {
 			$out['actionerror'] = 'Your password must be at least 5 characters long.';
 		} else if (@$_POST['password'] !== @$_POST['cpassword']) {
 			$out['actionerror'] = 'Your passwords do not match.';
-		} else if (trim(strtolower(@$_POST['captcha'])) !== 'pikachu') {
+		} else if (!in_array(trim(strtolower(@$_POST['captcha'])), array('lotid', 'lotad'))) {
 			$out['actionerror'] = 'Please answer the anti-spam question given.';
 		} else if (($registrationcount = $users->getRecentRegistrationCount()) === false) {
 			$out['actionerror'] = 'A database error occurred. Please try again.';
