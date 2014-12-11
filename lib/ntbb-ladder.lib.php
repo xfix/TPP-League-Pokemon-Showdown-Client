@@ -4,23 +4,7 @@ error_reporting(E_ALL);
 
 // An implementation of the Glicko2 rating system.
 
-@include_once dirname(__FILE__).'/../../pokemonshowdown.com/lib/ntbb-database.lib.php';
-
-// connect to the ladder database (if we aren't already connected)
-if (empty($ladderdb)) {
-	global $ladderdb, $psconfig;
-	if (empty($psconfig['ladder_server'])) {
-		global $psdb;
-		$ladderdb = $psdb;
-	} else {
-		$ladderdb = new NTBBDatabase($psconfig['ladder_server'],
-				$psconfig['ladder_username'],
-				$psconfig['ladder_password'],
-				$psconfig['ladder_database'],
-				$psconfig['ladder_prefix'],
-				$psconfig['ladder_charset']);
-	}
-}
+$ladderdb = $db;
 
 class GlickoPlayer {
 	public $rating;
@@ -136,21 +120,22 @@ class NTBBLadder {
 	function getRating(&$user, $create=false) {
 		global $ladderdb;
 		if (!@$user['rating']) {
-			$res = $ladderdb->query("SELECT * FROM `{$ladderdb->prefix}ladder` WHERE `serverid` = '{$this->serverid}' AND `formatid` = '{$this->formatid}' AND `userid` = '".$ladderdb->escape($user['userid'])."' LIMIT 1");
+			$res = pg_query("SELECT * FROM ladder WHERE serverid = '{$this->serverid}' AND formatid = '{$this->formatid}' AND userid = '".pg_escape_string($user['userid'])."' LIMIT 1");
 			if (!$res) {
 				return false;
 			}
-			$data = $ladderdb->fetch_assoc($res);
+			$data = pg_fetch_assoc($res);
 
 			if (!$data) {
 				if (!$create) {
 					return false;
 				}
-				//echo "INSERT INTO `{$ladderdb->prefix}ladder` (`formatid`,`userid`,`username`) VALUES ('{$this->formatid}','".$ladderdb->escape($user['userid'])."','".$ladderdb->escape($user['username'])."')";
+				//echo "INSERT INTO ladder (formatid,userid,username) VALUES ('{$this->formatid}','".pg_escape_string($user['userid'])."','".pg_escape_string($user['username'])."')";
 				$rp = $this->getrp();
-				$ladderdb->query("INSERT INTO `{$ladderdb->prefix}ladder` (`formatid`,`serverid`,`userid`,`username`,`rptime`) VALUES ('{$this->formatid}','{$this->serverid}','".$ladderdb->escape($user['userid'])."','".$ladderdb->escape($user['username'])."',".$rp.")");
+				$result = pg_query("INSERT INTO ladder (formatid,serverid,userid,username,rptime) VALUES ('{$this->formatid}','{$this->serverid}','".pg_escape_string($user['userid'])."','".pg_escape_string($user['username'])."',".$rp.") RETURNING entryid");
+				$user_insert_id = pg_fetch_result($result, 0);
 				$user['rating'] = array(
-					'entryid' => $ladderdb->insert_id(),
+					'entryid' => $user_insert_id,
 					'formatid' => $this->formatid,
 					'userid' => $user['userid'],
 					'username' => $user['username'],
@@ -180,12 +165,12 @@ class NTBBLadder {
 	function getAllRatings(&$user) {
 		global $ladderdb;
 		if (!@$user['ratings']) {
-			$res = $ladderdb->query("SELECT * FROM `{$ladderdb->prefix}ladder` WHERE `serverid` = '{$this->serverid}' AND `userid` = '".$ladderdb->escape($user['userid'])."'");
+			$res = pg_query("SELECT * FROM ladder WHERE serverid = '{$this->serverid}' AND userid = '".pg_escape_string($user['userid'])."'");
 			if (!$res) {
 				return false;
 			}
 			$user['ratings'] = array();
-			while ($row = $ladderdb->fetch_assoc($res)) {
+			while ($row = pg_fetch_assoc($res)) {
 				unset($row['rpdata']);
 				$user['ratings'][] = $row;
 			}
@@ -212,10 +197,10 @@ class NTBBLadder {
 			// 	$limit = 1000;
 			// }
 
-			$res = $ladderdb->query("SELECT * FROM `{$ladderdb->prefix}ladder` WHERE `formatid` = '{$this->formatid}' AND `serverid` = '{$this->serverid}' ORDER BY `lacre` DESC LIMIT $limit");
+			$res = pg_query("SELECT * FROM ladder WHERE formatid = '{$this->formatid}' AND serverid = '{$this->serverid}' ORDER BY lacre DESC LIMIT $limit");
 
 			$j = 0;
-			while ($row = $ladderdb->fetch_assoc($res)) {
+			while ($row = pg_fetch_assoc($res)) {
 				$j++;
 				// if ($row['lacre'] < 0 && $j > 50) break;
 				$user = array(
@@ -239,14 +224,14 @@ class NTBBLadder {
 
 	function clearAllRatings() {
 		global $ladderdb;
-		$res = $ladderdb->query("DELETE FROM `{$ladderdb->prefix}ladder` WHERE `formatid` = '{$this->formatid}' AND `serverid` = '{$this->serverid}'");
+		$res = pg_query("DELETE FROM ladder WHERE formatid = '{$this->formatid}' AND serverid = '{$this->serverid}'");
 	}
 
 	function saveRating($user) {
 		global $ladderdb;
 		if (!$user['rating']) return false;
 
-		return !!$ladderdb->query("UPDATE `{$ladderdb->prefix}ladder` SET `w`={$user['rating']['w']}, `l`={$user['rating']['l']}, `t`={$user['rating']['t']}, `r`={$user['rating']['r']}, `rd`={$user['rating']['rd']}, `sigma`={$user['rating']['sigma']}, `rptime`={$user['rating']['rptime']}, `rpr`={$user['rating']['rpr']}, `rprd`={$user['rating']['rprd']}, `rpsigma`={$user['rating']['rpsigma']}, `rpdata`='".$ladderdb->escape($user['rating']['rpdata'])."', `gxe`={$user['rating']['gxe']}, `acre`={$user['rating']['acre']}, `lacre`={$user['rating']['lacre']} WHERE `entryid` = {$user['rating']['entryid']} LIMIT 1");
+		return !!pg_query("UPDATE ladder SET w={$user['rating']['w']}, l={$user['rating']['l']}, t={$user['rating']['t']}, r={$user['rating']['r']}, rd={$user['rating']['rd']}, sigma={$user['rating']['sigma']}, rptime={$user['rating']['rptime']}, rpr={$user['rating']['rpr']}, rprd={$user['rating']['rprd']}, rpsigma={$user['rating']['rpsigma']}, rpdata='".pg_escape_string($user['rating']['rpdata'])."', gxe={$user['rating']['gxe']}, acre={$user['rating']['acre']}, lacre={$user['rating']['lacre']} WHERE entryid = {$user['rating']['entryid']} LIMIT 1");
 	}
 
 	function update(&$user, $newM = false, $newMelo = 1000, $force = false) {
