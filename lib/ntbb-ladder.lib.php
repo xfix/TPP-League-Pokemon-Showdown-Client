@@ -4,8 +4,6 @@ error_reporting(E_ALL);
 
 // An implementation of the Glicko2 rating system.
 
-$ladderdb = $db;
-
 class GlickoPlayer {
 	public $rating;
 	public $rd;
@@ -118,7 +116,6 @@ class NTBBLadder {
 	}
 
 	function getRating(&$user, $create=false) {
-		global $ladderdb;
 		if (!@$user['rating']) {
 			$res = pg_query("SELECT * FROM ladder WHERE serverid = '{$this->serverid}' AND formatid = '{$this->formatid}' AND userid = '".pg_escape_string($user['userid'])."' LIMIT 1");
 			if (!$res) {
@@ -163,7 +160,6 @@ class NTBBLadder {
 		return true;
 	}
 	function getAllRatings(&$user) {
-		global $ladderdb;
 		if (!@$user['ratings']) {
 			$res = pg_query("SELECT * FROM ladder WHERE serverid = '{$this->serverid}' AND userid = '".pg_escape_string($user['userid'])."'");
 			if (!$res) {
@@ -180,7 +176,6 @@ class NTBBLadder {
 	}
 
 	function getTop() {
-		global $ladderdb;
 		$needUpdate = true;
 		$top = array();
 
@@ -223,12 +218,10 @@ class NTBBLadder {
 	}
 
 	function clearAllRatings() {
-		global $ladderdb;
 		$res = pg_query("DELETE FROM ladder WHERE formatid = '{$this->formatid}' AND serverid = '{$this->serverid}'");
 	}
 
 	function saveRating($user) {
-		global $ladderdb;
 		if (!$user['rating']) return false;
 
 		return !!pg_query("UPDATE ladder SET w={$user['rating']['w']}, l={$user['rating']['l']}, t={$user['rating']['t']}, r={$user['rating']['r']}, rd={$user['rating']['rd']}, sigma={$user['rating']['sigma']}, rptime={$user['rating']['rptime']}, rpr={$user['rating']['rpr']}, rprd={$user['rating']['rprd']}, rpsigma={$user['rating']['rpsigma']}, rpdata='".pg_escape_string($user['rating']['rpdata'])."', gxe={$user['rating']['gxe']}, acre={$user['rating']['acre']}, lacre={$user['rating']['lacre']} WHERE entryid = {$user['rating']['entryid']} LIMIT 1");

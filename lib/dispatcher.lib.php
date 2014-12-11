@@ -486,10 +486,9 @@ class LadderActionHandler {
 		global $PokemonServers;
 		include_once dirname(__FILE__) . '/ntbb-ladder.lib.php';
 
-		$server = @$PokemonServers[@$reqData['serverid']];
-		if (!$server) die;
+		$server = 'tppleague';
 
-		$ladder = new NTBBLadder($server['id'], @$reqData['format']);
+		$ladder = new NTBBLadder($server, @$reqData['format']);
 		$user = $this->getUserData(@$reqData['user']);
 		if (!$user) die;
 		$ladder->getAllRatings($user);
