@@ -34,7 +34,7 @@
 			app.send('/join '+this.id);
 		},
 		leave: function() {
-			app.send('/leave '+this.id);
+			if (!this.expired) app.send('/leave '+this.id);
 			if (this.battle) this.battle.destroy();
 		},
 		requestLeave: function() {
@@ -98,15 +98,30 @@
 					this.$controls.html('');
 				}
 
-				if (logLine.substr(0, 18) === '|callback|trapped|') {
-					var idx = logLine.substr(18);
-					this.request.active[idx].trapped = true;
+				if (logLine.substr(0, 10) === '|callback|') {
 					// TODO: Maybe a more sophisticated UI for this.
-					// In singles, this isn't really necessary because the switch UI will be
-					// immediately disabled. However, in doubles it might not be obvious why
-					// the player is being asked to make a new decision without this message.
+					// In singles, this isn't really necessary because some elements of the UI will be
+					// immediately disabled. However, in doubles/triples it might not be obvious why
+					// the player is being asked to make a new decision without the following messages.
+					var args = logLine.substr(10).split('|');
+					var pokemon = isNaN(Number(args[1])) ? this.battle.getPokemon(args[1]) : this.battle.mySide.active[args[1]];
+					var requestData = this.request.active[pokemon.slot];
 					delete this.choice;
-					this.battle.activityQueue.push('|message|'+this.battle.mySide.active[idx].getName() + ' is trapped and cannot switch!');
+					switch (args[0]) {
+					case 'trapped':
+						requestData.trapped = true;
+						this.battle.activityQueue.push('|message|'+pokemon.getName() + ' is trapped and cannot switch!');
+						break;
+					case 'cant':
+						for (var i = 0; i < requestData.moves.length; i++) {
+							if (requestData.moves[i].id === args[3]) {
+								requestData.moves[i].disabled = true;
+							}
+						}
+						args.splice(1, 1, pokemon.getIdent());
+						this.battle.activityQueue.push('|'+args.join('|'));
+						break;
+					}
 				} else if (logLine.substr(0, 7) === '|title|') {
 					this.title = logLine.substr(7);
 				} else if (logLine.substr(0, 6) === '|chat|' || logLine.substr(0, 3) === '|c|' || logLine.substr(0, 9) === '|chatmsg|' || logLine.substr(0, 10) === '|inactive|') {
@@ -285,13 +300,13 @@
 					if (active.active) active = active.active[pos];
 					var moves = active.moves;
 					var trapped = active.trapped;
-					this.finalDecision = active.maybeTrapped || false;
-					if (this.finalDecision) {
-						for (var i = pos + 1; i < this.battle.mySide.active.length; ++i) {
-							var p = this.battle.mySide.active[i];
-							if (p && !p.fainted) {
-								this.finalDecision = false;
-							}
+					this.finalDecisionMove = active.maybeDisabled || false;
+					this.finalDecisionSwitch = active.maybeTrapped || false;
+					for (var i = pos + 1; i < this.battle.mySide.active.length; ++i) {
+						var p = this.battle.mySide.active[i];
+						if (p && !p.fainted) {
+							this.finalDecisionMove = this.finalDecisionSwitch = false;
+							break;
 						}
 					}
 
@@ -393,6 +408,9 @@
 					if (switchables[pos].canMegaEvo) {
 						controls += '<br /><label><input type="checkbox" name="megaevo" />&nbsp;Mega&nbsp;evolution</label>';
 					}
+					if (this.finalDecisionMove) {
+						controls += '<em style="display:block;clear:both">You <strong>might</strong> have some moves disabled, so you won\'t be able to cancel an attack!</em><br/>';
+					}
 					controls += '<div style="clear:left"></div>';
 					controls += '</div></div>';
 					if (this.battle.gameType === 'triples' && pos !== 1) {
@@ -412,7 +430,7 @@
 								controls += '<button name="chooseSwitch" value="' + i + '"' + this.tooltipAttrs(i, 'sidepokemon') + '><span class="pokemonicon" style="display:inline-block;vertical-align:middle;'+Tools.getIcon(pokemon)+'"></span>' + Tools.escapeHTML(pokemon.name) + '<span class="hpbar' + pokemon.getHPColorClass() + '"><span style="width:'+(Math.round(pokemon.hp*92/pokemon.maxhp)||1)+'px"></span></span>'+(pokemon.status?'<span class="status '+pokemon.status+'"></span>':'')+'</button> ';
 							}
 						}
-						if (this.finalDecision && this.battle.gen > 2) {
+						if (this.finalDecisionSwitch && this.battle.gen > 2) {
 							controls += '<em style="display:block;clear:both">You <strong>might</strong> be trapped, so you won\'t be able to cancel a switch!</em><br/>';
 						}
 					}
@@ -422,7 +440,7 @@
 				break;
 
 			case 'switch':
-				this.finalDecision = false;
+				this.finalDecisionMove = this.finalDecisionSwitch = false;
 				if (!this.choice) {
 					this.choice = {
 						choices: [],
@@ -544,7 +562,7 @@
 
 			default:
 				var buf = '<div class="controls"><p><em>Waiting for opponent...</em> ';
-				if (this.choice && this.choice.waiting && !this.finalDecision) {
+				if (this.choice && this.choice.waiting && !this.finalDecisionMove && !this.finalDecisionSwitch) {
 					buf += '<button name="undoChoice">Cancel</button>';
 				}
 				buf += '</p>';
@@ -689,9 +707,9 @@
 		},
 		closeAndRematch: function() {
 			app.rooms[''].requestNotifications();
+			app.rooms[''].challenge(this.battle.yourSide.name);
 			this.close();
 			app.focusRoom('');
-			app.rooms[''].challenge(this.battle.yourSide.name);
 		},
 
 		// choice buttons
@@ -722,7 +740,7 @@
 			this.sendDecision('/choose '+this.choice.choices.join(','));
 			this.closeNotification('choice');
 
-			this.finalDecision = false;
+			this.finalDecisionSwitch = false;
 			this.choice = {waiting: true};
 			this.updateControlsForPlayer();
 		},
@@ -747,7 +765,7 @@
 			this.sendDecision('/choose '+this.choice.choices.join(','));
 			this.closeNotification('choice');
 
-			this.finalDecision = false;
+			this.finalDecisionMove = this.finalDecisionSwitch = false;
 			this.choice = {waiting: true};
 			this.updateControlsForPlayer();
 		},
@@ -801,6 +819,7 @@
 			this.sendDecision('/choose '+this.choice.choices.join(','));
 			this.closeNotification('choice');
 
+			this.finalDecisionMove = false;
 			this.choice = {waiting: true};
 			this.updateControlsForPlayer();
 		},
@@ -906,8 +925,44 @@
 				text += '<h2>' + move.name + '<br />'+Tools.getTypeIcon(move.type)+' <img src="' + Tools.resourcePrefix + 'sprites/categories/' + move.category + '.png" alt="' + move.category + '" /></h2>';
 				text += '<p>Base power: ' + basePower + '</p>';
 				text += '<p>Accuracy: ' + accuracy + '</p>';
+				var flags = {
+					"authentic": "Ignores a target's substitute.",
+					"bite": "Power is multiplied by 1.5 when used by a Pokemon with the Ability Strong Jaw.",
+					"bullet": "Has no effect on Pokemon with the Ability Bulletproof.",
+					"charge": "The user is unable to make a move between turns.",
+					"contact": "Makes contact.",
+					"defrost": "Thaws the user if executed successfully while the user is frozen.",
+					"distance": "Can target a Pokemon positioned anywhere in a Triple Battle.",
+					"gravity": "Prevented from being executed or selected during Gravity's effect.",
+					"heal": "Prevented from being executed or selected during Heal Block's effect.",
+					"mirror": "Can be copied by Mirror Move.",
+					"nonsky": "Prevented from being executed or selected in a Sky Battle.",
+					"powder": "Has no effect on Grass-type Pokemon, Pokemon with the Ability Overcoat, and Pokemon holding Safety Goggles.",
+					"protect": "Blocked by Detect, Protect, ",
+					"pulse": "Power is multiplied by 1.5 when used by a Pokemon with the Ability Mega Launcher.",
+					"punch": "Power is multiplied by 1.2 when used by a Pokemon with the Ability Iron Fist.",
+					"recharge": "If this move is successful, the user must recharge on the following turn and cannot make a move.",
+					"reflectable": "Bounced back to the original user by Magic Coat or the Ability Magic Bounce.",
+					"snatch": "Can be stolen from the original user and instead used by another Pokemon using Snatch.",
+					"sound": "Has no effect on Pokemon with the Ability Soundproof."
+				};
 				if (move.desc) {
-					text += '<p class="section">' + move.desc + '</p>';
+					text += '<p class="section">' + move.desc;
+					for (var i in move.flags) {
+						if (i === 'distance' && move.target !== 'any') continue;
+						text += " " + flags[i];
+						if (i === 'protect') {
+							if (move.category !== 'Status') text += "King's Shield, ";
+							text += "and Spiky Shield.";
+						}
+					}
+					var priority = move.priority;
+					if (priority) {
+						text += " Priority ";
+						if (priority > 0) text += "+";
+						text += priority + ".";
+					}
+					text += '</p>';
 				}
 				text += '</div></div>';
 				break;
@@ -962,7 +1017,7 @@
 						if (template.abilities) {
 							text += '<p>Possible abilities: ' + Tools.getAbility(template.abilities['0']).name;
 							if (template.abilities['1']) text += ', ' + Tools.getAbility(template.abilities['1']).name;
-							if (template.abilities['H']) text += ', ' + Tools.getAbility(template.abilities['H']).name;
+							if (this.battle.gen > 4 && template.abilities['H']) text += ', ' + Tools.getAbility(template.abilities['H']).name;
 							text += '</p>';
 						}
 					} else if (pokemon.ability) {

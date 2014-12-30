@@ -178,6 +178,7 @@ var Pokemon = (function () {
 		this.hpcolor = '';
 		this.moves = [];
 		this.ability = '';
+		this.baseAbility = '';
 		this.item = '';
 		this.species = species;
 		this.fainted = false;
@@ -369,7 +370,6 @@ var Pokemon = (function () {
 		return (details === this.details.replace(/-[A-Za-z0-9*]+(, |$)/, '$1'));
 	};
 	Pokemon.prototype.getIdent = function () {
-		if (this.side.active.length === 1) return this.ident;
 		var slots = ['a','b','c','d','e','f'];
 		return this.ident.substr(0,2) + slots[this.slot] + this.ident.substr(2);	
 	};
@@ -577,7 +577,8 @@ var Pokemon = (function () {
 			spd: 'SpD',
 			spe: 'Spe',
 			accuracy: 'Accuracy',
-			evasion: 'Evasion'
+			evasion: 'Evasion',
+			spc: 'Spc'
 		};
 		if (!this.boosts[boostStat]) {
 			return '1&times;&nbsp;' + boostStatTable[boostStat];
@@ -609,6 +610,7 @@ var Pokemon = (function () {
 		return 'bad';
 	};
 	Pokemon.prototype.clearVolatile = function () {
+		this.ability = this.baseAbility;
 		this.atk = this.atkStat;
 		this.def = this.defStat;
 		this.spa = this.spaStat;
@@ -774,7 +776,7 @@ var Sprite = (function () {
 	Sprite.prototype.animTransform = function (species) {
 		if (!this.oldsp) this.oldsp = this.sp;
 		if (species.volatiles && species.volatiles.formechange) species = species.volatiles.formechange[2];
-		sp = Tools.getSpriteData(species, this.isBackSprite ? 0 : 1, {afd: this.battle.tier === "[Seasonal] Fools Festival"});
+		sp = Tools.getSpriteData(species, this.isBackSprite ? 0 : 1, {afd: this.battle.tier === "[Seasonal] Fools Festival", gen: this.battle.gen});
 		this.sp = sp;
 		var self = this;
 		var battle = this.battle;
@@ -1218,7 +1220,7 @@ var Side = (function () {
 		for (var i = 0; i < this.pokemon.length; i++) {
 			var poke = this.pokemon[i];
 			poke.sprite.destroy();
-			poke.sprite = new Sprite(Tools.getSpriteData(poke, this.n, {afd: this.battle.tier === "[Seasonal] Fools Festival"}), this.x, this.y, this.z, this.battle, this.n);
+			poke.sprite = new Sprite(Tools.getSpriteData(poke, this.n, {afd: this.battle.tier === "[Seasonal] Fools Festival", gen: this.battle.gen}), this.x, this.y, this.z, this.battle, this.n);
 		}
 	};
 	Side.prototype.setSprite = function (spriteid) {
@@ -1507,7 +1509,7 @@ var Side = (function () {
 		if (!poke.ability && poke.baseAbility) poke.ability = poke.baseAbility;
 		poke.id = id;
 		poke.reset();
-		poke.sprite = new Sprite(Tools.getSpriteData(poke, this.n, {afd: this.battle.tier === "[Seasonal] Fools Festival"}), this.x, this.y, this.z, this.battle, this.n);
+		poke.sprite = new Sprite(Tools.getSpriteData(poke, this.n, {afd: this.battle.tier === "[Seasonal] Fools Festival", gen: this.battle.gen}), this.x, this.y, this.z, this.battle, this.n);
 
 		if (typeof replaceSlot !== 'undefined') {
 			this.pokemon[replaceSlot] = poke;
@@ -3299,6 +3301,8 @@ var Battle = (function () {
 			case '-boost':
 				var poke = this.getPokemon(args[1]);
 				var stat = args[2];
+				if (this.gen === 1 && stat === 'spd') break;
+				if (this.gen === 1 && stat === 'spa') stat = 'spc';
 				var amount = parseInt(args[3]);
 				if (!poke.boosts[stat]) {
 					poke.boosts[stat] = 0;
@@ -3330,6 +3334,8 @@ var Battle = (function () {
 			case '-unboost':
 				var poke = this.getPokemon(args[1]);
 				var stat = args[2];
+				if (this.gen === 1 && stat === 'spd') break;
+				if (this.gen === 1 && stat === 'spa') stat = 'spc';
 				var amount = parseInt(args[3]);
 				if (!poke.boosts[stat]) {
 					poke.boosts[stat] = 0;
@@ -3933,6 +3939,9 @@ var Battle = (function () {
 				var effect = Tools.getEffect(kwargs.from);
 				var ofpoke = this.getPokemon(kwargs.of);
 				poke.ability = ability.name;
+				if (!effect.id || kwargs.fail) {
+					if (!poke.baseAbility) poke.baseAbility = ability.name;
+				}
 
 				if (kwargs.silent) {
 					// do nothing
@@ -4013,6 +4022,8 @@ var Battle = (function () {
 				} else switch (effect.id) {
 				case 'mummy':
 					actions += "[" + poke.getName() + "\'s " + ability.name + "] " + poke.name + "'s Ability became Mummy!";
+					if (!poke.baseAbility) poke.baseAbility = ability.name;
+					poke.ability = 'Mummy';
 					break;
 				default:
 					actions += "" + poke.getName() + "\'s Ability was suppressed!";
@@ -4051,13 +4062,13 @@ var Battle = (function () {
 				break;
 			case '-mega':
 				var poke = this.getPokemon(args[1]);
-				var item = Tools.getItem(args[2]);
-				if (poke.baseSpecies === 'Rayquaza') {
+				var item = Tools.getItem(args[3]);
+				if (args[2] === 'Rayquaza') {
 					actions += "" + Tools.escapeHTML(poke.side.name) + "'s fervent wish has reached " + poke.getLowerName() + "!";
 				} else {
 					actions += "" + poke.getName() + "'s " + item.name + " is reacting to " + Tools.escapeHTML(poke.side.name) + "'s Mega Bracelet!";
 				}
-				actions += "<br />" + poke.getName() + " has Mega Evolved into Mega " + poke.baseSpecies + "!";
+				actions += "<br />" + poke.getName() + " has Mega Evolved into Mega " + args[2] + "!";
 				break;
 
 			case '-start':
@@ -4546,11 +4557,21 @@ var Battle = (function () {
 					break;
 				case 'skillswap':
 					actions += "" + poke.getName() + " swapped Abilities with its target!";
-					if (ofpoke && poke.side !== ofpoke.side) {
-						this.resultAnim(poke, Tools.escapeHTML(args[3]), 'neutral', 1);
-						this.resultAnim(ofpoke, Tools.escapeHTML(args[4]), 'neutral', 4);
-						actions += "<br />" + poke.getName() + " acquired " + Tools.escapeHTML(args[3]) + "!";
-						actions += "<br />" + ofpoke.getName() + " acquired " + Tools.escapeHTML(args[4]) + "!";
+					var pokeability = Tools.escapeHTML(args[3]) || ofpoke.ability;
+					var ofpokeability = Tools.escapeHTML(args[4]) || poke.ability;
+					if (pokeability) {
+						poke.ability = pokeability;
+						if (!ofpoke.baseAbility) ofpoke.baseAbility = pokeability;
+					}
+					if (ofpokeability) {
+						ofpoke.ability = ofpokeability;
+						if (!poke.baseAbility) poke.baseAbility = ofpokeability;
+					}
+					if (poke.side !== ofpoke.side) {
+						this.resultAnim(poke, pokeability, 'neutral', 1);
+						this.resultAnim(ofpoke, ofpokeability, 'neutral', 4);
+						actions += "<br />" + poke.getName() + " acquired " + pokeability + "!";
+						actions += "<br />" + ofpoke.getName() + " acquired " + ofpokeability + "!";
 					}
 					break;
 				case 'charge':
@@ -5153,7 +5174,7 @@ var Battle = (function () {
 			for (var i = 0; i < this.sides[k].pokemon.length; i++) {
 				var pokemon = this.sides[k].pokemon[i];
 
-				var spriteData = Tools.getSpriteData(pokemon, k, {afd: this.tier === "[Seasonal] Fools Festival"});
+				var spriteData = Tools.getSpriteData(pokemon, k, {afd: this.tier === "[Seasonal] Fools Festival", gen: this.gen});
 				var y = 0;
 				var x = 0;
 				if (k) {
@@ -5274,14 +5295,14 @@ var Battle = (function () {
 			break;
 		case 'join':
 		case 'j':
-		case 'J':
 			this.log('<div class="chat"><small>' + Tools.escapeHTML(args[1]) + ' joined.</small></div>', preempt);
 			break;
 		case 'leave':
 		case 'l':
-		case 'L':
 			this.log('<div class="chat"><small>' + Tools.escapeHTML(args[1]) + ' left.</small></div>', preempt);
 			break;
+		case 'J':
+		case 'L':
 		case 'spectator':
 		case 'spectatorleave':
 			break;
