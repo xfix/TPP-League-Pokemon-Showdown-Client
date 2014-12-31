@@ -986,27 +986,7 @@
 		},
 		uploadReplay: function(data) {
 			var id = data.id;
-			var serverid = Config.server.id && toId(Config.server.id.split(':')[0]);
-			if (serverid && serverid !== 'showdown') id = serverid+'-'+id;
-			$.post(app.user.getActionPHP() + '?act=uploadreplay', {
-				log: data.log,
-				id: id
-			}, function(data) {
-				if ((serverid === 'showdown') && (data === 'invalid id')) {
-					data = 'not found';
-				}
-				if (data === 'success') {
-					app.addPopup(ReplayUploadedPopup, {id: id});
-				} else if (data === 'hash mismatch') {
-					app.addPopupMessage("Someone else is already uploading a replay of this battle. Try again in five seconds.");
-				} else if (data === 'not found') {
-					app.addPopupMessage("This server isn't registered, and doesn't support uploading replays.");
-				} else if (data === 'invalid id') {
-					app.addPopupMessage("This server is using invalid battle IDs, so this replay can't be uploaded.");
-				} else {
-					app.addPopupMessage("Error while uploading replay: "+data);
-				}
-			});
+			app.addPopup(ReplayUploadedPopup, {id: id});
 		},
 		roomsResponse: function(data) {
 			app.supports['rooms'] = true;
