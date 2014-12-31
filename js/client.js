@@ -937,7 +937,7 @@
 					}
 					var id = toId(name);
 					var formats = {
-						gymbattle: 'TPP League',
+						gymbattle: 'Gym Battle',
 						tppla: 'TPPLA',
 						tppladoubles: 'TPPLA',
 						tpplatriples: 'TPPLA'
