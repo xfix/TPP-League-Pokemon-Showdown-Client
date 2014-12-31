@@ -22,6 +22,10 @@ $pkey = openssl_pkey_get_private($pkey);
 
 $db = pg_connect('dbname=showdown');
 
+session_start();
+
+$curuser = $_SESSION['curuser'];
+
 class Users {
 	// Probably exists because the main server is behind Cloudflare.
 	function getIp() {
@@ -31,14 +35,22 @@ class Users {
 	function login($name, $password) {
 		/* Pretty sure this function writes $curuser. */
 		global $curuser;
+		if ($name === $curuser['username'] && $curuser['loggedin']) {
+			return;
+		}
+
 		$userid = $this->userid($name);
 		$verified = $this->passwordVerify($userid, $password);
 
-		$curuser = array(
+		$_SESSION['curuser'] = $curuser = array(
 			'loggedin' => $verified,
 			'username' => $name,
 			'userid' => $userid,
 		);
+	}
+
+	function logout() {
+		session_destroy();
 	}
 
 	function passwordVerify($username, $password) {
