@@ -1259,21 +1259,21 @@
 					if (this.curTeam) {
 						if (this.curTeam.format === 'TPP League') {
 							return [
-								'OU', 'Uber', 'BL', 'UU', 'BL2','RU','BL3','NU','PU','NFE','LC Uber','LC',
+								'OU', 'Uber', 'BL', 'UU', 'BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC',
 								'T-Rule OU', 'T-Rule BL', 'T-Rule UU', 'T-Rule BL2',
-								'T-Rule RU', 'T-Rule BL3', 'T-Rule NU', 'T-Rule PU', 'T-Rule NFE',
+								'T-Rule RU', 'T-Rule BL3', 'T-Rule NU', 'T-Rule BL4', 'T-Rule PU', 'T-Rule NFE',
 								'T-Rule LC Uber', 'T-Rule LC'
 							];
 						}
-						if (this.curTeam.format === 'ou') return ['OU','BL','UU','BL2','RU','BL3','NU','PU','NFE','LC Uber','LC'];
-						if (this.curTeam.format === 'cap') return ['CAP','OU','BL','UU','BL2','RU','BL3','NU','PU','NFE','LC Uber','LC'];
-						if (this.curTeam.format === 'uu') return ['UU','BL2','RU','BL3','NU','PU','NFE','LC Uber','LC'];
-						if (this.curTeam.format === 'ru') return ['RU','BL3','NU','PU','NFE','LC Uber','LC'];
-						if (this.curTeam.format === 'nu') return ['NU','PU','NFE','LC Uber','LC'];
+						if (this.curTeam.format === 'ou') return ['OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
+						if (this.curTeam.format === 'cap') return ['CAP','OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
+						if (this.curTeam.format === 'uu') return ['UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
+						if (this.curTeam.format === 'ru') return ['RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
+						if (this.curTeam.format === 'nu') return ['NU','BL4','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'pu') return ['PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'lc') return ['LC'];
 					}
-					return ['OU','Uber','BL','UU','BL2','RU','BL3','NU','PU','NFE','LC Uber','LC','Unreleased','CAP'];
+					return ['OU','Uber','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC','Unreleased','CAP'];
 				}
 				var tierData = exports.BattleFormatsData[toId(pokemon.species)];
 				if (!tierData) return 'Illegal';
