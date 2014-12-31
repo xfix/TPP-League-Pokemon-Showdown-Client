@@ -289,7 +289,7 @@ class DefaultActionHandler {
 			return;
 		}
 
-		if ($server['id'] !== 'showdown') {
+		if ($server['id'] !== 'tppleague') {
 			$reqData['id'] = $server['id'].'-'.$reqData['id'];
 		}
 

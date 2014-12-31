@@ -158,3 +158,8 @@ body.dark
 {
 	padding: 0 10px;
 }
+
+.pfx-topbar {
+	background: url(https://b.thumbs.redditmedia.com/n8hHhD0tW5njNqtg.png) top center repeat-x;
+	height: 100px;
+}
