@@ -1047,7 +1047,7 @@
 					// you were direct-linked to this nonexistent room
 					var replayid = id.substr(7);
 					if (Config.server.id !== 'showdown') replayid = Config.server.id+'-'+replayid;
-					document.location.replace('http://pokemonshowdown.com/replay/'+replayid);
+					document.location.replace('https://tppleague.me/replay/'+replayid);
 					return;
 				}
 			}
@@ -2472,7 +2472,7 @@
 		initialize: function(data) {
 			var buf = '';
 			buf = '<p>Your replay has been uploaded! It\'s available at:</p>';
-			buf += '<p><a href="http://replay.pokemonshowdown.com/'+data.id+'" target="_blank">http://replay.pokemonshowdown.com/'+data.id+'</a></p>';
+			buf += '<p><a href="https://tppleague.me/replay/'+data.id+'" target="_blank">http://tppleague.me/replay/'+data.id+'</a></p>';
 			buf += '<p><button type="submit" class="autofocus"><strong>Open</strong></button> <button name="close">Cancel</button></p>';
 			this.$el.html(buf).css('max-width', 620);
 		},
@@ -2480,7 +2480,7 @@
 			this.close();
 		},
 		submit: function(i) {
-			app.openInNewWindow('http://pokemonshowdown.com/replay/battle-'+this.id);
+			app.openInNewWindow('http://tppleague.me/battle-'+this.id);
 			this.close();
 		}
 	});
