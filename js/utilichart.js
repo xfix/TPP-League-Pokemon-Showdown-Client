@@ -67,12 +67,13 @@ function BattleChart()
 		var text = '<li class="result'+(isFirst?' firstresult':'')+'"><a'+attrs+' data-name="'+Tools.escapeHTML(pokemon.species)+'">';
 
 		var baseTemplate = Tools.getTemplate(pokemon.baseSpecies);
-		var tier = '';
-		if (!baseTemplate.tpp) {
-			tier = 'T-Rule '
+		var tier = pokemon.tier;
+		if (!tier) {
+			tier = baseTemplate.tier || 'Illegal';
 		}
-		tier += pokemon.tier;
-		if (!tier) tier = baseTemplate.tier || 'Illegal';
+		if (!baseTemplate.tpp) {
+			tier = 'T-Rule ' + tier;
+		}
 
 		text += '<span class="col numcol"><span class="tiercol">'+tier+'</span></span> ';
 
