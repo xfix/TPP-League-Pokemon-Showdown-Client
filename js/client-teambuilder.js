@@ -1257,7 +1257,7 @@
 			pokemon: function(pokemon) {
 				if (!pokemon) {
 					if (this.curTeam) {
-						if (this.curTeam.format === 'TPP League') {
+						if (this.curTeam.format === 'Gym Battle') {
 							return [
 								'OU', 'Uber', 'BL', 'UU', 'BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC',
 								'T-Rule OU', 'T-Rule BL', 'T-Rule UU', 'T-Rule BL2',
@@ -1277,7 +1277,7 @@
 				}
 				var tierData = exports.BattleFormatsData[toId(pokemon.species)];
 				if (!tierData) return 'Illegal';
-				if (this.curTeam.format === 'TPP League') {
+				if (this.curTeam.format === 'Gym Battle') {
 					var tpp = tierData.tpp;
 					if (!tpp) {
 						return 'T-Rule ' + tierData.tier;
