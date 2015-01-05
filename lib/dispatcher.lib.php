@@ -58,7 +58,7 @@ class ActionDispatcher {
 	}
 
 	public function findServer() {
-		if (in_array($this->getIp(), array('127.0.0.1', '::1'))) {
+		if (in_array($this->getIp(), array('127.0.0.1', '::1', '206.253.167.172'))) {
 			return array('id' => 'tppleague');
 		}
 	}
@@ -261,7 +261,6 @@ class DefaultActionHandler {
 	public function prepreplay($dispatcher, &$reqData, &$out) {
 		global $psdb, $users;
 		// include_once dirname(__FILE__) . '/ntbb-ladder.lib.php'; // not clear if this is needed
-
 		$server = $dispatcher->findServer();
 		if (!$server) {
 			$out['errorip'] = $dispatcher->getIp();

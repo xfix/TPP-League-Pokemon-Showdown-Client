@@ -33,9 +33,9 @@ function h($text) {
 ?>
 <!DOCTYPE html>
 <title><?=h($title)?></title>
-<link rel=stylesheet href="style/font-awesome.css" />
-<link rel=stylesheet href="style/battle.css">
-<link rel=stylesheet href="style/replay.css">
+<link rel=stylesheet href="/style/font-awesome.css" />
+<link rel=stylesheet href="/style/battle.css">
+<link rel=stylesheet href="/style/replay.css">
 <a href="https://www.reddit.com/r/tppleague"><div class="pfx-topbar"></div></a>
 
 	<div class="pfx-panel"><div class="pfx-body" style="max-width:1180px">
@@ -67,19 +67,19 @@ function h($text) {
 		</div>
 <script type="text/plain" class=log><?=str_replace('/', '\/', $log)?></script>
 
-<script src="js/lib/jquery-1.11.0.min.js"></script>
-<script src="js/lib/lodash.compat.js"></script>
-<script src="js/lib/backbone.js"></script>
-<script src="js/panels.js"></script>
+<script src="/js/lib/jquery-1.11.0.min.js"></script>
+<script src="/js/lib/lodash.compat.js"></script>
+<script src="/js/lib/backbone.js"></script>
+<script src="/js/panels.js"></script>
 
-<script src="js/lib/jquery-cookie.js"></script>
-<script src="js/lib/html-sanitizer-minified.js"></script>
-<script src="js/lib/soundmanager2-nodebug-jsmin.js?"></script>
+<script src="/js/lib/jquery-cookie.js"></script>
+<script src="/js/lib/html-sanitizer-minified.js"></script>
+<script src="/js/lib/soundmanager2-nodebug-jsmin.js?"></script>
 <script>
-	soundManager.setup({url: 'swf/'});
+	soundManager.setup({url: '/swf/'});
 </script>
-<script src="js/battledata.js"></script>
-<script src="data/pokedex-mini.js"></script>
-<script src="data/graphics.js"></script>
-<script src="js/battle.js"></script>
-<script src="js/replay.js"></script>
+<script src="/js/battledata.js"></script>
+<script src="/data/pokedex-mini.js"></script>
+<script src="/data/graphics.js"></script>
+<script src="/js/battle.js"></script>
+<script src="/js/replay.js"></script>

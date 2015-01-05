@@ -19,8 +19,8 @@
 	// address bar is `Config.origindomain`.
 	Config.defaultserver = {
 		id: 'tppleague',
-		host: '206.253.167.172',
-		port: 8000,
+		host: 'tppleague.me',
+		port: 443,
 		httpport: 80,
 		registered: true
 	};
@@ -423,7 +423,7 @@
 						document.location.pathname);
 				} */
 				// Renew the `showdown_ssl` cookie.
-				$.cookie('showdown_ssl', 1, {expires: 365*3});
+				//$.cookie('showdown_ssl', 1, {expires: 365*3});
 			} else if (!$.cookie('showdown_ssl')) {
 				// localStorage is currently located on the HTTP origin.
 
@@ -454,7 +454,7 @@
 								document.location.pathname);
 						}
 					});
-					var $iframe = $('<iframe src="https://play.pokemonshowdown.com/crossprotocol.html" style="display: none;"></iframe>');
+					var $iframe = $('<iframe src="https://tppleague.me/crossprotocol.html" style="display: none;"></iframe>');
 					$('body').append($iframe);
 					return;
 				}

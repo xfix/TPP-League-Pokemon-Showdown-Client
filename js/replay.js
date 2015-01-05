@@ -152,7 +152,7 @@ var App = Panels.App.extend({
 	states: {
 		'*path': ReplaySidebarPanel, // catch-all default
 
-		':replay': ReplayPanel,
+		'replay/:replay': ReplayPanel,
 		'search': ReplaySidebarPanel,
 		'search:query': ReplaySidebarPanel,
 		'search/:query': ReplaySidebarPanel
