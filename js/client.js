@@ -20,7 +20,8 @@
 	Config.defaultserver = {
 		id: 'tppleague',
 		host: '206.253.167.172',
-		port: 80,
+		port: 8000,
+		httpport: 80,
 		registered: true
 	};
 	Config.sockjsprefix = '/showdown';
