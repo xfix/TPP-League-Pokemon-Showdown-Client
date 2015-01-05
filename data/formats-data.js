@@ -2562,6 +2562,7 @@ exports.BattleFormatsData = {
 		tier: "NFE"
 	},
 	exploud: {
+		tpp: true,
 		randomBattleMoves: ["boomburst","fireblast","icebeam","surf","focusblast"],
 		randomDoubleBattleMoves: ["boomburst","fireblast","icebeam","surf","focusblast","protect","hypervoice"],
 		eventPokemon: [
@@ -2692,6 +2693,7 @@ exports.BattleFormatsData = {
 		tier: "LC"
 	},
 	manectric: {
+		tpp: true,
 		randomBattleMoves: ["voltswitch","thunderbolt","hiddenpowerice","hiddenpowergrass","overheat","flamethrower"],
 		randomDoubleBattleMoves: ["voltswitch","thunderbolt","hiddenpowerice","hiddenpowergrass","overheat","flamethrower","snarl","protect"],
 		eventPokemon: [
@@ -3289,6 +3291,7 @@ exports.BattleFormatsData = {
 		requiredItem: "Latiasite"
 	},
 	latios: {
+		tpp: true,
 		randomBattleMoves: ["dracometeor","dragonpulse","surf","thunderbolt","psyshock","roost","trick","calmmind","defog"],
 		randomDoubleBattleMoves: ["dracometeor","dragonpulse","surf","thunderbolt","psyshock","substitute","trick","tailwind","protect","hiddenpowerfire"],
 		eventPokemon: [
