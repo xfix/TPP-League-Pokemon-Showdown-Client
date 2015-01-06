@@ -64,6 +64,9 @@ class Users {
 		if ($hash) {
 			return password_verify($password, $hash);
 		}
+		else {
+			return NULL;
+		}
 	}
 
 	function userid($name) {
@@ -78,10 +81,14 @@ class Users {
 		if ($userid === "" || substr($userid, 0, 5) === 'guest') {
 			return ";;";
 		}
-		if ((!$user['loggedin'] || $userid !== $user['userid']) && $this->passwordVerify($userid, "") !== NULL) {
+		$status = 2;
+		if ($this->passwordVerify($userid, "") === NULL) {
+			$status = 1;
+		}
+		else if (!$user['loggedin'] || $userid !== $user['userid']) {
 			return ";";
 		}
-		$message = "$challenge_value,$userid,2," . time() . ",tokenhost";
+		$message = "$challenge_value,$userid,$status," . time() . ",tokenhost";
 		openssl_sign($message, $signature, $pkey, OPENSSL_ALGO_SHA1);
 		return $message . ';' . bin2hex($signature);
 	}
