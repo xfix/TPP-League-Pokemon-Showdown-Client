@@ -5,6 +5,29 @@ if (!isset($_GET['id'])) {
 	die('No replay ID specified.');
 }
 
+if (strpos($_GET['id'], '-') === FALSE) {
+	$query = '
+	SELECT replayid, rp2.userid, to_char(time, \'YYYY-MM-DD HH:MI\')
+	FROM replays
+	LEFT JOIN replay_players AS rp1 USING (replayid)
+	LEFT JOIN replay_players AS rp2 USING (replayid)
+	WHERE rp1.userid = $1 AND rp2.userid <> rp1.userid
+	ORDER BY time DESC, replayid DESC;';
+
+	$result = pg_query_params($query, array($_GET['id']));
+	$array_result = array();
+
+	while (list ($replayid, $otherplayer, $time) = pg_fetch_row($result)) {
+		$array_result[] = '<a href="/replay/' . htmlspecialchars(rawurlencode($replayid)) . '">' . htmlspecialchars($replayid) . '</a> - ' . htmlspecialchars($_GET['id']) . ' vs ' . htmlspecialchars($otherplayer) . ' (' . htmlspecialchars($time) . ')';
+	}
+
+	if (!$array_result) {
+		die('No results.');
+	}
+	echo '<!doctype html><title>', htmlspecialchars($_GET['id']), ' replays</title><ul><li>', implode('<li>', $array_result), '</ul>';
+	die;
+}
+
 $id = $_GET['id'];
 
 $result = pg_query_params('SELECT format, log FROM replays
