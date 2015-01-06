@@ -71,7 +71,10 @@ function BattleChart()
 		if (!tier) {
 			tier = baseTemplate.tier || 'Illegal';
 		}
-		if (!baseTemplate.tpp) {
+		if (tier === 'Unreleased') {
+			tier = '?'
+		}
+		else if (tier !== 'CAP' && !baseTemplate.tpp) {
 			tier = 'T-Rule ' + tier;
 		}
 
