@@ -1,0 +1,1 @@
+soundManager.setup({url: 'swf/'});
