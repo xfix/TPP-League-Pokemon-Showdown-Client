@@ -922,25 +922,8 @@
 			var buf = '';
 			buf += '<p style="text-align:center"><img src="' + Tools.resourcePrefix + 'pokemonshowdownbeta.png" alt="Pok&eacute;mon Showdown (beta)" /></p>';
 			if (Config.version) buf += '<p style="text-align:center;color:#555555"><small>Version <strong>'+Config.version+'</strong></small></p>';
-			buf += '<h2>Owner</h2>';
-			buf += '<ul><li><p><a href="http://guangcongluo.com/" target="_blank" class="subtle"><strong>Guangcong Luo</strong> [Zarel]</a> <small>&ndash; Development, Design</small></p></li></ul>';
-			buf += '<h2>Staff</h2>';
-			buf += '<ul><li><p><strong>Hugh Gordon</strong> [V4] <small>&ndash; Research (game mechanics), Development</small></p></li>';
-			buf += '<li><p><strong>Juanma Serrano</strong> [Joim] <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><strong>Leonardo Julca</strong> [Slayer95] <small>&ndash; Development</small></p></li>';
-			buf += '<li><p>[<strong>The Immortal</strong>] <small>&ndash; Development</small></p></li></ul>';
-			buf += '<h2>Retired Staff</h2>';
-			buf += '<ul><li><p><a href="http://meltsner.com/" target="_blank" class="subtle"><strong>Bill Meltsner</strong> [bmelts]</a> <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><a href="https://cathyjf.com/" target="_blank" class="subtle"><strong>Cathy J. Fitzpatrick</strong> [cathyjf]</a> <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><strong>Mathieu Dias-Martins</strong> [Marty-D] <small>&ndash; Research (game mechanics), Development</small></p></li></ul>';
-			buf += '<h2>Contributors</h2>';
-			buf += '<ul><li><p><strong>Andrew Goodsell</strong> [Zracknel] <small>&ndash; Art (battle weather backdrops)</small></p></li>';
-			buf += '<li><p><strong>Ben Frengley</strong> [TalkTakesTime] <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><strong>Cody Thompson</strong> [Rising_Dusk] <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><strong>Quinton Lee</strong> [sirDonovan] <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><strong>Robin Vandenbrande</strong> [Quinella] <small>&ndash; Development</small></p></li></ul>';
-			buf += '<h2>More</h2>';
-			buf += '<ul><li><p><a href="http://pokemonshowdown.com/credits" target="_blank">Full Credits List</a></p></li></ul>';
+			buf += '<ul><li><p><a href="http://pokemonshowdown.com/credits">Pok&eacute;mon Showdown developers</a> <small>&ndash; Almost everything</small>';
+			buf += '<li><p><a href="http://dicesukeinuzuka.deviantart.com/">DicesukeInuzuka</a> <small>&ndash; Art (<a href="http://dicesukeinuzuka.deviantart.com/art/Lotad-Pond-Commission-171553529">Lotad background</a>)</small>';
 			buf += '<p class="buttonbar"><button name="close" class="autofocus"><strong>They sound like cool people</strong></button></p>';
 			this.$el.addClass('credits').html(buf);
 		}
