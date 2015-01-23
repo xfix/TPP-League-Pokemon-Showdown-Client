@@ -3906,6 +3906,7 @@ exports.BattleFormatsData = {
 		tier: "NU"
 	},
 	azelf: {
+		tpp: true,
 		randomBattleMoves: ["nastyplot","psychic","fireblast","grassknot","thunderbolt","icepunch","knockoff","zenheadbutt","uturn","trick","taunt","stealthrock","explosion"],
 		randomDoubleBattleMoves: ["nastyplot","psychic","fireblast","grassknot","thunderbolt","icepunch","knockoff","zenheadbutt","uturn","trick","taunt","protect"],
 		tier: "UU"
