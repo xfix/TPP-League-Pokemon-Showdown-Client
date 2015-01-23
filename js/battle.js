@@ -2107,7 +2107,6 @@ var Battle = (function () {
 		// 5 = seeking
 		this.playbackState = 0;
 
-		this.backdropImage = BattleBackdrops[0];
 		this.backdropImage = BattleBackdrops[Math.floor(Math.random() * BattleBackdrops.length)];
 
 		this.bgm = null;
@@ -2193,7 +2192,7 @@ var Battle = (function () {
 		this.gen = 6;
 	};
 	Battle.prototype.updateGen = function () {
-		if (this.gen < 4) this.backdropImage = '';
+		if (this.gen < 3) this.backdropImage = 'bg-gen1.png';
 		else if (this.gen < 6) this.backdropImage = 'bg.jpg';
 		if (this.bgElem) this.bgElem.css('background-image','url(' + Tools.resourcePrefix + 'fx/' + this.backdropImage + ')');
 	};
@@ -4388,8 +4387,15 @@ var Battle = (function () {
 					poke.removeVolatile('stockpile3');
 					actions += "" + poke.getName() + "'s stockpiled effect wore off!";
 					break;
+				case 'bind':
+				case 'wrap':
+				case 'clamp':
+				case 'whirlpool':
+				case 'firespin':
+				case 'magmastorm':
+				case 'sandtomb':
 				case 'infestation':
-					actions += '' + poke.getName() + ' was freed from Infestation!';
+					actions += '' + poke.getName() + ' was freed from ' + effect.name + '!';
 					break;
 				default:
 					if (effect.effectType === 'Move') {
@@ -5260,9 +5266,9 @@ var Battle = (function () {
 			}
 			var message = args.join('|');
 			if (message.substr(0,2) === '//') {
-				this.log('<div class="chat"><strong style="' + hashColor(toUserid(name)) + '">' + clickableName + ':</strong> <em>' + Tools.parseMessage(message.substr(1), name) + '</em></div>', preempt);
+				this.log('<div class="chat chatmessage-' + toId(name) + '"><strong style="' + hashColor(toUserid(name)) + '">' + clickableName + ':</strong> <em>' + Tools.parseMessage(message.substr(1)) + '</em></div>', preempt);
 			} else if (message.substr(0,4).toLowerCase() === '/me ') {
-				this.log('<div class="chat"><strong style="' + hashColor(toUserid(name)) + '">&bull;</strong> <em>' + clickableName + ' <i>' + Tools.parseMessage(message.substr(4), name) + '</i></em></div>', preempt);
+				this.log('<div class="chat chatmessage-' + toId(name) + '"><strong style="' + hashColor(toUserid(name)) + '">&bull;</strong> <em>' + clickableName + ' <i>' + Tools.parseMessage(message.substr(4)) + '</i></em></div>', preempt);
 			} else if (message.substr(0,14).toLowerCase() === '/data-pokemon ') {
 				if (window.Chart) this.log('<div class="chat"><ul class=\"utilichart\">'+Chart.pokemonRow(Tools.getTemplate(message.substr(14)),'',{})+'<li style=\"clear:both\"></li></ul></div>', preempt);
 			} else if (message.substr(0,11).toLowerCase() === '/data-item ') {
@@ -5272,7 +5278,7 @@ var Battle = (function () {
 			} else if (message.substr(0,11).toLowerCase() === '/data-move ') {
 				if (window.Chart) this.log('<div class="chat"><ul class=\"utilichart\">'+Chart.moveRow(Tools.getMove(message.substr(11)),'',{})+'<li style=\"clear:both\"></li></ul></div>', preempt);
 			} else {
-				this.log('<div class="chat"><strong style="' + hashColor(toUserid(name)) + '" class="username" data-name="'+Tools.escapeHTML(name)+'">' + clickableName + ':</strong> <em>' + Tools.parseMessage(message, name) + '</em></div>', preempt);
+				this.log('<div class="chat chatmessage-' + toId(name) + '"><strong style="' + hashColor(toUserid(name)) + '" class="username" data-name="'+Tools.escapeHTML(name)+'">' + clickableName + ':</strong> <em>' + Tools.parseMessage(message) + '</em></div>', preempt);
 			}
 			break;
 		case 'chatmsg':
@@ -5458,6 +5464,13 @@ var Battle = (function () {
 			this.log('<div class="debug"><div class="chat"><small style="color:#999">[DEBUG] ' + Tools.escapeHTML(name) + '.</small></div></div>', preempt);
 			break;
 		case 'unlink':
+			var user = toId(args[2]) || toId(args[1]);
+			var $messages = $('.chatmessage-' + user);
+			$messages.find('a').contents().unwrap();
+			if (args[2]) {
+				$messages.hide();
+				this.log('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>Some messages were hidden, click here to restore them.</small></button></div>');
+			}
 			break;
 		default:
 			this.logConsole('unknown command: ' + args[0]);

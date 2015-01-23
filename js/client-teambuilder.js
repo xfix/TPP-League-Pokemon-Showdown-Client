@@ -1108,6 +1108,7 @@
 					this.updateStatGraph();
 				}
 			}
+			this.save();
 		},
 		statSlide: function(val, slider) {
 			var stat = slider.inputNode[0].name.substr(9);

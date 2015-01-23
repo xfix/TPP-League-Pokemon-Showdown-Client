@@ -607,18 +607,35 @@
 			case 'rating':
 			case 'ladder':
 				if (!target) target = app.user.get('userid');
+
+				var targets = target.split(',');
+				var formatTargeting = false;
+				var formats = {};
+				for (var i = 1, len = targets.length; i < len; i++) {
+					formats[toId(targets[i])] = 1;
+					formatTargeting = true;
+				}
+
 				var self = this;
-				$.get(app.user.getActionPHP() + '?act=ladderget&user='+encodeURIComponent(target), Tools.safeJSON(function(data) {
+				$.get(app.user.getActionPHP() + '?act=ladderget&user='+encodeURIComponent(targets[0]), Tools.safeJSON(function(data) {
 					try {
 						var buffer = '<div class="ladder"><table>';
-						buffer += '<tr><td colspan="8">User: <strong>'+target+'</strong></td></tr>';
+						buffer += '<tr><td colspan="8">User: <strong>'+targets[0]+'</strong></td></tr>';
 						if (!data.length) {
 							buffer += '<tr><td colspan="8"><em>This user has not played any ladder games yet.</em></td></tr>';
 						} else {
 							buffer += '<tr><th>Format</th><th><abbr title="Elo rating">Elo</abbr></th><th><abbr title="user\'s percentage chance of winning a random battle (aka GLIXARE)">GXE</abbr></th><th><abbr title="Glicko-1 rating: rating±deviation">Glicko-1</abbr></th><th>COIL</th><th>W</th><th>L</th><th>T</th></tr>';
-							for (var i=0; i<data.length; i++) {
+							var hiddenFormats = [];
+							var formatLength = data.length;
+							for (var i=0; i<formatLength; i++) {
 								var row = data[i];
-								buffer += '<tr><td>'+row.formatid+'</td><td><strong>'+Math.round(row.acre)+'</strong></td><td>'+Math.round(row.gxe,1)+'</td><td>';
+								if (!formatTargeting || formats[row.formatid]) {
+									buffer += '<tr>';
+								} else {
+									buffer += '<tr class="hidden">';
+									hiddenFormats.push(row.formatid);
+								}
+								buffer += '<td>'+row.formatid+'</td><td><strong>'+Math.round(row.acre)+'</strong></td><td>'+Math.round(row.gxe,1)+'</td><td>';
 								if (row.rprd > 100) {
 									buffer += '<span><em>'+Math.round(row.rpr)+'<small> &#177; '+Math.round(row.rprd)+'</small></em> <small>(provisional)</small></span>';
 								} else {
@@ -640,10 +657,19 @@
 								}
 								buffer += '</td><td>'+row.w+'</td><td>'+row.l+'</td><td>'+row.t+'</td></tr>';
 							}
+							if (hiddenFormats.length) {
+								if (hiddenFormats.length === formatLength) {
+									buffer += '<tr class="no-matches"><td colspan="8"><em>This user has not played any ladder games that match the format targeting.</em></td></tr>';
+								}
+
+								buffer += '<tr><td colspan="8"><button name="showOtherFormats">' + hiddenFormats.slice(0, 3).join(', ') + (hiddenFormats.length > 3 ? ' and ' + (hiddenFormats.length - 3) + ' other formats' : '') + ' not shown</button></td></tr>';
+							}
 						}
 						buffer += '</table></div>';
 						self.add('|raw|'+buffer);
-					} catch(e) {}
+					} catch(e) {
+						self.add('|raw|Error: corrupted ranking data');
+					}
 				}), 'text');
 				return false;
 
@@ -751,6 +777,20 @@
 			var name = data.name || this.challengeData.userid;
 			if (/^[a-z0-9]/i.test(name)) name = ' ' + name;
 			app.rooms[''].challenge(name, this.challengeData.format, this.challengeData.team);
+		},
+
+		showOtherFormats: function (d, target) {
+			var autoscroll = (this.$chatFrame.scrollTop() + 60 >= this.$chat.height() - this.$chatFrame.height());
+
+			var $target = $(target);
+			var $table = $target.closest('table');
+			$table.find('tr.hidden').show();
+			$table.find('tr.no-matches').remove();
+			$target.closest('tr').remove();
+
+			if (autoscroll) {
+				this.$chatFrame.scrollTop(this.$chat.height());
+			}
 		}
 	});
 
@@ -953,9 +993,13 @@
 				case 'unlink':
 					// note: this message has global effects, but it's handled here
 					// so that it can be included in the scrollback buffer.
-					$('.message-link-' + toId(row[1])).each(function() {
-						$(this).replaceWith($(this).html());
-					});
+					var user = toId(row[2]) || toId(row[1]);
+					var $messages = $('.chatmessage-' + user);
+					$messages.find('a').contents().unwrap();
+					if (row[2]) {
+						$messages.hide();
+						if (this.$chat.find('.chatmessage-' + user).length) this.$chat.append('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>Some messages were hidden, click here to restore them.</small></button></div>');
+					}
 					break;
 
 				case 'tournament':
@@ -974,6 +1018,11 @@
 					break;
 				}
 			}
+		},
+		revealMessages: function(user) {
+			var $messages = $('.chatmessage-' + user);
+			$messages.show();
+			$messages.find('button').parent().remove();
 		},
 		tournamentButton: function(val, button) {
 			if (this.tournamentBox) this.tournamentBox[$(button).data('type')](val, button);
@@ -1112,23 +1161,23 @@
 				}
 			}
 			var highlight = isHighlighted ? ' highlighted' : '';
-			var chatDiv = '<div class="chat' + highlight + '">';
+			var chatDiv = '<div class="chat chatmessage-' + toId(name) + highlight + '">';
 			var timestamp = ChatRoom.getTimestamp('lobby', deltatime);
 			if (name.charAt(0) !== ' ') clickableName = '<small>' + Tools.escapeHTML(name.charAt(0)) + '</small>'+clickableName;
 			var self = this;
 			var outputChat = function() {
-				self.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <em' + (name.substr(1) === app.user.get('name') ? ' class="mine"' : '') + '>' + Tools.parseMessage(message, name) + '</em></div>');
+				self.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <em' + (name.substr(1) === app.user.get('name') ? ' class="mine"' : '') + '>' + Tools.parseMessage(message) + '</em></div>');
 			};
 			var showme = !((Tools.prefs('chatformatting') || {}).hideme);
 			if (pm) {
 				var pmuserid = toUserid(pm);
 				var oName = pm;
 				if (pmuserid === app.user.get('userid')) oName = name;
-				this.$chat.append('<div class="chat">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <span class="message-pm"><i class="pmnote" data-name="' + Tools.escapeHTML(oName) + '">(Private to ' + Tools.escapeHTML(pm) + ')</i> ' + Tools.parseMessage(message, name) + '</span></div>');
+				this.$chat.append('<div class="chat chatmessage-' + toId(name) + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <span class="message-pm"><i class="pmnote" data-name="' + Tools.escapeHTML(oName) + '">(Private to ' + Tools.escapeHTML(pm) + ')</i> ' + Tools.parseMessage(message) + '</span></div>');
 			} else if (message.substr(0,4) === '/me ') {
 				message = message.substr(4);
 				if (showme) {
-					this.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">&bull;</strong> <em' + (name.substr(1) === app.user.get('name') ? ' class="mine"' : '') + '>' + clickableName + ' <i>' + Tools.parseMessage(message, name) + '</i></em></div>');
+					this.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">&bull;</strong> <em' + (name.substr(1) === app.user.get('name') ? ' class="mine"' : '') + '>' + clickableName + ' <i>' + Tools.parseMessage(message) + '</i></em></div>');
 				} else {
 					outputChat();
 				}
@@ -1136,13 +1185,13 @@
 			} else if (message.substr(0,5) === '/mee ') {
 				message = message.substr(5);
 				if (showme) {
-					this.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">&bull;</strong> <em' + (name.substr(1) === app.user.get('name') ? ' class="mine"' : '') + '>' + clickableName + '<i>' + Tools.parseMessage(message, name) + '</i></em></div>');
+					this.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">&bull;</strong> <em' + (name.substr(1) === app.user.get('name') ? ' class="mine"' : '') + '>' + clickableName + '<i>' + Tools.parseMessage(message) + '</i></em></div>');
 				} else {
 					outputChat();
 				}
 				Storage.logChat(this.id, '* '+name+message);
 			} else if (message.substr(0,10) === '/announce ') {
-				this.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <span class="message-announce">' + Tools.parseMessage(message.substr(10), name) + '</span></div>');
+				this.$chat.append(chatDiv + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <span class="message-announce">' + Tools.parseMessage(message.substr(10)) + '</span></div>');
 				Storage.logChat(this.id, ''+name+': /announce '+message);
 			} else if (message.substr(0,14) === '/data-pokemon ') {
 				this.$chat.append('<div class="message"><ul class="utilichart">'+Chart.pokemonRow(Tools.getTemplate(message.substr(14)),'',{})+'<li style=\"clear:both\"></li></ul></div>');
