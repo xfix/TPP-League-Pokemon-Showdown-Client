@@ -6,7 +6,7 @@ var Config = {
 		lasszeowx: {color: '#0bb'},
 		tpplae4lance: {color: '#f55'},
 		darkfiregamer: {color: 'black'},
-		poomph: {color: '#A83838'},
+		poomph: {color: '#393091'},
 		trainerred:{color:'red'}
 	}
 };
