@@ -685,7 +685,7 @@ BattlePokemonSprites = {
 	"vanillish": {num:583, front:{ani:{w:58,h:85}}, back:{ani:{w:51,h:85}}},
 	"vanilluxe": {num:584, front:{ani:{w:83,h:89}}, back:{ani:{w:67,h:90}}},
 	"deerling": {num:585, front:{ani:{w:46,h:71}}, back:{ani:{w:52,h:70}}},
-	"sawsbuck": {num:586, front:{ani:{w:53,h:100}}, back:{ani:{w:62,h:98}}},
+	"sawsbuck": {num:586, front:{ani:{w:57,h:101}}, back:{ani:{w:63,h:99}}},
 	"emolga": {num:587, front:{ani:{w:66,h:59}}, back:{ani:{w:78,h:60}}},
 	"karrablast": {num:588, front:{ani:{w:44,h:67}}, back:{ani:{w:38,h:67}}},
 	"escavalier": {num:589, front:{ani:{w:105,h:101}}, back:{ani:{w:108,h:99}}},
