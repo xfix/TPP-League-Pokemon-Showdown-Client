@@ -5645,5 +5645,10 @@ exports.BattleFormatsData = {
 		randomBattleMoves: ["aurasphere","darkpulse","taunt","painsplit","substitute","hiddenpowerice","vacuumwave"],
 		isNonstandard: true,
 		tier: "CAP"
+	},
+	gumblegoose: {
+		randomBattleMoves: ["cottonguard","dragonpulse","aurasphere","freezedry","roost","lightscreen","reflect","quiverdance","hurricane","originpulse"],
+		isNonstandard: true,
+		tier: "CAP"
 	}
 };
