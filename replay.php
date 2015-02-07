@@ -56,6 +56,7 @@ function h($text) {
 ?>
 <!DOCTYPE html>
 <title><?=h($title)?></title>
+<meta charset=utf-8>
 <link rel=stylesheet href="/style/font-awesome.css" />
 <link rel=stylesheet href="/style/battle.css">
 <link rel=stylesheet href="/style/replay.css">
