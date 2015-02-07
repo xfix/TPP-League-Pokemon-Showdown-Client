@@ -327,7 +327,7 @@ var Tools = {
 		str = str.replace(/\~\~([^< ](?:[^<]*?[^< ])?)\~\~/g,
 				options.hidestrikethrough ? '$1' : '<s>$1</s>');
 		// Twitch emotes
-		str = str.replace(/\b(Kappa|OpieOP|Keepo|TriHard|FailFish|BrokeBack|OneHand|PogChamp|DansGame|SwiftRage|lffnMyB)\b/g,
+		str = str.replace(/\b(Kappa|OpieOP|Keepo|TriHard|FailFish|BrokeBack|OneHand|PogChamp|DansGame|SwiftRage|lffnMyB|PJSalt)\b/g,
 				'<img src="fx/emotes/$1.png" alt="$1" title="$1">');
 		// linking of URIs
 		if (!options.hidelinks) {
