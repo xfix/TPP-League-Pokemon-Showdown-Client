@@ -1566,7 +1566,7 @@
 			if (atLeastOne) buf += '</ul>';
 			if (sideBuf) {
 				if (app.curSideRoom) {
-					buf += '<ul class="siderooms" style="float:none;margin-left:'+(app.curSideRoom.leftWidth-144)+'px">'+sideBuf+'</ul>';
+					buf += '<ul class="siderooms" style="float:none;margin-left:'+(app.curSideRoom.leftWidth-188)+'px">'+sideBuf+'</ul>';
 				} else {
 					buf += '<ul>'+sideBuf+'</ul>';
 				}
