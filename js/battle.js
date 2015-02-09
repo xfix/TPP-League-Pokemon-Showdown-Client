@@ -4690,6 +4690,9 @@ var Battle = (function () {
 				case 'focusband':
 					actions += '' + poke.getName() + " hung on using its Focus Band!";
 					break;
+				case 'safetygoggles':
+					actions += '' + poke.getName() + " is not affected by " + Tools.escapeHTML(args[3]) + " thanks to its Safety Goggles!";
+					break;
 				default:
 					actions += "" + poke.getName() + "'s " + effect.name + " activated!";
 				}
@@ -5464,12 +5467,14 @@ var Battle = (function () {
 			this.log('<div class="debug"><div class="chat"><small style="color:#999">[DEBUG] ' + Tools.escapeHTML(name) + '.</small></div></div>', preempt);
 			break;
 		case 'unlink':
+			if (Tools.prefs('nounlink')) return;
 			var user = toId(args[2]) || toId(args[1]);
 			var $messages = $('.chatmessage-' + user);
+			if (!$messages.length) break;
 			$messages.find('a').contents().unwrap();
 			if (args[2]) {
 				$messages.hide();
-				this.log('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>Some messages were hidden, click here to restore them.</small></button></div>');
+				this.log('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>' + $messages.length + ' message' + ($messages.length > 1 ? 's were' : ' was') + ' hidden, click here to restore.</small></button></div>');
 			}
 			break;
 		default:

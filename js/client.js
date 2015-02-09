@@ -2,15 +2,73 @@
 
 	if (window.nodewebkit) {
 		window.gui = require('nw.gui');
-		$('body').on('click', 'a', function(e) {
-			if (this.target === '_blank') {
-				gui.Shell.openExternal(this.href);
+		window.nwWindow = gui.Window.get();
+	}
+	$(document).on('click', 'a', function(e) {
+		if (this.href && this.className !== 'closebutton' && (this.href.substr(0, 32) === 'http://play.pokemonshowdown.com/' || this.href.substr(0, 33) === 'https://play.pokemonshowdown.com/')) {
+			var target;
+			if (this.href.charAt(4) === ':') {
+				target = this.href.substr(32);
+			} else {
+				target = this.href.substr(33);
+			}
+			if (target.indexOf('/') < 0 && target.indexOf('.') < 0) {
+				window.app.tryJoinRoom(target);
 				e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
+				return;
 			}
+		}
+		if (window.nodewebkit && this.target === '_blank') {
+			gui.Shell.openExternal(this.href);
+			e.preventDefault();
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+		}
+	});
+	if (window.nodewebkit) {
+		$(document).on("contextmenu", function(e) {
+			e.preventDefault();
+			var target = e.target;
+			var isEditable = (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT');
+			var menu = new gui.Menu();
+
+			if (isEditable) menu.append(new gui.MenuItem({
+				label: "Cut",
+				click: function() {
+					document.execCommand("cut");
+				}
+			}));
+			var link = $(target).closest('a')[0];
+			if (link) menu.append(new gui.MenuItem({
+				label: "Copy Link URL",
+				click: function() {
+					gui.Clipboard.get().set(link.href);
+				}
+			}));
+			if (target.tagName === 'IMG') menu.append(new gui.MenuItem({
+				label: "Copy Image URL",
+				click: function() {
+					gui.Clipboard.get().set(target.src);
+				}
+			}));
+			menu.append(new gui.MenuItem({
+				label: "Copy",
+				click: function() {
+					document.execCommand("copy");
+				}
+			}));
+			if (isEditable) menu.append(new gui.MenuItem({
+				label: "Paste",
+				enabled: !!gui.Clipboard.get().get(),
+				click: function() {
+					document.execCommand("paste");
+				}
+			}));
+
+			menu.popup(e.originalEvent.x, e.originalEvent.y);
 		});
-		window.nwWindow = gui.Window.get();
 	}
 
 	Config.version = '0.9.2';
@@ -1023,6 +1081,9 @@
 					this.fixedWidth = true;
 				}
 			}
+			if (!app.roomsFirstOpen && !this.down && $(window).width() >= 916 && document.location.hostname === 'play.pokemonshowdown.com') {
+				this.addRoom('rooms');
+			}
 			this.updateLayout();
 		},
 		// the currently active room
@@ -1432,7 +1493,9 @@
 			var passedCurRoom = false;
 			var passedCurSideRoom = false;
 
+			var notificationCount = 0;
 			for (var id in app.rooms) {
+				if (app.rooms[id].notifications) notificationCount++;
 				if (!id || id === 'teambuilder' || id === 'ladder') continue;
 				var room = app.rooms[id];
 				var name = '<i class="icon-comment-alt"></i> <span>'+(Tools.escapeHTML(room.title)||(id==='lobby'?'Lobby':id))+'</span>';
@@ -1493,6 +1556,9 @@
 				if (curSideId && $('body').width() < room.minWidth + app.curSideRoom.minWidth) {
 					this.curSideRoomLeft = id;
 				}
+			}
+			if (window.nodewebkit) {
+				if (nwWindow.setBadgeLabel) nwWindow.setBadgeLabel(notificationCount || '');
 			}
 			if (app.supports['rooms']) {
 				sideBuf += '<li><a class="button'+(curId==='rooms'||curSideId==='rooms'?' cur':'')+'" href="'+app.root+'rooms"><i class="icon-plus" style="margin:7px auto -6px auto"></i> <span>&nbsp;</span></a></li>';
@@ -1643,7 +1709,9 @@
 			if (!this.notifications) this.notifications = {};
 			if (app.focused && (this === app.curRoom || this == app.curSideRoom)) {
 				this.notifications[tag] = {};
-			} else if (window.nodewebkit) {
+			} else if (window.nodewebkit && !nwWindow.setBadgeLabel) {
+				// old desktop client
+				// note: window.Notification exists but does nothing
 				nwWindow.requestAttention(true);
 			} else if (window.Notification) {
 				// old one doesn't need to be closed; sending the tag should
@@ -1714,7 +1782,7 @@
 					if (this.notifications[tag].close) this.notifications[tag].close();
 					delete this.notifications[tag];
 				}
-				if (_.isEmpty(this.notifications)) {
+				if (!this.notifications || _.isEmpty(this.notifications)) {
 					this.notifications = null;
 					app.topbar.updateTabbar();
 				}
@@ -1722,9 +1790,10 @@
 			}
 			if (!this.notifications[tag]) return;
 			if (this.notifications[tag].close) this.notifications[tag].close();
+			if (!this.notifications || this.notifications[tag]) return; // avoid infinite recursion
 			if (this.notifications[tag].psAutoclose) {
 				delete this.notifications[tag];
-				if (_.isEmpty(this.notifications)) {
+				if (!this.notifications || _.isEmpty(this.notifications)) {
 					this.notifications = null;
 					app.topbar.updateTabbar();
 				}
@@ -2289,7 +2358,7 @@
 			buf += '<p><label class="optlabel"><input type="checkbox" name="bwgfx"'+(Tools.prefs('bwgfx')?' checked':'')+' /> Enable BW sprites for XY</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="nopastgens"'+(Tools.prefs('nopastgens')?' checked':'')+' /> Use modern sprites for past generations</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="notournaments"'+(Tools.prefs('notournaments')?' checked':'')+' /> Ignore tournaments</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="nolobbypm"'+(Tools.prefs('nolobbypm')?' checked':'')+' /> Don\'t show PMs in lobby chat</label></p>';
+			buf += '<p><label class="optlabel"><input type="checkbox" name="nolobbypm"'+(Tools.prefs('nolobbypm')?' checked':'')+' /> Don\'t show PMs in chat rooms</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="selfhighlight"'+(!Tools.prefs('noselfhighlight')?' checked':'')+'> Highlight when your name is said in chat</label></p>';
 
 			if (window.Notification) {
@@ -2297,7 +2366,7 @@
 			}
 
 			var timestamps = this.timestamps = (Tools.prefs('timestamps') || {});
-			buf += '<p><label class="optlabel">Timestamps in lobby chat: <select name="timestamps-lobby"><option value="off">Off</option><option value="minutes"'+(timestamps.lobby==='minutes'?' selected="selected"':'')+'>[HH:MM]</option><option value="seconds"'+(timestamps.lobby==='seconds'?' selected="selected"':'')+'>[HH:MM:SS]</option></select></label></p>';
+			buf += '<p><label class="optlabel">Timestamps in chat rooms: <select name="timestamps-lobby"><option value="off">Off</option><option value="minutes"'+(timestamps.lobby==='minutes'?' selected="selected"':'')+'>[HH:MM]</option><option value="seconds"'+(timestamps.lobby==='seconds'?' selected="selected"':'')+'>[HH:MM:SS]</option></select></label></p>';
 			buf += '<p><label class="optlabel">Timestamps in PMs: <select name="timestamps-pms"><option value="off">Off</option><option value="minutes"'+(timestamps.pms==='minutes'?' selected="selected"':'')+'>[HH:MM]</option><option value="seconds"'+(timestamps.pms==='seconds'?' selected="selected"':'')+'>[HH:MM:SS]</option></select></label></p>';
 			buf += '<p><label class="optlabel">Chat preferences: <button name="formatting">Edit formatting</button></label></p>';
 
