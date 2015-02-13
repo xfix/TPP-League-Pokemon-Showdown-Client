@@ -17,6 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+function to_id($name) {
+	return preg_replace('/[^a-z0-9]/', '', strtolower($name));
+}
+
 class Replay {
 	function prepUpload($reqData) {
 		$id = $reqData['id'];
@@ -35,7 +39,7 @@ class Replay {
 			VALUES ($1, $2, $3)', array($id, $format, $log));
 
 		pg_query_params('INSERT INTO replay_players (replayid, userid)
-			VALUES ($1, $2), ($1, $3);', array($id, $p1, $p2));
+			VALUES ($1, $2), ($1, $3);', array($id, $p1, to_id($p2)));
 
 		pg_query('COMMIT');
 	}

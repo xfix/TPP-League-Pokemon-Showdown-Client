@@ -1,6 +1,10 @@
 <?php
 $db = pg_connect('dbname=showdown');
 
+function to_id($name) {
+    return preg_replace('/[^a-z0-9]/', '', strtolower($name));
+}
+
 if (!isset($_GET['id'])) {
 	die('No replay ID specified.');
 }
@@ -14,17 +18,18 @@ if (strpos($_GET['id'], '-') === FALSE) {
 	WHERE rp1.userid = $1 AND rp2.userid <> rp1.userid
 	ORDER BY time DESC, replayid DESC;';
 
-	$result = pg_query_params($query, array($_GET['id']));
+	$id = to_id($_GET['id']);
+	$result = pg_query_params($query, array($id));
 	$array_result = array();
 
 	while (list ($replayid, $otherplayer, $time) = pg_fetch_row($result)) {
-		$array_result[] = '<a href="/replay/' . htmlspecialchars(rawurlencode($replayid)) . '">' . htmlspecialchars($replayid) . '</a> - ' . htmlspecialchars($_GET['id']) . ' vs ' . htmlspecialchars($otherplayer) . ' (' . htmlspecialchars($time) . ')';
+		$array_result[] = '<a href="/replay/' . htmlspecialchars(rawurlencode($replayid)) . '">' . htmlspecialchars($replayid) . '</a> - ' . htmlspecialchars($id) . ' vs ' . htmlspecialchars($otherplayer) . ' (' . htmlspecialchars($time) . ')';
 	}
 
 	if (!$array_result) {
 		die('No results.');
 	}
-	echo '<!doctype html><title>', htmlspecialchars($_GET['id']), ' replays</title><ul><li>', implode('<li>', $array_result), '</ul>';
+	echo '<!doctype html><title>', htmlspecialchars($id), ' replays</title><ul><li>', implode('<li>', $array_result), '</ul>';
 	die;
 }
 
