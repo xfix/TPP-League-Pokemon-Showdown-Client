@@ -77,7 +77,7 @@
 	// address bar is `Config.origindomain`.
 	Config.defaultserver = {
 		id: 'tppleague',
-		host: 'tppleague.me',
+		host: 'www.tppleague.me',
 		port: 443,
 		httpport: 80,
 		registered: true
