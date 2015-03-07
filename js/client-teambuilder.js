@@ -1271,6 +1271,7 @@
 								'T-Rule LC Uber', 'T-Rule LC'
 							];
 						}
+						if (this.curTeam.format === 'ubers' || this.curTeam.format === 'anythinggoes') return ['Uber','OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'ou') return ['OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'cap') return ['CAP','OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'uu') return ['UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
