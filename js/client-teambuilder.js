@@ -1309,7 +1309,7 @@
 				if (!this.curSet) return;
 				var speciesid = toId(this.curSet.species);
 				function viable(move) {
-					return exports.BattleFormatsData[speciesid].randomBattleMoves.indexOf(toId(move.name)) !== -1;
+					return (exports.BattleFormatsData[speciesid].randomBattleMoves || []).indexOf(toId(move.name)) !== -1;
 				}
 				if (!move) return ['Usable Moves', 'Moves', 'Usable Sketch Moves', 'Sketch Moves'];
 				var movelist = this.movelist;
