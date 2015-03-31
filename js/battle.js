@@ -5823,7 +5823,7 @@ var Battle = (function () {
 		}
 	};
 	Battle.prototype.preloadBgm = function () {
-		var bgmNum = Math.floor(Math.random() * 2);
+		var bgmNum = Math.floor(Math.random() * 3);
 
 		if (window.forceBgm || window.forceBgm === 0) bgmNum = window.forceBgm;
 		window.bgmNum = bgmNum;
@@ -5839,6 +5839,10 @@ var Battle = (function () {
 		case 1:
 			BattleSound.loadBgm('audio/th8-reimu.mp3', 5120, 98800);
 			this.bgm = 'audio/th8-reimu.mp3';
+			break;
+		case 2:
+			BattleSound.loadBgm('audio/th10-sanae.mp3', 1661, 71111);
+			this.bgm = 'audio/th10-sanae.mp3';
 			break;
 		default:
 			BattleSound.loadBgm('audio/xy-rival.mp3', 7802, 58634);
