@@ -2028,8 +2028,11 @@ var Side = (function () {
 			endure: '<span class="good">Endure</span>',
 			focuspunch: '<span class="neutral">Focusing</span>',
 			powder: '<span class="bad">Powder</span>',
-			ragepowder: '<span class="good">Rage Powder</span>',
-			followme: '<span class="good">Follow Me</span>'
+			ragepowder: '<span class="good">Rage&nbsp;Powder</span>',
+			followme: '<span class="good">Follow&nbsp;Me</span>',
+			// Gen 1
+			lightscreen: '<span class="good">Light&nbsp;Screen</span>',
+			reflect: '<span class="good">Reflect</span>'
 		};
 		for (var i in pokemon.volatiles) {
 			if (typeof statusTable[i] === 'undefined') status += '<span class="neutral">[['+i+']]</span>';
@@ -3031,7 +3034,7 @@ var Battle = (function () {
 			this.message('' + pokemon.getName() + ' can\'t use ' + move.name + ' because of Heal Block!');
 			break;
 		case 'imprison':
-			this.message('' + pokemon.getName() + ' can\'t use the sealed ' + move.name + '!');
+			this.message('' + pokemon.getName() + ' can\'t use its sealed ' + move.name + '!');
 			break;
 		case 'par':
 			this.resultAnim(pokemon, 'Paralyzed', 'par');
@@ -3157,7 +3160,7 @@ var Battle = (function () {
 						hiddenactions += "" + poke.getName() + " lost some of its HP!";
 						break;
 					case 'recoil':
-						actions += "" + poke.getName() + " is damaged by recoil!";
+						actions += "" + poke.getName() + " is damaged by the recoil!";
 						break;
 					case 'sandstorm':
 						actions += "" + poke.getName() + " is buffeted by the sandstorm!";
@@ -3415,13 +3418,13 @@ var Battle = (function () {
 				} else if (effect.id) {
 					switch (effect.id) {
 					case 'guardswap':
-						actions += '' + poke.getName() + ' switched all changes to its Defense and Sp. Def with the target!';
+						actions += '' + poke.getName() + ' switched all changes to its Defense and Sp. Def with its target!';
 						break;
 					case 'heartswap':
-						actions += '' + poke.getName() + ' switched stat changes with the target!';
+						actions += '' + poke.getName() + ' switched stat changes with its target!';
 						break;
 					case 'powerswap':
-						actions += '' + poke.getName() + ' switched all changes to its Attack and Sp. Atk with the target!';
+						actions += '' + poke.getName() + ' switched all changes to its Attack and Sp. Atk with its target!';
 						break;
 					}
 				}
@@ -3604,7 +3607,7 @@ var Battle = (function () {
 					break;
 				case 'substitute':
 					if (kwargs.weak) {
-						actions += "It was too weak to make a substitute!";
+						actions += "But it does not have enough HP left to make a substitute!";
 					} else {
 						actions += '' + poke.getName() + ' already has a substitute!';
 					}
@@ -3678,7 +3681,7 @@ var Battle = (function () {
 				break;
 
 			case '-combine':
-				actions += "The two moves are joined! It's a combined move!";
+				actions += "The two moves have become one! It's a combined move!";
 				break;
 
 			case '-prepare':
@@ -3759,10 +3762,7 @@ var Battle = (function () {
 						actions += "" + poke.getName() + "'s " + effect.name + " cured its poison!";
 						break;
 					}
-					var n = poke.side.n; // hack for eliminating "the opposing"
-					poke.side.n = 0;
 					actions += "" + poke.getName() + " was cured of its poisoning.";
-					poke.side.n = n;
 					break;
 				case 'slp':
 					this.resultAnim(poke, 'Woke up', 'good', animDelay);
@@ -3900,7 +3900,7 @@ var Battle = (function () {
 					actions += 'The ' + item.name + ' strengthened ' + Tools.getMove(kwargs.move).name + '\'s power!';
 					break;
 				case 'incinerate':
-					actions += "" + poke.getName() + "'s " + item.name + " was burnt up!";
+					actions += "" + poke.getName() + "'s " + item.name + " was burned up!";
 					break;
 				default:
 					actions += "" + poke.getName() + ' lost its ' + item.name + '!';
@@ -3927,7 +3927,7 @@ var Battle = (function () {
 					actions += "" + poke.getName() + " used its " + item.name + " to come back to its senses!";
 					break;
 				case 'whiteherb':
-					actions += "" + poke.getName() + " restored its status using its White Herb!";
+					actions += "" + poke.getName() + " returned its status to normal using its White Herb!";
 					break;
 				case 'ejectbutton':
 					actions += "" + poke.getName() + " is switched out with the Eject Button!";
@@ -3958,7 +3958,7 @@ var Battle = (function () {
 					actions += '' + poke.getName() + ' traced ' + ofpoke.getLowerName() + '\'s ' + ability.name + '!';
 					break;
 				case 'roleplay':
-					actions += '' + poke.getName() + ' copied ' + ofpoke.getLowerName() + '\'s ' + ability.name + '!';
+					actions += '' + poke.getName() + ' copied ' + ofpoke.getLowerName() + '\'s ' + ability.name + ' Ability!';
 					break;
 				case 'mummy':
 					// actions += "" + poke.getName() + "'s Ability became Mummy!";
@@ -4011,7 +4011,7 @@ var Battle = (function () {
 					break;
 				case 'airlock':
 				case 'cloudnine':
-					actions += "The effects of weather disappeared.";
+					actions += "The effects of the weather disappeared.";
 					break;
 				default:
 					actions += "" + poke.getName() + " has " + ability.name + "!";
@@ -4098,7 +4098,7 @@ var Battle = (function () {
 					if (fromeffect.id) {
 						if (fromeffect.id === 'reflecttype') {
 							poke.copyTypesFrom(ofpoke);
-							actions += "" + poke.getName() + "'s type changed to match " + ofpoke.getLowerName() + "'s!";
+							actions += "" + poke.getName() + "'s type became the same as " + ofpoke.getLowerName() + "'s type!";
 						} else {
 							actions += "" + poke.getName() + "'s " + fromeffect.name + " made it the " + args[3] + " type!";
 						}
@@ -4162,7 +4162,7 @@ var Battle = (function () {
 					break;
 				case 'imprison':
 					this.resultAnim(poke, 'Imprisoning', 'good', animDelay);
-					actions += "" + poke.getName() + " sealed the opponent's move(s)!";
+					actions += "" + poke.getName() + " sealed any moves its target shares with it!";
 					break;
 				case 'disable':
 					this.resultAnim(poke, 'Disabled', 'bad', animDelay);
@@ -4246,7 +4246,7 @@ var Battle = (function () {
 					break;
 				case 'curse':
 					this.resultAnim(poke, 'Cursed', 'bad', animDelay);
-					actions += "" + ofpoke.getName() + " cut its own HP and laid a curse on " + poke.getLowerName() + "!";
+					actions += "" + ofpoke.getName() + " cut its own HP and put a curse on " + poke.getLowerName() + "!";
 					break;
 				case 'nightmare':
 					this.resultAnim(poke, 'Nightmare', 'bad', animDelay);
@@ -4299,6 +4299,17 @@ var Battle = (function () {
 				case 'powder':
 					actions += '' + poke.getName() + ' is covered in powder!';
 					break;
+
+				// Gen 1
+				case 'lightscreen':
+					this.resultAnim(poke, 'Light Screen', 'good', animDelay);
+					actions += '' + poke.getName() + '\'s protected against special attacks!';
+					break;
+				case 'reflect':
+					this.resultAnim(poke, 'Reflect', 'good', animDelay);
+					actions += '' + poke.getName() + ' gained armor!';
+					break;
+
 				default:
 					actions += "" + poke.getName() + "'s " + effect.name + " started!";
 				}
@@ -4308,7 +4319,10 @@ var Battle = (function () {
 				var effect = Tools.getEffect(args[2]);
 				var fromeffect = Tools.getEffect(kwargs.from);
 				poke.removeVolatile(effect.id);
-				switch (effect.id) {
+
+				if (kwargs.silent) {
+					// do nothing
+				} else switch (effect.id) {
 				case 'powertrick':
 					this.resultAnim(poke, 'Power Trick', 'neutral', animDelay);
 					actions += "" + poke.getName() + " switched its Attack and Defense!";
@@ -4354,7 +4368,7 @@ var Battle = (function () {
 					break;
 				case 'disable':
 					this.resultAnim(poke, 'Disable&nbsp;ended', 'good', animDelay);
-					actions += '' + poke.getName() + " is no longer disabled!";
+					actions += '' + poke.getName() + "'s move is no longer disabled!";
 					break;
 				case 'embargo':
 					this.resultAnim(poke, 'Embargo ended', 'good', animDelay);
@@ -4369,7 +4383,7 @@ var Battle = (function () {
 					actions += '' + poke.getName() + "'s encore ended!";
 					break;
 				case 'bide':
-					actions += "" + poke.getName() + " unleashed energy!";
+					actions += "" + poke.getName() + " unleashed its energy!";
 					break;
 				case 'magnetrise':
 					if (poke.side.n === 0) actions += "" + poke.getName() + "'s electromagnetism wore off!";
@@ -4476,7 +4490,7 @@ var Battle = (function () {
 					actions += '' + poke.getName() + ' wants its target to bear a grudge!';
 					break;
 				case 'destinybond':
-					actions += '' + poke.getName() + ' is trying to take its foe down with it!';
+					actions += '' + poke.getName() + ' is hoping to take its attacker down with it!';
 					break;
 				}
 				break;
@@ -4496,7 +4510,7 @@ var Battle = (function () {
 					actions += "" + poke.getName() + " snatched " + ofpoke.getLowerName() + "'s move!";
 					break;
 				case 'grudge':
-					actions += "" + poke.getName() + "'s " + Tools.escapeHTML(args[3]) + " lost all its PP due to the grudge!";
+					actions += "" + poke.getName() + "'s " + Tools.escapeHTML(args[3]) + " lost all of its PP due to the grudge!";
 					break;
 				case 'quickguard':
 					poke.addTurnstatus('quickguard');
@@ -4699,7 +4713,7 @@ var Battle = (function () {
 					actions += '' + poke.getName() + '\'s ' + effect.name + ' let it move first!';
 					break;
 				case 'leppaberry':
-					actions += '' + poke.getName() + " restored PP to its " + Tools.escapeHTML(args[3]) + " move using its Leppa Berry!";
+					actions += '' + poke.getName() + " restored PP to its " + Tools.escapeHTML(args[3]) + " move using Leppa Berry!";
 					break;
 				case 'focusband':
 					actions += '' + poke.getName() + " hung on using its Focus Band!";
@@ -4731,7 +4745,7 @@ var Battle = (function () {
 					actions += "A sticky web spreads out beneath " + side.getLowerTeamName() + "'s feet!";
 					break;
 				case 'tailwind':
-					actions += "The tailwind blew from behind " + side.getLowerTeamName() + "!";
+					actions += "The Tailwind blew from behind " + side.getLowerTeamName() + "!";
 					break;
 				case 'reflect':
 					actions += "Reflect raised " + side.getLowerTeamName() + "'s Defense!";
@@ -4746,7 +4760,7 @@ var Battle = (function () {
 					actions += "" + side.getTeamName() + " became shrouded in mist!";
 					break;
 				case 'luckychant':
-					actions += 'The Lucky Chant shielded ' + side.getLowerTeamName() + ' from critical hits!';
+					actions += 'Lucky Chant shielded ' + side.getLowerTeamName() + ' from critical hits!';
 					break;
 				case 'firepledge':
 					actions += "A sea of fire enveloped " + side.getLowerTeamName() + "!";
@@ -4783,7 +4797,7 @@ var Battle = (function () {
 					actions += "The sticky web has disappeared from beneath " + side.getLowerTeamName() + "'s feet!";
 					break;
 				case 'tailwind':
-					actions += "" + side.getTeamName() + "'s tailwind petered out!";
+					actions += "" + side.getTeamName() + "'s Tailwind petered out!";
 					break;
 				case 'reflect':
 					actions += "" + side.getTeamName() + "'s Reflect wore off!";
@@ -4831,7 +4845,7 @@ var Battle = (function () {
 					actions += "" + poke.getName() + ' twisted the dimensions!';
 					break;
 				case 'wonderroom':
-					actions += "It created a bizarre area in which the Defense and Sp. Def stats are swapped!";
+					actions += "It created a bizarre area in which Defense and Sp. Def stats are swapped!";
 					break;
 				case 'magicroom':
 					actions += "It created a bizarre area in which Pok&#xE9;mon's held items lose their effects!";
@@ -4870,10 +4884,10 @@ var Battle = (function () {
 					actions += 'The twisted dimensions returned to normal!';
 					break;
 				case 'wonderroom':
-					actions += 'Wonder Room wore off, and the Defense and Sp. Def stats returned to normal!';
+					actions += 'Wonder Room wore off, and Defense and Sp. Def stats returned to normal!';
 					break;
 				case 'magicroom':
-					actions += "Magic Room wore off, and the held items' effects returned to normal!";
+					actions += "Magic Room wore off, and held items' effects returned to normal!";
 					break;
 				case 'gravity':
 					actions += 'Gravity returned to normal!';
@@ -4903,7 +4917,7 @@ var Battle = (function () {
 				var effect = Tools.getEffect(args[1]);
 				switch (effect.id) {
 				case 'perishsong':
-					actions += 'All Pok&#xE9;mon hearing the song will faint in three turns!';
+					actions += 'All Pok&#xE9;mon that hear the song will faint in three turns!';
 					if (this.mySide.active[0] && !this.mySide.active[0].volatiles['perish0'] &&
 						!this.mySide.active[0].volatiles['perish1'] && !this.mySide.active[0].volatiles['perish2']) {
 						this.mySide.active[0].addVolatile('perish3');
