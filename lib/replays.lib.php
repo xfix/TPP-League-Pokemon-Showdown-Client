@@ -39,7 +39,7 @@ class Replay {
 			VALUES ($1, $2, $3)', array($id, $format, $log));
 
 		pg_query_params('INSERT INTO replay_players (replayid, userid)
-			VALUES ($1, $2), ($1, $3);', array($id, $p1, to_id($p2)));
+			VALUES ($1, $2), ($1, $3);', array($id, to_id($p1), to_id($p2)));
 
 		pg_query('COMMIT');
 	}
