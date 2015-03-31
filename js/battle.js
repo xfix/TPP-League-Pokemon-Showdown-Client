@@ -5871,7 +5871,7 @@ var Battle = (function () {
 			this.bgm = 'audio/th6-flandre.mp3';
 			break;
 		case 6:
-			Battlesound.loadBgm('audio/th3-yumeni.mp3', 0, 220000);
+			BattleSound.loadBgm('audio/th3-yumeni.mp3', 0, 220000);
 			this.bgm = 'audio/th3-yumeni.mp3';
 			break;
 		default:
