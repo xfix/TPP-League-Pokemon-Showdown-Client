@@ -1271,6 +1271,7 @@
 								'T-Rule LC Uber', 'T-Rule LC'
 							];
 						}
+						if (this.curTeam.format === 'ubers' || this.curTeam.format === 'anythinggoes') return ['Uber','OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'ou') return ['OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'cap') return ['CAP','OU','BL','UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
 						if (this.curTeam.format === 'uu') return ['UU','BL2','RU','BL3','NU','BL4','PU','NFE','LC Uber','LC'];
@@ -1309,7 +1310,7 @@
 				if (!this.curSet) return;
 				var speciesid = toId(this.curSet.species);
 				function viable(move) {
-					return exports.BattleFormatsData[speciesid].randomBattleMoves.indexOf(toId(move.name)) !== -1;
+					return (exports.BattleFormatsData[speciesid].randomBattleMoves || []).indexOf(toId(move.name)) !== -1;
 				}
 				if (!move) return ['Usable Moves', 'Moves', 'Usable Sketch Moves', 'Sketch Moves'];
 				var movelist = this.movelist;

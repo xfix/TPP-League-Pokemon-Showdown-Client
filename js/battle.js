@@ -2019,6 +2019,7 @@ var Side = (function () {
 			protect: '<span class="good">Protect</span>',
 			quickguard: '<span class="good">Quick&nbsp;Guard</span>',
 			wideguard: '<span class="good">Wide&nbsp;Guard</span>',
+			craftyshield: '<span class="good">Crafty&nbsp;Shield</span>',
 			helpinghand: '<span class="good">Helping&nbsp;Hand</span>',
 			magiccoat: '<span class="good">Magic&nbsp;Coat</span>',
 			destinybond: '<span class="good">Destiny&nbsp;Bond</span>',
@@ -4060,7 +4061,11 @@ var Battle = (function () {
 				} else if (toId(template.species) === 'darmanitanzen') {
 					actions += "Zen Mode triggered!";
 				} else if (toId(template.species) === 'darmanitan') {
-					actions += "Zen Mode ended!"
+					actions += "Zen Mode ended!";
+				} else if (toId(template.species) === 'aegislashblade') {
+					actions += "Changed to Blade Forme!";
+				} else if (toId(template.species) === 'aegislash') {
+					actions += "Changed to Shield Forme!";
 				}
 				poke.sprite.animTransform($.extend(spriteData, template));
 				poke.addVolatile('formechange'); // the formechange volatile reminds us to revert the sprite change on switch-out
@@ -4425,6 +4430,10 @@ var Battle = (function () {
 					this.resultAnim(poke, 'Wide Guard', 'good', animDelay);
 					actions += "Wide Guard protected " + poke.side.getLowerTeamName() + "!";
 					break;
+				case 'craftyshield':
+					this.resultAnim(poke, 'Crafty Shield', 'good', animDelay);
+					actions += "Crafty Shield protected " + poke.side.getLowerTeamName() + "!";
+					break;
 				case 'protect':
 					this.resultAnim(poke, 'Protected', 'good', animDelay);
 					actions += '' + poke.getName() + ' protected itself!';
@@ -4498,6 +4507,11 @@ var Battle = (function () {
 					poke.addTurnstatus('wideguard');
 					this.resultAnim(poke, 'Wide Guard', 'good', animDelay);
 					actions += "Wide Guard protected " + poke.getLowerName() + "!";
+					break;
+				case 'craftyshield':
+					poke.addTurnstatus('craftyshield');
+					this.resultAnim(poke, 'Crafty Shield', 'good', animDelay);
+					actions += "Crafty Shield protected " + poke.getLowerName() + "!";
 					break;
 				case 'protect':
 					poke.addTurnstatus('protect');
@@ -4831,6 +4845,15 @@ var Battle = (function () {
 				case 'watersport':
 					actions += "Fire's power was weakened!";
 					break;
+				case 'grassyterrain':
+					actions += "Grass grew to cover the battlefield!";
+					break;
+				case 'mistyterrain':
+					actions += "Mist swirled about the battlefield!";
+					break;
+				case 'electricterrain':
+					actions += "An electric current runs across the battlefield!";
+					break;
 				default:
 					actions += effect.name+" started!";
 					break;
@@ -4860,6 +4883,15 @@ var Battle = (function () {
 					break;
 				case 'watersport':
 					actions += 'The effects of Water Sport have faded.';
+					break;
+				case 'grassyterrain':
+					actions += "The grass disappeared from the battlefield.";
+					break;
+				case 'mistyterrain':
+					actions += "The mist disappeared from the battlefield.";
+					break;
+				case 'electricterrain':
+					actions += "The electricity disappeared from the battlefield.";
 					break;
 				default:
 					actions += effect.name+" ended!";
@@ -5472,9 +5504,9 @@ var Battle = (function () {
 			var $messages = $('.chatmessage-' + user);
 			if (!$messages.length) break;
 			$messages.find('a').contents().unwrap();
-			if (args[2]) {
+			if (window.BattleRoom && args[2]) {
 				$messages.hide();
-				this.log('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>' + $messages.length + ' message' + ($messages.length > 1 ? 's were' : ' was') + ' hidden, click here to restore.</small></button></div>');
+				this.log('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + '</small></button></div>');
 			}
 			break;
 		default:
