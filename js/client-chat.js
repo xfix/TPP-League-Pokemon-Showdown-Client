@@ -420,6 +420,58 @@
 				challenge(targets);
 				return false;
 
+			case 'accept':
+				var userid = toId(target);
+				if (userid) {
+					var $challenge = $('.pm-window').filter('div[data-userid="' + userid + '"]').find('button[name="acceptChallenge"]');
+					if (!$challenge.length) {
+						this.add('You do not have any pending challenge from ' + target + ' to accept.');
+						return false;
+					}
+					$challenge[0].click();
+					return false;
+				}
+
+				var $challenges = $('.challenge').find('button[name=acceptChallenge]');
+				if (!$challenges.length) {
+					this.add('You do not have any pending challenges to accept.');
+					return false;
+				}
+				if ($challenges.length > 1) {
+					this.add('You need to specify a user if you have more than one pending challenge to accept.');
+					this.parseCommand('/help accept');
+					return false;
+				}
+
+				$challenges[0].click();
+				return false;
+			case 'reject':
+				var userid = toId(target);
+				if (userid) {
+					var $challenge = $('.pm-window').filter('div[data-userid="' + userid + '"]').find('button[name="rejectChallenge"]');
+					if (!$challenge.length) {
+						this.add('You do not have any pending challenge from ' + target + ' to reject.');
+						return false;
+					}
+					$challenge[0].click();
+					return false;
+				}
+
+				var $challenges = $('.challenge').find('button[name="rejectChallenge"]');
+				if (!$challenges.length) {
+					this.add('You do not have any pending challenges to reject.');
+					this.parseCommand('/help reject');
+					return false;
+				}
+				if ($challenges.length > 1) {
+					this.add('You need to specify a user if you have more than one pending challenge to reject.');
+					this.parseCommand('/help reject');
+					return false;
+				}
+
+				$challenges[0].click();
+				return false;
+
 			case 'user':
 			case 'open':
 				var open = function(target) {
@@ -570,8 +622,16 @@
 					switch (targets[0]) {
 					case 'add':
 						for (var i=1, len=targets.length; i<len; i++) {
-							highlights.push(targets[i].trim());
+							if (/[\\^$*+?()|{}[\]]/.test(targets[i])) {
+								// Catch any errors thrown by newly added regular expressions so they don't break the entire highlight list
+								try {
+									new RegExp(targets[i]);
+								} catch (e) {
+									return this.add(e.message.substr(0, 28) === 'Invalid regular expression: ' ? e.message : 'Invalid regular expression: /' + targets[i] + '/: ' + e.message);
+								}
+							}
 						}
+						highlights = highlights.concat(targets.slice(1));
 						this.add("Now highlighting on: " + highlights.join(', '));
 						// We update the regex
 						app.highlightRegExp = new RegExp('\\b('+highlights.join('|')+')\\b', 'i');
@@ -659,6 +719,8 @@
 									buffer += '<td>'+Math.round(40.0*parseFloat(row.gxe)*Math.pow(2.0,-20.0/N),0)+'</td>';
 								} else if (row.formatid === 'rususpecttest') {
 									buffer += '<td>'+Math.round(40.0*parseFloat(row.gxe)*Math.pow(2.0,-20.0/N),0)+'</td>';
+								} else if (row.formatid === 'nususpecttest') {
+									buffer += '<td>'+Math.round(40.0*parseFloat(row.gxe)*Math.pow(2.0,-20.0/N),0)+'</td>';
 								} else if (row.formatid === 'lcsuspecttest') {
 									buffer += '<td>'+Math.round(40.0*parseFloat(row.gxe)*Math.pow(2.0,-43.0/N),0)+'</td>';
 								} else if (row.formatid === 'smogondoublescurrent' || row.formatid === 'smogondoublessuspecttest') {
@@ -736,6 +798,14 @@
 				case 'challenge':
 					this.add('/challenge - Open a prompt to challenge a user to a battle.');
 					this.add('/challenge [user] - Challenge the user [user] to a battle.');
+					return false;
+				case 'accept':
+					this.add('/accept - Accept a challenge if only one is pending.');
+					this.add('/accept [user] - Accept a challenge from the specified user.');
+					return false;
+				case 'reject':
+					this.add('/reject - Reject a challenge if only one is pending.');
+					this.add('/reject [user] - Reject a challenge from the specified user.');
 					return false;
 				case 'user':
 				case 'open':
@@ -1042,7 +1112,7 @@
 					$messages.find('a').contents().unwrap();
 					if (row[2]) {
 						$messages.hide();
-						this.$chat.append('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>' + $messages.length + ' message' + ($messages.length > 1 ? 's were' : ' was') + ' hidden, click here to restore.</small></button></div>');
+						this.$chat.append('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + '</small></button></div>');
 					}
 					break;
 
@@ -1065,7 +1135,7 @@
 		},
 		revealMessages: function(user) {
 			var $messages = $('.chatmessage-' + user);
-			$messages.show();
+			$messages.addClass('revealed').show();
 			$messages.find('button').parent().remove();
 		},
 		tournamentButton: function(val, button) {
