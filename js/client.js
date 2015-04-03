@@ -1438,7 +1438,7 @@
 			'click button': 'dispatchClickButton'
 		},
 		initialize: function() {
-			this.$el.html('<img class="logo" src="' + Tools.resourcePrefix + 'touhouleague.png" alt="Touhou Plays Pokémon League" /><div class="maintabbarbottom"></div><div class="tabbar maintabbar"><div class="inner"></div></div><div class="userbar"></div>');
+			this.$el.html('<img class="logo" src="' + Tools.resourcePrefix + 'lotidlogo.png" alt="Twitch Plays Pokémon League" /><div class="maintabbarbottom"></div><div class="tabbar maintabbar"><div class="inner"></div></div><div class="userbar"></div>');
 			this.$tabbar = this.$('.maintabbar .inner');
 			// this.$sidetabbar = this.$('.sidetabbar');
 			this.$userbar = this.$('.userbar');
