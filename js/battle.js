@@ -3737,6 +3737,15 @@ var Battle = (function () {
 					actions += '' + poke.getName() + ' moved its status onto ' + ofpoke.getLowerName() + '!';
 					this.resultAnim(poke, 'Cured', 'good', animDelay);
 					break;
+				case 'flamewheel':
+				case 'flareblitz':
+				case 'fusionflare':
+				case 'sacredfire':
+				case 'scald':
+				case 'steameruption':
+					this.resultAnim(poke, 'Thawed', 'good', animDelay);
+					actions += "" + poke.getName() + "'s " + effect.name + " melted the ice!";
+					break;
 				default:
 					this.resultAnim(poke, 'Cured', 'good', animDelay);
 					actions += "" + poke.getName() + "'s "+effect.name+" heals its status!";
@@ -3841,6 +3850,7 @@ var Battle = (function () {
 					break;
 				case 'thief':
 				case 'covet':
+				case 'pickpocket':
 					actions += '' + poke.getName() + ' stole ' + ofpoke.getLowerName() + "'s " + item.name + "!";
 					this.resultAnim(poke, item.name, 'neutral', animDelay);
 					this.resultAnim(ofpoke, 'Item Stolen', 'bad', animDelay);
@@ -4221,7 +4231,7 @@ var Battle = (function () {
 					break;
 				case 'slowstart':
 					this.resultAnim(poke, 'Slow Start', 'bad', animDelay);
-					actions += "" + poke.getName() + " can't get it going because of its Slow Start!";
+					actions += "" + poke.getName() + " can't get it going!";
 					break;
 				case 'attract':
 					this.resultAnim(poke, 'Attracted', 'bad', animDelay);
@@ -4365,6 +4375,10 @@ var Battle = (function () {
 					break;
 				case 'bide':
 					actions += "" + poke.getName() + " unleashed energy!";
+					break;
+				case 'slowstart':
+					this.resultAnim(poke, 'Slow Start ended', 'good', animDelay);
+					actions += "" + poke.getName() + " finally got its act together!";
 					break;
 				case 'magnetrise':
 					if (poke.side.n === 0) actions += "" + poke.getName() + "'s electromagnetism wore off!";
@@ -5303,12 +5317,12 @@ var Battle = (function () {
 		case 'inactive':
 			this.kickingInactive = true;
 			args.shift();
-			this.log('<div class="chat timer">' + Tools.escapeHTML(args.join('|')) + '</div>', preempt);
+			this.log('<div class="chat message-error">' + Tools.escapeHTML(args.join('|')) + '</div>', preempt);
 			break;
 		case 'inactiveoff':
 			this.kickingInactive = false;
 			args.shift();
-			this.log('<div class="chat timer">' + Tools.escapeHTML(args.join('|')) + '</div>', preempt);
+			this.log('<div class="chat message-error">' + Tools.escapeHTML(args.join('|')) + '</div>', preempt);
 			break;
 		case 'join':
 		case 'j':

@@ -2011,9 +2011,11 @@
 					if (i === 'global') continue;
 					var roomid = toRoomid(i);
 					if (roomid.substr(0,7) === 'battle-') {
+						var p1 = data.rooms[i].p1.substr(1);
+						var p2 = data.rooms[i].p2.substr(1);
 						if (!battlebuf) battlebuf = '<br /><em>Battles:</em> ';
 						else battlebuf += ', ';
-						battlebuf += '<a href="'+app.root+roomid+'" class="ilink">'+roomid.substr(7)+'</a>';
+						battlebuf += '<span title="'+(Tools.escapeHTML(p1) || '?')+' v. '+(Tools.escapeHTML(p2) || '?')+'"><a href="'+app.root+roomid+'" class="ilink">'+roomid.substr(7)+'</a></span>';
 					} else {
 						if (!chatbuf) chatbuf = '<br /><em>Chatrooms:</em> ';
 						else chatbuf += ', ';
@@ -2354,7 +2356,7 @@
 			buf += '<p><button name="avatars">Change avatar</button></p>';
 
 			buf += '<hr />';
-			buf += '<p><label class="optlabel">Background: <select name="bg"><option value="">Nitori</option><option value="url(/fx/client-bg-lotad.jpg)">Lotad</option><option value="#344b6c url(/fx/client-bg-charizards.jpg)">Charizards</option><option value="#344b6c url(/fx/client-bg-horizon.jpg) no-repeat left center fixed">Horizon</option><option value="#546bac url(/fx/client-bg-3.jpg) no-repeat left center fixed">Waterfall</option><option value="#546bac url(/fx/client-bg-ocean.jpg) no-repeat left center fixed">Ocean</option><option value="#344b6c">Solid blue</option>'+(Tools.prefs('bg')?'<option value="" selected></option>':'')+'</select></label></p>';
+			buf += '<p><label class="optlabel">Background: <select name="bg"><option value="">Lotad</option><option value="url(/fx/client-bg-nitori.jpg)">Nitori</option><option value="#344b6c url(/fx/client-bg-charizards.jpg)">Charizards</option><option value="#344b6c url(/fx/client-bg-horizon.jpg) no-repeat left center fixed">Horizon</option><option value="#546bac url(/fx/client-bg-3.jpg) no-repeat left center fixed">Waterfall</option><option value="#546bac url(/fx/client-bg-ocean.jpg) no-repeat left center fixed">Ocean</option><option value="#344b6c">Solid blue</option><option value="custom">Custom</option>'+(Tools.prefs('bg')?'<option value="" selected></option>':'')+'</select></label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="noanim"'+(Tools.prefs('noanim')?' checked':'')+' /> Disable animations</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="bwgfx"'+(Tools.prefs('bwgfx')?' checked':'')+' /> Enable BW sprites for XY</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="nopastgens"'+(Tools.prefs('nopastgens')?' checked':'')+' /> Use modern sprites for past generations</label></p>';
@@ -2450,6 +2452,10 @@
 		},
 		setBg: function(e) {
 			var bg = e.currentTarget.value;
+			if (bg === 'custom') {
+				app.addPopup(CustomBackgroundPopup);
+				return;
+			}
 			Tools.prefs('bg', bg);
 			if (!bg) bg = '#344b6c url(/fx/client-bg-nitori.jpg) no-repeat left center fixed';
 			$(document.body).css({
@@ -2652,6 +2658,44 @@
 				this.close();
 				app.focusRoom(id);
 			}
+		}
+	});
+
+	var CustomBackgroundPopup = this.CustomBackgroundPopup = Popup.extend({
+		type: 'semimodal',
+		events: {
+			'change input[name=bgfile]': 'setBg'
+		},
+		initialize: function() {
+			var buf = '';
+			buf += '<p>Choose a custom background</p>';
+			buf += '<input type="file" accept="image/*" name="bgfile">';
+			buf += '<p class="bgstatus"></p>';
+
+			buf += '<p><button name="close">Cancel</button></p>';
+			this.$el.html(buf);
+		},
+		setBg: function(e) {
+			$('.bgstatus').text('Changing background image.');
+			var file = e.currentTarget.files[0];
+			var reader = new FileReader();
+			var self = this;
+			reader.onload = function(e) {
+				var bg = '#344b6c url(' + e.target.result + ') no-repeat left center fixed';
+				try {
+					Tools.prefs('bg', bg);
+				}
+				catch (e) {
+					$('.bgstatus').text("Image too large, upload a background whose size is 3.5MB or less.");
+					return;
+				}
+				$(document.body).css({
+					background: bg,
+					'background-size': 'cover'
+				});
+				self.close();
+			};
+			reader.readAsDataURL(file);
 		}
 	});
 

@@ -1316,9 +1316,9 @@
 				var movelist = this.movelist;
 				if (!movelist) return 'Illegal';
 				if (!movelist[move.id]) {
-					if (movelist['sketch']) {
+					if (movelist['sketch'] && move.id !== 'chatter' && move.id !== 'struggle') {
 						if (viable(move)) return 'Usable Sketch Moves';
-						else if (move.id !== 'chatter' && move.id !== 'struggle') return 'Sketch Moves';
+						return 'Sketch Moves';
 					}
 					if (!this.curTeam || this.curTeam.format !== 'balancedhackmons') return 'Illegal';
 				}
@@ -1561,7 +1561,7 @@
 						if (move.id === 'toxic' || move.id === 'leechseed' || move.id === 'willowisp') moveCount['Stall']++;
 						moveCount['Support']++;
 					}
-				} else if (move.id === 'rapidspin' || move.id === 'counter' || move.id === 'mirrorcoat' || move.id === 'metalburst') {
+				} else if (move.id === 'counter' || move.id === 'endeavor' || move.id === 'metalburst' || move.id === 'mirrorcoat' || move.id === 'rapidspin') {
 					moveCount['Support']++;
 				} else if (move.id === 'nightshade' || move.id === 'seismictoss' || move.id === 'foulplay' || move.id === 'finalgambit') {
 					moveCount['Offense']++;
