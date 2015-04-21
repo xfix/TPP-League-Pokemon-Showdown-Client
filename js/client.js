@@ -2457,7 +2457,7 @@
 				return;
 			}
 			Tools.prefs('bg', bg);
-			if (!bg) bg = '#344b6c url(/fx/client-bg-nitori.jpg) no-repeat left center fixed';
+			if (!bg) bg = '#344b6c url(/fx/client-bg-lotad.jpg) no-repeat left center fixed';
 			$(document.body).css({
 				background: bg,
 				'background-size': 'cover'
