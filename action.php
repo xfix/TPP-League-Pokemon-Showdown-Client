@@ -9,6 +9,7 @@ License: GPLv2 or later
 
 error_reporting(E_ALL);
 
+include_once 'lib/password.php';
 include_once 'lib/ntbb-session.lib.php';
 include_once 'lib/dispatcher.lib.php';
 

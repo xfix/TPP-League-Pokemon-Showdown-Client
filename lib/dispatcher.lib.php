@@ -58,9 +58,9 @@ class ActionDispatcher {
 	}
 
 	public function findServer() {
-		if (in_array($this->getIp(), array('127.0.0.1', '::1', '206.253.167.172'))) {
+		//if (in_array($this->getIp(), array('127.0.0.1', '::1', '206.253.167.172'))) {
 			return array('id' => 'tppleague');
-		}
+		//}
 	}
 
 	public function executeActions() {
