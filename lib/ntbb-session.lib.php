@@ -115,6 +115,17 @@ class Users {
 		}
 	}
 
+	function modifyUser($user, $data) {
+		$password = $data['password'];
+		$query = "
+			UPDATE users SET password_hash = $1 WHERE userid = $2
+			RETURNING TRUE
+		";
+		$result = pg_query_params($query, array(password_hash($password, PASSWORD_DEFAULT), $user));
+		$success = pg_fetch_result($result, 0);
+		return $success;
+	}
+
 	// This is placeholder.
 	function getRecentRegistrationCount() {
 		return 0;
