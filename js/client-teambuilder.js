@@ -113,7 +113,7 @@
 
 			if (this.exportMode) {
 				buf = '<div class="pad"><button name="back"><i class="icon-chevron-left"></i> Team List</button> <button name="saveBackup" class="savebutton"><i class="icon-save"></i> Save</button></div>';
-				buf += '<textarea class="teamedit textbox" rows="17">'+Tools.escapeHTML(TeambuilderRoom.teamsToText())+'</textarea>';
+				buf += '<div class="teamedit"><textarea class="textbox" rows="17">'+Tools.escapeHTML(TeambuilderRoom.teamsToText())+'</textarea></div>';
 				this.$el.html(buf);
 				return;
 			}
@@ -221,7 +221,7 @@
 			}
 		},
 		saveBackup: function() {
-			TeambuilderRoom.parseText(this.$('.teamedit').val(), true);
+			TeambuilderRoom.parseText(this.$('.teamedit textarea').val(), true);
 			Storage.saveAllTeams();
 			this.back();
 		},
@@ -276,7 +276,7 @@
 			var buf = '';
 			if (this.exportMode) {
 				buf = '<div class="pad"><button name="back"><i class="icon-chevron-left"></i> Team List</button> <input class="textbox teamnameedit" type="text" class="teamnameedit" size="30" value="'+Tools.escapeHTML(this.curTeam.name)+'" /> <button name="saveImport"><i class="icon-upload-alt"></i> Import/Export</button> <button name="saveImport" class="savebutton"><i class="icon-save"></i> Save</button></div>';
-				buf += '<textarea class="teamedit textbox" rows="17">'+Tools.escapeHTML(TeambuilderRoom.toText(this.curTeam.team))+'</textarea>';
+				buf += '<div class="teamedit"><textarea class="textbox" rows="17">'+Tools.escapeHTML(TeambuilderRoom.toText(this.curTeam.team))+'</textarea></div>';
 			} else {
 				buf = '<div class="pad"><button name="back"><i class="icon-chevron-left"></i> Team List</button> <input class="textbox teamnameedit" type="text" class="teamnameedit" size="30" value="'+Tools.escapeHTML(this.curTeam.name)+'" /> <button name="import"><i class="icon-upload-alt"></i> Import/Export</button></div>';
 				buf += '<div class="teamchartbox">';
@@ -403,7 +403,7 @@
 		},
 
 		saveImport: function() {
-			this.curTeam.team = TeambuilderRoom.parseText(this.$('.teamedit').val());
+			this.curTeam.team = TeambuilderRoom.parseText(this.$('.teamedit textarea').val());
 			this.back();
 		},
 		addPokemon: function() {
@@ -452,6 +452,7 @@
 		formatChange: function(e) {
 			this.curTeam.format = e.currentTarget.value;
 			this.save();
+			if (this.curTeam.format.substr(0, 4) === 'gen5' && !Tools.loadedSpriteData['bw']) Tools.loadSpriteData('bw');
 		},
 		nicknameChange: function(e) {
 			var i = +$(e.currentTarget).closest('li').attr('value');
@@ -827,7 +828,7 @@
 			if (this.updateChartTimeout) clearTimeout(this.updateChartTimeout);
 			this.updateChartTimeout = setTimeout(function() {
 				self.updateChartTimeout = null;
-				if (self.curChartType === 'stats' || self.curChartType === 'details') return;
+				if (self.curChartType === 'stats' || self.curChartType === 'details' || !self.curChartName) return;
 				self.$chart.html(Chart.chart(self.$('input[name='+self.curChartName+']').val(), self.curChartType, true, _.bind(self.arrangeCallback[self.curChartType], self)));
 			}, 10);
 		},
@@ -1479,7 +1480,7 @@
 			set.name = template.species;
 			set.species = val;
 			if (set.level) delete set.level;
-			if (this.curTeam && this.curTeam.format === 'lc') set.level = 5;
+			if (this.curTeam && (this.curTeam.format === 'lc' || this.curTeam.format === 'gen5lc')) set.level = 5;
 			if (set.gender) delete set.gender;
 			if (template.gender && template.gender !== 'N') set.gender = template.gender;
 			if (set.happiness) delete set.happiness;
@@ -1563,7 +1564,7 @@
 					}
 				} else if (move.id === 'counter' || move.id === 'endeavor' || move.id === 'metalburst' || move.id === 'mirrorcoat' || move.id === 'rapidspin') {
 					moveCount['Support']++;
-				} else if (move.id === 'nightshade' || move.id === 'seismictoss' || move.id === 'foulplay' || move.id === 'finalgambit') {
+				} else if (move.id === 'nightshade' || move.id === 'seismictoss' || move.id === 'superfang' || move.id === 'foulplay' || move.id === 'finalgambit') {
 					moveCount['Offense']++;
 				} else if (move.id === 'fellstinger') {
 					moveCount['PhysicalSetup']++;
@@ -1730,7 +1731,7 @@
 				}
 			}
 
-			if (isFast) {
+			if (isFast && abilityid !== 'prankster') {
 				if (stats.spe > 100 || bulk < 55000 || moveCount['Ultrafast']) {
 					return 'Fast Bulky Support';
 				}
@@ -2035,6 +2036,7 @@
 					var atIndex = line.lastIndexOf(' @ ');
 					if (atIndex !== -1) {
 						curSet.item = line.substr(atIndex+3);
+						if (toId(curSet.item) === 'noitem') curSet.item = '';
 						line = line.substr(0, atIndex);
 					}
 					if (line.substr(line.length-4) === ' (M)') {
@@ -2137,6 +2139,10 @@
 			return buf;
 		},
 		toText: function(team) {
+			if (typeof team === 'string') {
+				if (team.indexOf('\n') >= 0) return team;
+				team = Storage.fastUnpackTeam(team);
+			}
 			var text = '';
 			for (var i=0; i<team.length; i++) {
 				var curSet = team[i];

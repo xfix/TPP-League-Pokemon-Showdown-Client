@@ -105,7 +105,10 @@
 							'<button class="button tournament-challenge-challenge">Challenge</button>' +
 						'</div>' +
 						'<div class="tournament-challengeby"></div>' +
-						'<div class="tournament-challenging"></div>' +
+						'<div class="tournament-challenging">' +
+							'<div class="tournament-challenging-message"></div>' +
+							'<button class="button tournament-challenge-cancel">Cancel</button>' +
+						'</div>' +
 						'<div class="tournament-challenged">' +
 							'<div class="tournament-challenged-message"></div>' +
 							'<span class="tournament-team"></span>' +
@@ -130,9 +133,11 @@
 			this.$challengeChallenge = $wrapper.find('.tournament-challenge-challenge');
 			this.$challengeBy = $wrapper.find('.tournament-challengeby');
 			this.$challenging = $wrapper.find('.tournament-challenging');
+			this.$challengingMessage = $wrapper.find('.tournament-challenging-message');
 			this.$challenged = $wrapper.find('.tournament-challenged');
 			this.$challengedMessage = $wrapper.find('.tournament-challenged-message');
 			this.$challengeAccept = $wrapper.find('.tournament-challenge-accept');
+			this.$challengeCancel = $wrapper.find('.tournament-challenge-cancel');
 
 			this.info = {};
 			this.updates = {};
@@ -171,6 +176,9 @@
 				var team = Storage.teams[self.$challenged.find('.tournament-team').children().val()];
 				self.room.send('/utm ' + Storage.packTeam(team ? team.team : null));
 				self.room.send('/tournament acceptchallenge');
+			});
+			this.$challengeCancel.on('click', function() {
+				self.room.send('/tournament cancelchallenge');
 			});
 
 			app.user.on('saveteams', this.updateTeams, this);
@@ -274,8 +282,11 @@
 						break;
 
 					case 'start':
-						if (!this.info.isJoined)
+						if (!this.info.isJoined) {
 							this.toggleBoxVisibility(false);
+						} else if (this.info.format.substr(0, 4) === 'gen5' && !Tools.loadedSpriteData['bw']){
+							Tools.loadSpriteData('bw');
+						}
 						this.room.$chat.append("<div class=\"notice tournament-message-start\">The tournament has started!</div>");
 						break;
 
@@ -292,6 +303,14 @@
 							var seconds = Math.floor(data[1] / 1000);
 							app.addPopupMessage("Please respond to the tournament within " + seconds + " seconds or you may be automatically disqualified.");
 							this.room.notifyOnce("Tournament Automatic Disqualification Warning", "Room: " + this.room.title + "\nSeconds: " + seconds, 'tournament-autodq-warning');
+						}
+						break;
+						
+					case 'autostart':
+						if (data[0] === 'off') {
+							this.room.$chat.append("<div class=\"notice tournament-message-autostart\">The tournament's automatic start timeout has been turned off.</div>");
+						} else if (data[0] === 'on') {
+							this.room.$chat.append("<div class=\"notice tournament-message-autostart\">The tournament will automatically start in " + (data[1] / 1000 / 60) + " minutes.</div>");
 						}
 						break;
 
@@ -361,8 +380,7 @@
 							if ('challenging' in this.updates) {
 								this.$challenging.toggleClass('active', !!this.info.challenging);
 								if (this.info.challenging) {
-									this.$challenging.text("Challenging " + this.info.challenging + "...");
-									// TODO: Add cancel button
+									this.$challengingMessage.text("Challenging " + this.info.challenging + "...");
 								}
 							}
 
@@ -474,6 +492,7 @@
 								break;
 
 							case 'InvalidAutoDisqualifyTimeout':
+							case 'InvalidAutoStartTimeout':
 								appendError("That isn't a valid timeout value.");
 								break;
 

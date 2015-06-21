@@ -99,7 +99,7 @@ function hashColor(name) {
 	}
 	var H = parseInt(hash.substr(4, 4), 16) % 360;
 	var S = parseInt(hash.substr(0, 4), 16) % 50 + 50;
-	var L = parseInt(hash.substr(8, 4), 16) % 20 + 25;
+	var L = Math.floor(parseInt(hash.substr(8, 4), 16) % 20 / 2 + 30);
 	colorCache[name] = "color:hsl(" + H + "," + S + "%," + L + "%);";
 	return colorCache[name];
 }
@@ -280,7 +280,7 @@ var baseSpeciesChart = {
 
 // Precompile often used regular expression for links.
 var domainRegex = '[a-z0-9\\-]+(?:[.][a-z0-9\\-]+)*';
-var parenthesisRegex = '[(][^\\s()<>]*[)]';
+var parenthesisRegex = '[(](?:[^\\s()<>&]|&amp;)*[)]';
 var linkRegex = new RegExp(
 	'\\b' +
 	'(?:' +
@@ -297,13 +297,13 @@ var linkRegex = new RegExp(
 			'/' +
 			'(?:' +
 				'(?:' +
-					'[^\\s()<>]' +
+					'[^\\s()&]|&amp;|&quot;' +
 					'|' + parenthesisRegex +
 				')*' +
 				// URLs usually don't end with punctuation, so don't allow
 				// punctuation symbols that probably aren't related to URL.
 				'(?:' +
-					'[^\\s`()<>\\[\\]{}\'".,!?;:]' +
+					'[^\\s`()\\[\\]{}\'".,!?;:&]' +
 					'|' + parenthesisRegex +
 				')' +
 			')?' +
@@ -357,10 +357,10 @@ var Tools = {
 		var options = Tools.prefs('chatformatting') || {};
 
 		// ``code``
-		str = str.replace(/\`\`([^< ](?:[^<`]*?[^< ])?)\`\`/g,
+		str = str.replace(/\`\`([^< ](?:[^<`]*?[^< ])??)\`\`/g,
 				options.hidemonospace ? '$1' : '<code>$1</code>');
 		// ~~strikethrough~~
-		str = str.replace(/\~\~([^< ](?:[^<]*?[^< ])?)\~\~/g,
+		str = str.replace(/\~\~([^< ](?:[^<]*?[^< ])??)\~\~/g,
 				options.hidestrikethrough ? '$1' : '<s>$1</s>');
 		// Twitch emotes
 		str = str.replace(/\b(4Head|ANELE|ArsonNoSexy|AsianGlow|AtGL|AthenaPMS|AtIvy|AtWW|BabyRage|BatChest|BCWarrior|BibleThump|BigBrother|BionicBunion|BlargNaut|BloodTrail|BORT|BrainSlug|BrokeBack|BuddhaBar|CougarHunt|DAESuppy|DansGame|DatSheffy|DBstyle|DendiFace|DogFace|EagleEye|EleGiggle|EvilFetus|FailFish|FPSMarksman|FrankerZ|FreakinStinkin|FUNgineer|FunRun|FuzzyOtterOO|GasJoker|GingerPower|GrammarKing|HassaanChop|HassanChop|HeyGuys|HotPokket|HumbleLife|ItsBoshyTime|Jebaited|JKanStyle|JonCarnage|KAPOW|Kappa|Keepo|KevinTurtle|Kippa|Kreygasm|KZassault|KZcover|KZguerilla|KZhelghast|KZowl|KZskull|lffnMyB|Mau5|mcaT|MechaSupes|MrDestructoid|MVGame|NightBat|NinjaTroll|NoNoSpot|noScope|NotAtk|OMGScoots|OneHand|OpieOP|OptimizePrime|panicBasket|PanicVis|PazPazowitz|PeoplesChamp|PermaSmug|PicoMause|PipeHype|PJHarley|PJSalt|PMSTwin|PogChamp|Poooound|PraiseIt|PRChase|PunchTrees|PuppeyFace|RaccAttack|RalpherZ|RedCoat|ResidentSleeper|RitzMitz|RuleFive|shazamicon|Shazam|ShazBotstix|ShibeZ|SMOrc|SMSkull|SoBayed|SoonerLater|SriHead|SSSsss|StoneLightning|StrawBeary|SuperVinlin|SwiftRage|TF2John|TheRinger|TheTarFu|TheThing|ThunBeast|TinyFace|TooSpicy|TriHard|UleetBackup|UncleNox|UnSane|Volcania|WholeWheat|WinWaker|WTRuck|WutFace|YouWHY)\b/g,
@@ -385,19 +385,10 @@ var Tools = {
 					'" target="_blank" onclick="' + onclick + '">' + uri + '</a>';
 			});
 			// google [blah]
-			// google[blah]
 			//   Google search for 'blah'
 			str = str.replace(/\bgoogle ?\[([^\]<]+)\]/ig, function(p0, p1) {
 				p1 = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p1)));
 				return '<a href="http://www.google.com/search?ie=UTF-8&q=' + p1 +
-					'" target="_blank">' + p0 + '</a>';
-			});
-			// gl [blah]
-			// gl[blah]
-			//   Google search for 'blah' and visit the first result ("I'm feeling lucky")
-			str = str.replace(/\bgl ?\[([^\]<]+)\]/ig, function(p0, p1) {
-				p1 = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p1)));
-				return '<a href="http://www.google.com/search?ie=UTF-8&btnI&q=' + p1 +
 					'" target="_blank">' + p0 + '</a>';
 			});
 			// wiki [blah]
@@ -407,19 +398,33 @@ var Tools = {
 				return '<a href="http://en.wikipedia.org/w/index.php?title=Special:Search&search=' +
 					p1 + '" target="_blank">' + p0 + '</a>';
 			});
+			// server issue #pullreq
+			//   Links to github Pokemon Showdown server pullreq number
+			str = str.replace(/\bserver issue ?#(\d+)/ig, function(p0, p1) {
+				p1 = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p1)));
+				return '<a href="https://github.com/Zarel/Pokemon-Showdown/pull/' +
+					p1 + '" target="_blank">' + p0 + '</a>';
+			});
+			// client issue #pullreq
+			//   Links to github Pokemon Showdown client pullreq number
+			str = str.replace(/\bclient issue ?#(\d+)/ig, function(p0, p1) {
+				p1 = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p1)));
+				return '<a href="https://github.com/Zarel/Pokemon-Showdown-Client/pull/' +
+					p1 + '" target="_blank">' + p0 + '</a>';
+			});
 			// [[blah]]
 			//   Short form of gl[blah]
-			str = str.replace(/\[\[([^< ](?:[^<`]*?[^< ])?)\]\]/ig, function(p0, p1) {
+			str = str.replace(/\[\[([^< ](?:[^<`]*?[^< ])??)\]\]/ig, function(p0, p1) {
 				var q = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p1)));
 				return '<a href="http://www.google.com/search?ie=UTF-8&btnI&q=' + q +
 					'" target="_blank">' + p1 +'</a>';
 			});
 		}
 		// __italics__
-		str = str.replace(/\_\_([^< ](?:[^<]*?[^< ])?)\_\_(?![^<]*?<\/a)/g,
+		str = str.replace(/\_\_([^< ](?:[^<]*?[^< ])??)\_\_(?![^<]*?<\/a)/g,
 				options.hideitalics ? '$1' : '<i>$1</i>');
 		// **bold**
-		str = str.replace(/\*\*([^< ](?:[^<]*?[^< ])?)\*\*/g,
+		str = str.replace(/\*\*([^< ](?:[^<]*?[^< ])??)\*\*/g,
 			options.hidebold ? '$1' : '<b>$1</b>');
 
 		if (!options.hidespoiler) {
@@ -550,17 +555,25 @@ var Tools = {
 				return prefs.data[prop];
 			}
 			// set preference
-			prefs.data[prop] = value;
+			if (value === null) {
+				delete prefs.data[prop];
+			} else {
+				prefs.data[prop] = value;
+			}
 			if (save !== false) prefs.save();
 		};
 		prefs.data = {};
 		try {
 			prefs.data = (window.localStorage &&
 				$.parseJSON(localStorage.getItem(localStorageEntry))) || {};
+			// outdated prefs
+			delete prefs.data.nolobbypm;
 		} catch (e) {}
 		prefs.save = function() {
 			if (!window.localStorage) return;
-			localStorage.setItem(localStorageEntry, $.toJSON(this.data));
+			try {
+				localStorage.setItem(localStorageEntry, $.toJSON(this.data));
+			} catch (e) {}
 		};
 		return prefs;
 	})(),
@@ -767,17 +780,17 @@ var Tools = {
 		return type;
 	},
 
-	loadedSpriteData: 'xy',
+	loadedSpriteData: {'xy':1, 'bw':0},
 	loadSpriteData: function(gen) {
-		if (this.loadedSpriteData === gen) return;
-		this.loadedSpriteData = gen;
+		if (this.loadedSpriteData[gen]) return;
+		this.loadedSpriteData[gen] = 1;
 
 		var path = $('script[src*="pokedex-mini.js"]').attr('src');
-		var qs = path.split('?')[1] || '';
+		var qs = '?' + (path.split('?')[1] || '');
 		path = (path.match(/.+?(?=data\/pokedex-mini\.js)/) || [])[0] || '';
 
 		var el = document.createElement('script');
-		el.src = path + 'data/pokedex-mini' + (gen !== 'xy' ? '-' + gen : '') + '.js' + (qs ? '?' + qs : '');
+		el.src = path + 'data/pokedex-mini-bw.js' + qs;
 		document.getElementsByTagName('body')[0].appendChild(el);
 	},
 	getSpriteData: function(pokemon, siden, options) {
@@ -803,7 +816,17 @@ var Tools = {
 			facing = 'back';
 		}
 
-		var animationData = window.BattlePokemonSprites && BattlePokemonSprites[pokemon.speciesid];
+		// Decide what gen sprites to use.
+		var gen = {1:'rby', 2:'gsc', 3:'rse', 4:'dpp', 5:'bw', 6:'xy'}[options.gen];
+		if (Tools.prefs('nopastgens')) gen = 'xy';
+		if (Tools.prefs('bwgfx') && gen === 'xy') gen = 'bw';
+
+		var animationData = {};
+		if (gen === 'bw' && window.BattlePokemonSpritesBW) {
+			animationData = BattlePokemonSpritesBW && window.BattlePokemonSpritesBW[pokemon.speciesid];
+		} else {
+			animationData = BattlePokemonSprites && window.BattlePokemonSprites[pokemon.speciesid];
+		}
 		if (animationData) {
 			var num = '' + animationData.num;
 			if (num.length < 3) num = '0' + num;
@@ -819,11 +842,6 @@ var Tools = {
 			spriteData.url += dir + '/' + name + '.png';
 			return spriteData;
 		}
-
-		// Decide what gen sprites to use.
-		var gen = {1:'rby', 2:'gsc', 3:'rse', 4:'dpp', 5:'bw', 6:'xy'}[options.gen];
-		if (Tools.prefs('nopastgens')) gen = 'xy';
-		if (Tools.prefs('bwgfx') && gen === 'xy') gen = 'bw';
 
 		if (animationData && animationData[facing]) {
 			var spriteType = '';
@@ -960,7 +978,8 @@ var Tools = {
 			"malaconda": 832+15,
 			"cawmodore": 832+16,
 			"volkraken": 832+17,
-			"plasmanta": 832+18
+			"plasmanta": 832+18,
+			"naviathan": 832+19
 		};
 		if (altNums[id]) {
 			num = altNums[id];
@@ -975,7 +994,7 @@ var Tools = {
 		var top = 8 + Math.floor(num / 16) * 32;
 		var left = (num % 16) * 32;
 		var fainted = (pokemon && pokemon.fainted?';opacity:.4':'');
-		return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/bwicons-sheet-g6.png?v0.9xyb1) no-repeat scroll -' + left + 'px -' + top + 'px' + fainted;
+		return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/bwicons-sheet.png?g6) no-repeat scroll -' + left + 'px -' + top + 'px' + fainted;
 	},
 
 	getTeambuilderSprite: function(pokemon) {
@@ -989,6 +1008,9 @@ var Tools = {
 			} else {
 				id = toId(pokemon.species);
 			}
+		}
+		if (Tools.getTemplate(pokemon.species).exists === false) {
+			return 'background-image:url(' + Tools.resourcePrefix + 'sprites/bw/0.png)';
 		}
 		var shiny = (pokemon.shiny?'-shiny':'');
 		if (BattlePokemonSprites && BattlePokemonSprites[id] && BattlePokemonSprites[id].front && BattlePokemonSprites[id].front.anif && pokemon.gender === 'F') {

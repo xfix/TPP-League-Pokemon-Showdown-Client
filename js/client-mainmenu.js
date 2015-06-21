@@ -30,7 +30,7 @@
 				} else {
 					buf += '<p class="error"><strong>Pok&eacute;mon Showdown is offline due to technical difficulties!</strong></p>';
 				}
-				buf += '<p><!-- span class="pokemonicon" style="margin:0 auto;background:transparent url(//play.pokemonshowdown.com/sprites/bwicons-sheet.png?v0.8.5) no-repeat scroll -288px -424px"></span --><div style="text-align:center"><img width="96" height="96" src="//play.pokemonshowdown.com/sprites/bw/teddiursa.png" alt="" /></div> Bear with us as we freak out.</p>';
+				buf += '<p><div style="text-align:center"><img width="96" height="96" src="//play.pokemonshowdown.com/sprites/bw/teddiursa.png" alt="" /></div> Bear with us as we freak out.</p>';
 				buf += '<p>(We\'ll be back up in a few hours.)</p>';
 				buf += '</div>';
 			} else {
@@ -105,7 +105,7 @@
 			var userid = toUserid(name);
 			if (app.ignore[userid] && name.substr(0, 1) in {' ':1, '!':1, '‽':1}) return;
 
-			if (app.curSideRoom && app.curSideRoom.addPM && !Tools.prefs('nolobbypm')) {
+			if (app.curSideRoom && app.curSideRoom.addPM && Tools.prefs('inchatpm')) {
 				app.curSideRoom.addPM(name, message, target);
 			}
 
@@ -372,11 +372,7 @@
 			var $searchForm = $('.mainmenu button.big').closest('form');
 			var $formatButton = $searchForm.find('button[name=format]');
 			var $teamButton = $searchForm.find('button[name=team]');
-			if (this.searching) {
-				$formatButton.addClass('preselected')[0].disabled = true;
-				$teamButton.addClass('preselected')[0].disabled = true;
-				$searchForm.find('button.big').html('<strong><i class="icon-refresh icon-spin"></i> Searching...</strong>').addClass('disabled');
-			} else {
+			if (!this.searching || $.isArray(this.searching) && !this.searching.length) {
 				var format = $formatButton.val();
 				var teamIndex = $teamButton.val();
 				$formatButton.replaceWith(this.renderFormats(format));
@@ -385,6 +381,18 @@
 				$searchForm.find('button.big').html('<strong>Look for a battle</strong>').removeClass('disabled');
 				$searchForm.find('button.cancelSearch').html('<strong>Look for a battle</strong>').removeClass('disabled');
 				$searchForm.find('p.cancel').remove();
+			} else {
+				$formatButton.addClass('preselected')[0].disabled = true;
+				$teamButton.addClass('preselected')[0].disabled = true;
+				$searchForm.find('button.big').html('<strong><i class="icon-refresh icon-spin"></i> Searching...</strong>').addClass('disabled');
+				var searchEntries = $.isArray(this.searching) ? this.searching : [this.searching];
+				for (var i = 0; i < searchEntries.length; i++) {
+					var format = searchEntries[i].format || searchEntries[i];
+					if (format.substr(0, 4) === 'gen5' && !Tools.loadedSpriteData['bw']) {
+						Tools.loadSpriteData('bw');
+						break;
+					}
+				}
 			}
 		},
 		updateChallenges: function(data) {
@@ -398,6 +406,7 @@
 				this.openPM(' '+i, true);
 			}
 			var self = this;
+			var atLeastOneGen5 = false;
 			this.$('.pm-window').each(function(i, el) {
 				var $pmWindow = $(el);
 				var userid = $pmWindow.data('userid');
@@ -413,6 +422,7 @@
 					buf += '<p><label class="label">Team:</label>'+self.renderTeams(format)+'</p>';
 					buf += '<p class="buttonbar"><button name="acceptChallenge"><strong>Accept</strong></button> <button name="rejectChallenge">Reject</button></p></form>';
 					$challenge.html(buf);
+					if (format.substr(0, 4) === 'gen5') atLeastOneGen5 = true;
 				} else {
 					var $challenge = $pmWindow.find('.challenge');
 					if ($challenge.length) {
@@ -446,7 +456,9 @@
 				buf += '<p class="buttonbar"><button name="cancelChallenge">Cancel</button></p></form>';
 
 				$challenge.html(buf);
+				if (challenge.format.substr(0, 4) === 'gen5') atLeastOneGen5 = true;
 			}
+			if (atLeastOneGen5 && !Tools.loadedSpriteData['bw']) Tools.loadSpriteData('bw');
 		},
 		openChallenge: function(name, $pmWindow) {
 			var userid = toId(name);

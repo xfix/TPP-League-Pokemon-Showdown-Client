@@ -13,12 +13,13 @@ BattlePokemonSprites = {
 	"tomohawk": {num:-12},
 	"necturna": {num:-13},
 	"mollux": {num:-14},
-	"aurumoth": {num:-15},
+	"aurumoth": {num:-15, front:{ani:{w:112,h:102}}, back:{ani:{w:113,h:104}}},
 	"malaconda": {num:-16},
 	"cawmodore": {num:-17},
 	"volkraken": {num:-18},
 	"plasmanta": {num:-19, front:{ani:{w:130,h:89}}, back:{ani:{w:129,h:95}}},
-	"gumblegoose": {num: -20, front:{ani:{w:100,h:100}}, back:{ani:{w:100,h:100}}},
+	"gumblegoose": {num: -100, front:{ani:{w:100,h:100}}, back:{ani:{w:100,h:100}}},
+	"naviathan": {num:-20, front:{ani:{w:141,h:119}}, back:{ani:{w:146,h:111}}},
 	"bulbasaur": {num:1, front:{ani:{w:45,h:49}}, back:{ani:{w:52,h:50}}},
 	"ivysaur": {num:2, front:{ani:{w:84,h:66}}, back:{ani:{w:76,h:68}}},
 	"venusaur": {num:3, front:{ani:{w:106,h:77}}, back:{ani:{w:95,h:78}}},
@@ -845,5 +846,5 @@ BattlePokemonSprites = {
 	"dianciemega": {num:719, front:{ani:{w:117,h:114}}, back:{ani:{w:123,h:123}}},	
 	"hoopa": {num:720, front:{ani:{w:73,h:68}}, back:{ani:{w:67,h:71}}},
 	"hoopaunbound": {num:720, front:{ani:{w:131,h:126}}, back:{ani:{w:146,h:130}}},
-	"volcanion": {num:719, front:{ani:{w:96,h:91}}, back:{ani:{w:92,h:96}}}	
+	"volcanion": {num:721, front:{ani:{w:96,h:91}}, back:{ani:{w:92,h:96}}}	
 };

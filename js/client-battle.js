@@ -22,12 +22,18 @@
 
 			this.$chat = this.$chatFrame.find('.inner');
 
+			this.$options = this.battle.optionsElem.html('<div style="padding-top: 3px; text-align: right"><label style="font-size: 8pt; padding: 3px 5px"><input type="checkbox" name="ignorespects" /> Ignore Spectators</label> <label style="font-size: 8pt; padding: 3px 5px"><input type="checkbox" name="ignoreopp" /> Ignore Opponent</label></div>');
+
 			this.battle.customCallback = _.bind(this.updateControls, this);
 			this.battle.endCallback = _.bind(this.updateControls, this);
 			this.battle.startCallback = _.bind(this.updateControls, this);
 			this.battle.stagnateCallback = _.bind(this.updateControls, this);
 
 			this.battle.play();
+		},
+		events: {
+			'change input[name=ignorespects]': 'toggleIgnoreSpects',
+			'change input[name=ignoreopp]': 'toggleIgnoreOpponent'
 		},
 		battleEnded: false,
 		join: function() {
@@ -683,6 +689,14 @@
 		},
 		setTimer: function(setting) {
 			this.send('/timer '+setting);
+		},
+		toggleIgnoreSpects: function(e) {
+			this.battle.ignoreSpects = !!e.currentTarget.checked;
+			this.battle.add('Spectators ' + (this.battle.ignoreSpects ? '' : 'no longer ') + 'ignored.');
+		},
+		toggleIgnoreOpponent: function(e) {
+			this.battle.ignoreOpponent = !!e.currentTarget.checked;
+			this.battle.add('Opponent ' + (this.battle.ignoreOpponent ? '' : 'no longer ') + 'ignored.');
 		},
 		forfeit: function() {
 			this.send('/forfeit');

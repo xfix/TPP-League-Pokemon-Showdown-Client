@@ -89,7 +89,7 @@
 	// sanitize a room ID
 	// shouldn't actually do anything except against a malicious server
 	var toRoomid = this.toRoomid = function(roomid) {
-		return roomid.replace(/[^a-zA-Z0-9-]+/g, '');
+		return roomid.replace(/[^a-zA-Z0-9-]+/g, '').toLowerCase();
 	};
 
 	// support Safari 6 notifications
@@ -140,7 +140,17 @@
 		 * domain in order to have access to the correct cookies.
 		 */
 		getActionPHP: function() {
+<<<<<<< HEAD
 			return '/action.php';
+=======
+			var ret = '/~~' + Config.server.id + '/action.php';
+			if (Config.testclient) {
+				ret = 'https://' + Config.origindomain + ret;
+			}
+			return (this.getActionPHP = function() {
+				return ret;
+			})();
+>>>>>>> 92ff7d6da4bc9a7c0d9ffe1fcbbfedf193ca5b42
 		},
 		/**
 		 * Process a signed assertion returned from the login server.
@@ -175,9 +185,17 @@
 		 * See `finishRename` above for a list of events this can emit.
 		 */
 		rename: function(name) {
-			if (this.get('userid') !== toUserid(name)) {
+			// | , ; are not valid characters in names
+			name = name.replace(/[\|,;]+/g, '');
+			var userid = toUserid(name);
+			if (!userid) {
+				app.addPopupMessage("Usernames must contain at least one letter or number.");
+				return;
+			}
+
+			if (this.get('userid') !== userid) {
 				var query = this.getActionPHP() + '?act=getassertion&userid=' +
-						encodeURIComponent(toUserid(name)) +
+						encodeURIComponent(userid) +
 						'&challengekeyid=' + encodeURIComponent(this.challengekeyid) +
 						'&challenge=' + encodeURIComponent(this.challenge);
 				var self = this;
@@ -231,6 +249,10 @@
 				var self = this;
 				$.get(query, Tools.safeJSON(function(data) {
 					if (!data.username) return;
+
+					// | , ; are not valid characters in names
+					data.username = data.username.replace(/[\|,;]+/g, '');
+
 					if (data.loggedin) {
 						self.set('registered', {
 							username: data.username,
@@ -285,9 +307,22 @@
 			this.addRoom('');
 			if (!this.down && $(window).width() >= 916) {
 				if (document.location.hostname === 'play.pokemonshowdown.com') {
-					this.addRoom('rooms');
+					this.addRoom('rooms', null, true);
+					var autojoin = (Tools.prefs('autojoin') || '');
+					var autojoinIds = [];
+					if (autojoin) {
+						var autojoins = autojoin.split(',');
+						var roomid;
+						for (var i = 0; i < autojoins.length; i++) {
+							roomid = toRoomid(autojoins[i]);
+							this.addRoom(roomid, null, true, autojoins[i]);
+							if (roomid !== 'staff' && roomid !== 'upperstaff') autojoinIds.push(roomid);
+						}
+					}
+					this.send('/autojoin ' + autojoinIds.join(','));
 				} else {
-					this.addRoom('lobby');
+					this.addRoom('lobby', null, true);
+					this.send('/autojoin');
 				}
 			}
 
@@ -404,6 +439,7 @@
 						if (app.topbar.curSideRoomLeft) {
 							e.preventDefault();
 							e.stopImmediatePropagation();
+							app.arrowKeysUsed = true;
 							app.focusRoom(app.topbar.curSideRoomLeft);
 						}
 					} else if (e.keyCode === 39 && safeLocation || window.nodewebkit && e.ctrlKey && e.keyCode === 9) {
@@ -411,6 +447,7 @@
 						if (app.topbar.curSideRoomRight) {
 							e.preventDefault();
 							e.stopImmediatePropagation();
+							app.arrowKeysUsed = true;
 							app.focusRoom(app.topbar.curSideRoomRight);
 						}
 					}
@@ -422,6 +459,7 @@
 					if (app.topbar.curRoomLeft) {
 						e.preventDefault();
 						e.stopImmediatePropagation();
+						app.arrowKeysUsed = true;
 						app.focusRoom(app.topbar.curRoomLeft);
 					}
 				} else if (e.keyCode === 39 && safeLocation || window.nodewebkit && e.ctrlKey && e.keyCode === 9) {
@@ -429,6 +467,7 @@
 					if (app.topbar.curRoomRight) {
 						e.preventDefault();
 						e.stopImmediatePropagation();
+						app.arrowKeysUsed = true;
 						app.focusRoom(app.topbar.curRoomRight);
 					}
 				}
@@ -669,10 +708,16 @@
 			var self = this;
 			var constructSocket = function() {
 				var protocol = (Config.server.port === 443) ? 'https' : 'http';
+				Config.server.host = $.trim(Config.server.host);
 				return new SockJS(protocol + '://' + Config.server.host + ':' +
 					Config.server.port + Config.sockjsprefix);
 			};
 			this.socket = constructSocket();
+			setInterval(function () {
+				if (Config.server.host !== $.trim(Config.server.host)) {
+					app.socket.close();
+				}
+			}, 500);
 
 			var socketopened = false;
 			var altport = (Config.server.port === Config.server.altport);
@@ -782,6 +827,7 @@
 		 */
 		receive: function(data) {
 			var roomid = '';
+			var autojoined = false;
 			if (data.substr(0,1) === '>') {
 				var nlIndex = data.indexOf('\n');
 				if (nlIndex < 0) return;
@@ -794,12 +840,13 @@
 				var roomTypeLFIndex = roomType.indexOf('\n');
 				if (roomTypeLFIndex >= 0) roomType = roomType.substr(0, roomTypeLFIndex);
 				roomType = toId(roomType);
-				if (this.rooms[roomid] || roomid === 'staff') {
-					// staff is always joined in background
+				if (this.rooms[roomid] || roomid === 'staff' || roomid === 'upperstaff') {
+					// autojoin rooms are joined in background
 					this.addRoom(roomid, roomType, true);
 				} else {
 					this.joinRoom(roomid, roomType, true);
 				}
+				if (roomType === 'chat') autojoined = true;
 			} else if ((data+'|').substr(0,8) === '|expire|') {
 				var room = this.rooms[roomid];
 				if (room) {
@@ -826,14 +873,18 @@
 				// handle error codes here
 				// data is the error code
 				if (data === 'namerequired') {
-					this.removeRoom(roomid);
 					var self = this;
 					this.once('init:choosename', function() {
-						self.joinRoom(roomid);
+						self.send('/join '+roomid);
 					});
-				} else {
+				} else if (data !== 'namepending') {
 					if (isdeinit) { // deinit
-						this.removeRoom(roomid);
+						if (this.rooms[roomid] && this.rooms[roomid].type === 'chat') {
+							this.removeRoom(roomid, true);
+							this.updateAutojoin();
+						} else {
+							this.removeRoom(roomid, true);
+						}
 					} else { // noinit
 						this.unjoinRoom(roomid);
 						if (roomid === 'lobby') this.joinRoom('rooms');
@@ -848,6 +899,7 @@
 				if (this.rooms[roomid]) {
 					this.rooms[roomid].receive(data);
 				}
+				if (autojoined) this.updateAutojoin();
 				return;
 			}
 
@@ -1096,6 +1148,7 @@
 				this.focusRoom(id);
 				return this.rooms[id];
 			}
+			if (id.substr(0, 11) === 'battle-gen5' && !Tools.loadedSpriteData['bw']) Tools.loadSpriteData('bw');
 
 			var room = this._addRoom(id, type, nojoin);
 			this.focusRoom(id);
@@ -1104,28 +1157,34 @@
 		/**
 		 * We tried to join a room but it didn't exist
 		 */
-		unjoinRoom: function(id, noinit) {
+		unjoinRoom: function(id) {
 			if (Config.server.id && this.rooms[id] && this.rooms[id].type === 'battle') {
 				if (id === this.initialFragment) {
 					// you were direct-linked to this nonexistent room
 					var replayid = id.substr(7);
 					if (Config.server.id !== 'showdown') replayid = Config.server.id+'-'+replayid;
+<<<<<<< HEAD
 					document.location.replace('https://tppleague.me/replay/'+replayid);
+=======
+					// document.location.replace('http://replay.pokemonshowdown.com/'+replayid);
+					var replayLink = 'http://replay.pokemonshowdown.com/'+replayid;
+					app.addPopupMessage('This room does not exist. You might want to try the replay: <a href="' + replayLink + '">' + replayLink + '</a>');
+>>>>>>> 92ff7d6da4bc9a7c0d9ffe1fcbbfedf193ca5b42
 					return;
 				}
 			}
-			this.removeRoom(id);
+			this.removeRoom(id, true);
 			if (this.curRoom) this.navigate(this.curRoom.id, {replace: true});
 		},
 		tryJoinRoom: function(id) {
 			this.joinRoom(id);
 		},
-		addRoom: function(id, type, nojoin) {
-			this._addRoom(id, type, nojoin);
+		addRoom: function(id, type, nojoin, title) {
+			this._addRoom(id, type, nojoin, title);
 			this.updateSideRoom();
 			this.updateLayout();
 		},
-		_addRoom: function(id, type, nojoin) {
+		_addRoom: function(id, type, nojoin, title) {
 			var oldRoom;
 			if (this.rooms[id]) {
 				if (type && this.rooms[id].type !== type) {
@@ -1182,7 +1241,8 @@
 			var room = this.rooms[id] = new type({
 				id: id,
 				el: el,
-				nojoin: nojoin
+				nojoin: nojoin,
+				title: title
 			});
 			if (oldRoom) {
 				if (this.curRoom === oldRoom) this.curRoom = room;
@@ -1315,12 +1375,12 @@
 			if (room.requestLeave && !room.requestLeave()) return false;
 			return this.removeRoom(id);
 		},
-		removeRoom: function(id) {
+		removeRoom: function(id, alreadyLeft) {
 			var room = this.rooms[id];
 			if (room) {
 				if (room === this.curRoom) this.focusRoom('');
 				delete this.rooms[id];
-				room.destroy();
+				room.destroy(alreadyLeft);
 				if (room === this.sideRoom) {
 					this.sideRoom = null;
 					this.curSideRoom = null;
@@ -1343,6 +1403,22 @@
 				gui.Shell.openExternal(e.target.href);
 				return false;
 			}
+		},
+		updateAutojoin: function() {
+			if (Config.server.id !== 'showdown') return;
+			var autojoins = [];
+			var autojoinCount = 0;
+			for (var i in this.rooms) {
+				if (!this.rooms[i]) continue;
+				if (this.rooms[i].type !== 'chat' || i === 'lobby') {
+					continue;
+				}
+				autojoins.push(this.rooms[i].title || this.rooms[i].id);
+				if (i === 'staff' || i === 'upperstaff') continue;
+				autojoinCount++;
+				if (autojoinCount >= 8) break;
+			}
+			Tools.prefs('autojoin', autojoins.join(','));
 		},
 
 		/*********************************************************
@@ -1480,7 +1556,7 @@
 			var curId = (app.curRoom ? app.curRoom.id : '');
 			var curSideId = (app.curSideRoom ? app.curSideRoom.id : '');
 
-			var buf = '<ul><li><a class="button'+(curId===''?' cur':'')+(app.rooms['']&&app.rooms[''].notifications?' notifying':'')+'" href="'+app.root+'"><i class="icon-home"></i> <span>Home</span></a></li>';
+			var buf = '<ul><li><a class="button'+(curId===''?' cur':'')+(app.rooms['']&&app.rooms[''].notificationClass||'')+'" href="'+app.root+'"><i class="icon-home"></i> <span>Home</span></a></li>';
 			if (app.rooms['teambuilder']) buf += '<li><a class="button'+(curId==='teambuilder'?' cur':'')+' closable" href="'+app.root+'teambuilder"><i class="icon-edit"></i> <span>Teambuilder</span></a><a class="closebutton" href="'+app.root+'teambuilder"><i class="icon-remove-sign"></i></a></li>';
 			if (app.rooms['ladder']) buf += '<li><a class="button'+(curId==='ladder'?' cur':'')+' closable" href="'+app.root+'ladder"><i class="icon-list-ol"></i> <span>Ladder</span></a><a class="closebutton" href="'+app.root+'ladder"><i class="icon-remove-sign"></i></a></li>';
 			buf += '</ul>';
@@ -1518,7 +1594,7 @@
 				}
 				if (room.isSideRoom) {
 					if (id !== 'rooms') {
-						sideBuf += '<li><a class="button'+(curId===id||curSideId===id?' cur':'')+(room.notifications?' notifying':'')+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
+						sideBuf += '<li><a class="button'+(curId===id||curSideId===id?' cur':'')+room.notificationClass+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
 						if (curSideId) {
 							// get left/right for side rooms
 							if (curSideId === id) {
@@ -1545,7 +1621,7 @@
 					buf += '<ul>';
 					atLeastOne = true;
 				}
-				buf += '<li><a class="button'+(curId===id?' cur':'')+(room.notifications?' notifying':'')+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
+				buf += '<li><a class="button'+(curId===id?' cur':'')+room.notificationClass+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
 				// get left/right
 				if (curId === id) {
 					passedCurRoom = true;
@@ -1553,9 +1629,6 @@
 					this.curRoomLeft = id;
 				} else if (!this.curRoomRight) {
 					this.curRoomRight = id;
-				}
-				if (curSideId && $('body').width() < room.minWidth + app.curSideRoom.minWidth) {
-					this.curSideRoomLeft = id;
 				}
 			}
 			if (window.nodewebkit) {
@@ -1623,6 +1696,7 @@
 			Backbone.View.apply(this, arguments);
 
 			if (!(options && options.nojoin)) this.join();
+			if (options && options.title) this.title = options.title;
 		},
 		dispatchClickButton: function(e) {
 			var target = e.currentTarget;
@@ -1676,7 +1750,7 @@
 				break;
 			}
 			this.$el.show();
-			this.dismissNotification();
+			this.dismissAllNotifications(true);
 		},
 		hide: function() {
 			this.blur();
@@ -1703,11 +1777,17 @@
 				}
 			} catch (e) {}
 		},
+		notificationClass: '',
 		notifications: null,
+		subtleNotification: false,
 		notify: function(title, body, tag, once) {
 			if (once && app.focused && (this === app.curRoom || this == app.curSideRoom)) return;
 			if (!tag) tag = 'message';
-			if (!this.notifications) this.notifications = {};
+			var needsTabbarUpdate = false;
+			if (!this.notifications) {
+				this.notifications = {};
+				needsTabbarUpdate = true;
+			}
 			if (app.focused && (this === app.curRoom || this == app.curSideRoom)) {
 				this.notifications[tag] = {};
 			} else if (window.nodewebkit && !nwWindow.setBadgeLabel) {
@@ -1750,34 +1830,73 @@
 				this.notifications[tag] = notification;
 				if (once) notification.psAutoclose = true;
 			}
+			if (needsTabbarUpdate) {
+				this.notificationClass = ' notifying';
+				app.topbar.updateTabbar();
+			}
+		},
+		subtleNotifyOnce: function() {
+			if (app.focused && (this === app.curRoom || this == app.curSideRoom)) return;
+			if (this.notifications || this.subtleNotification) return;
+			this.subtleNotification = true;
+			this.notificationClass = ' subtle-notifying';
 			app.topbar.updateTabbar();
 		},
 		notifyOnce: function(title, body, tag) {
 			return this.notify(title, body, tag, true);
 		},
 		closeNotification: function(tag, alreadyClosed) {
+			if (!tag) return this.closeAllNotifications();
 			if (window.nodewebkit) nwWindow.requestAttention(false);
-			if (!this.notifications) return;
-			if (!tag) {
-				for (tag in this.notifications) {
-					if (this.notifications[tag].close) this.notifications[tag].close();
-				}
-				this.notifications = null;
-				app.topbar.updateTabbar();
-				return;
-			}
-			if (!this.notifications[tag]) return;
+			if (!this.notifications || !this.notifications[tag]) return;
 			if (!alreadyClosed && this.notifications[tag].close) this.notifications[tag].close();
 			delete this.notifications[tag];
 			if (_.isEmpty(this.notifications)) {
 				this.notifications = null;
+				this.notificationClass = (this.subtleNotification ? ' subtle-notifying' : '');
 				app.topbar.updateTabbar();
 			}
 		},
-		dismissNotification: function(tag) {
+		closeAllNotifications: function(skipUpdate) {
+			if (!this.notifications && !this.subtleNotification) {
+				return;
+			}
 			if (window.nodewebkit) nwWindow.requestAttention(false);
-			if (!this.notifications) return;
-			if (!tag) {
+			this.subtleNotification = false;
+			if (this.notifications) {
+				for (tag in this.notifications) {
+					if (this.notifications[tag].close) this.notifications[tag].close();
+				}
+				this.notifications = null;
+			}
+			this.notificationClass = '';
+			if (skipUpdate) return;
+			app.topbar.updateTabbar();
+		},
+		dismissNotification: function(tag) {
+			if (!tag) return this.dismissAllNotifications();
+			if (window.nodewebkit) nwWindow.requestAttention(false);
+			if (!this.notifications || !this.notifications[tag]) return;
+			if (this.notifications[tag].close) this.notifications[tag].close();
+			if (!this.notifications || this.notifications[tag]) return; // avoid infinite recursion
+			if (this.notifications[tag].psAutoclose) {
+				delete this.notifications[tag];
+				if (!this.notifications || _.isEmpty(this.notifications)) {
+					this.notifications = null;
+					this.notificationClass = (this.subtleNotification ? ' subtle-notifying' : '');
+					app.topbar.updateTabbar();
+				}
+			} else {
+				this.notifications[tag] = {};
+			}
+		},
+		dismissAllNotifications: function(skipUpdate) {
+			if (!this.notifications && !this.subtleNotification) {
+				return;
+			}
+			if (window.nodewebkit) nwWindow.requestAttention(false);
+			this.subtleNotification = false;
+			if (this.notifications) {
 				for (tag in this.notifications) {
 					if (!this.notifications[tag].psAutoclose) continue;
 					if (this.notifications[tag].close) this.notifications[tag].close();
@@ -1785,21 +1904,12 @@
 				}
 				if (!this.notifications || _.isEmpty(this.notifications)) {
 					this.notifications = null;
-					app.topbar.updateTabbar();
 				}
-				return;
 			}
-			if (!this.notifications[tag]) return;
-			if (this.notifications[tag].close) this.notifications[tag].close();
-			if (!this.notifications || this.notifications[tag]) return; // avoid infinite recursion
-			if (this.notifications[tag].psAutoclose) {
-				delete this.notifications[tag];
-				if (!this.notifications || _.isEmpty(this.notifications)) {
-					this.notifications = null;
-					app.topbar.updateTabbar();
-				}
-			} else {
-				this.notifications[tag] = {};
+			if (!this.notifications) {
+				this.notificationClass = '';
+				if (skipUpdate) return;
+				app.topbar.updateTabbar();
 			}
 		},
 		clickNotification: function(tag) {
@@ -1812,9 +1922,9 @@
 
 		// allocation
 
-		destroy: function() {
-			this.closeNotification();
-			this.leave();
+		destroy: function(alreadyLeft) {
+			this.closeAllNotifications(true);
+			if (!alreadyLeft) this.leave();
 			this.remove();
 			delete this.app;
 		}
@@ -2095,10 +2205,9 @@
 				if (data.error.indexOf('inappropriate') >= 0) {
 					buf += '<p>Keep in mind these rules:</p>';
 					buf += '<ol>';
-					buf += '<li>Usernames may not be derogatory or insulting in nature, to an individual or group (insulting yourself is okay as long as it\'s not too serious).</li>';
-					buf += '<li>Usernames may not directly reference sexual activity.</li>';
-					buf += '<li>Usernames may not be excessively disgusting.</li>';
 					buf += '<li>Usernames may not impersonate a recognized user (a user with %, @, &, or ~ next to their name).</li>';
+					buf += '<li>Usernames may not be derogatory or insulting in nature, to an individual or group (insulting yourself is okay as long as it\'s not too serious).</li>';
+					buf += '<li>Usernames may not directly reference sexual activity, or be excessively disgusting.</li>';
 					buf += '</ol>';
 				}
 			} else if (data.reason) {
@@ -2115,6 +2224,7 @@
 		},
 		submit: function(data) {
 			this.close();
+			if (!$.trim(data.username)) return;
 			app.user.rename(data.username);
 		}
 	});
@@ -2337,9 +2447,8 @@
 			'change input[name=bwgfx]': 'setBwgfx',
 			'change input[name=nopastgens]': 'setNopastgens',
 			'change input[name=notournaments]': 'setNotournaments',
-			'change input[name=nolobbypm]': 'setNolobbypm',
+			'change input[name=inchatpm]': 'setInchatpm',
 			'change input[name=temporarynotifications]': 'setTemporaryNotifications',
-			'change input[name=ignorespects]': 'setIgnoreSpects',
 			'change select[name=bg]': 'setBg',
 			'change select[name=timestamps-lobby]': 'setTimestampsLobby',
 			'change select[name=timestamps-pms]': 'setTimestampsPMs',
@@ -2361,7 +2470,7 @@
 			buf += '<p><label class="optlabel"><input type="checkbox" name="bwgfx"'+(Tools.prefs('bwgfx')?' checked':'')+' /> Enable BW sprites for XY</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="nopastgens"'+(Tools.prefs('nopastgens')?' checked':'')+' /> Use modern sprites for past generations</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="notournaments"'+(Tools.prefs('notournaments')?' checked':'')+' /> Ignore tournaments</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="nolobbypm"'+(Tools.prefs('nolobbypm')?' checked':'')+' /> Don\'t show PMs in chat rooms</label></p>';
+			buf += '<p><label class="optlabel"><input type="checkbox" name="inchatpm"'+(Tools.prefs('inchatpm')?' checked':'')+' /> Show PMs in chat rooms</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="selfhighlight"'+(!Tools.prefs('noselfhighlight')?' checked':'')+'> Highlight when your name is said in chat</label></p>';
 
 			if (window.Notification) {
@@ -2372,12 +2481,6 @@
 			buf += '<p><label class="optlabel">Timestamps in chat rooms: <select name="timestamps-lobby"><option value="off">Off</option><option value="minutes"'+(timestamps.lobby==='minutes'?' selected="selected"':'')+'>[HH:MM]</option><option value="seconds"'+(timestamps.lobby==='seconds'?' selected="selected"':'')+'>[HH:MM:SS]</option></select></label></p>';
 			buf += '<p><label class="optlabel">Timestamps in PMs: <select name="timestamps-pms"><option value="off">Off</option><option value="minutes"'+(timestamps.pms==='minutes'?' selected="selected"':'')+'>[HH:MM]</option><option value="seconds"'+(timestamps.pms==='seconds'?' selected="selected"':'')+'>[HH:MM:SS]</option></select></label></p>';
 			buf += '<p><label class="optlabel">Chat preferences: <button name="formatting">Edit formatting</button></label></p>';
-
-			if (app.curRoom.battle) {
-				buf += '<hr />';
-				buf += '<h3>Current room</h3>';
-				buf += '<p><label class="optlabel"><input type="checkbox" name="ignorespects"'+(app.curRoom.battle.ignoreSpects?' checked':'')+'> Ignore spectators</label></p>';
-			}
 
 			if (window.nodewebkit) {
 				buf += '<hr />';
@@ -2437,18 +2540,13 @@
 			var noselfhighlight = !e.currentTarget.checked;
 			Tools.prefs('noselfhighlight', noselfhighlight);
 		},
-		setNolobbypm: function(e) {
-			var nolobbypm = !!e.currentTarget.checked;
-			Tools.prefs('nolobbypm', nolobbypm);
+		setInchatpm: function(e) {
+			var inchatpm = !!e.currentTarget.checked;
+			Tools.prefs('inchatpm', inchatpm);
 		},
 		setTemporaryNotifications: function (e) {
 			var temporarynotifications = !!e.currentTarget.checked;
 			Tools.prefs('temporarynotifications', temporarynotifications);
-		},
-		setIgnoreSpects: function(e) {
-			if (app.curRoom.battle) {
-				app.curRoom.battle.ignoreSpects = !!e.currentTarget.checked;
-			}
 		},
 		setBg: function(e) {
 			var bg = e.currentTarget.value;
@@ -2557,7 +2655,11 @@
 			this.close();
 		},
 		submit: function(i) {
+<<<<<<< HEAD
 			app.openInNewWindow('http://tppleague.me/battle-'+this.id);
+=======
+			app.openInNewWindow('http://replay.pokemonshowdown.com/'+this.id);
+>>>>>>> 92ff7d6da4bc9a7c0d9ffe1fcbbfedf193ca5b42
 			this.close();
 		}
 	});
@@ -2574,7 +2676,7 @@
 			buf += '<b>Global</b><br /><br /><b>1.</b> Be nice to people. Respect people. Don\'t be rude to people.<br /><br /><b>2.</b> PS is based in the US. Follow US laws. Don\'t distribute pirated material, and don\'t slander others. PS is available to users younger than 18, so porn is strictly forbidden.<br /><br /><b>3.</b>&nbsp;No cheating. Don\'t exploit bugs to gain an unfair advantage. Don\'t game the system (by intentionally losing against yourself or a friend in a ladder match, by timerstalling, etc).<br /><b></b><br /><b>4.</b>&nbsp;English only.<br /><br /><b>5.</b> The First Amendment does not apply to PS, since PS is not a government organization.<br /><br /><b>6.</b> Moderators have discretion to punish any behaviour they deem inappropriate, whether or not it\'s on this list. If you disagree with a moderator ruling, appeal to a leader (a user with &amp; next to their name) or Discipline Appeals.<br /><br />';
 			buf += '<b>Chat</b><br /><br /><b>1.</b> Do not spam, flame, or troll. This includes advertising, asking questions with one-word answers in the lobby, and flooding the chat such as by copy/pasting lots of text in the lobby.<br /><br /><b>2.</b> Don\'t call unnecessary attention to yourself. Don\'t be obnoxious. ALL CAPS, <i><b>formatting</b></i>, and -&gt; ASCII art &lt;- are acceptable to emphasize things, but should be used sparingly, not all the time.<br /><br /><b>3.</b> No minimodding: don\'t mod if it\'s not your job. Don\'t tell people they\'ll be muted, don\'t ask for people to be muted, and don\'t talk about whether or not people should be muted ("inb4 mute", etc). This applies to bans and other punishments, too.<br /><br /><b>4.</b> We reserve the right to tell you to stop discussing moderator decisions if you become unreasonable or belligerent.<br /><br />(Note: Chat rules don\'t apply to battle rooms, but only if both players in the battle are okay with it.)<br /><br />';
 			if (!warning) {
-				buf += '<b>Usernames</b><br /><br />Your username can be chosen and changed at any time. Keep in mind:<br /><br /><b>1.</b> Usernames may not be derogatory or insulting in nature, to an individual or group (insulting yourself is okay as long as it\'s not too serious).<br /><br /><b>2.</b> Usernames may not directly reference sexual activity.<br /><br /><b>3.</b> Usernames may not be excessively disgusting.<br /><br /><b>4.</b> Usernames may not impersonate a recognized user (a user with %, @, &amp;, or ~ next to their name).<br /><br />This policy is less restrictive than that of many places, so you might see some "borderline" nicknames that might not be accepted elsewhere. You might consider it unfair that they are allowed to keep their nickname. The fact remains that their nickname follows the above rules, and if you were asked to choose a new name, yours does not.';
+				buf += '<b>Usernames</b><br /><br />Your username can be chosen and changed at any time. Keep in mind:<br /><br /><b>1.</b> Usernames may not impersonate a recognized user (a user with %, @, &amp;, or ~ next to their name).<br /><br /><b>2.</b> Usernames may not be derogatory or insulting in nature, to an individual or group (insulting yourself is okay as long as it\'s not too serious).<br /><br /><b>3.</b> Usernames may not directly reference sexual activity, or be excessively disgusting.<br /><br />This policy is less restrictive than that of many places, so you might see some "borderline" nicknames that might not be accepted elsewhere. You might consider it unfair that they are allowed to keep their nickname. The fact remains that their nickname follows the above rules, and if you were asked to choose a new name, yours does not.';
 			}
 			if (warning) {
 				buf += '<p class="buttonbar"><button name="close" disabled>Close</button><small class="overlay-warn"> You will be able to close this in 5 seconds</small></p>';
@@ -2597,7 +2699,7 @@
 			var curId = (app.curRoom ? app.curRoom.id : '');
 			var curSideId = (app.curSideRoom ? app.curSideRoom.id : '');
 
-			var buf = '<ul><li><a class="button'+(curId===''?' cur':'')+(app.rooms['']&&app.rooms[''].notifications?' notifying':'')+'" href="'+app.root+'"><i class="icon-home"></i> <span>Home</span></a></li>';
+			var buf = '<ul><li><a class="button'+(curId===''?' cur':'')+(app.rooms['']&&app.rooms[''].notificationClass||'')+'" href="'+app.root+'"><i class="icon-home"></i> <span>Home</span></a></li>';
 			if (app.rooms['teambuilder']) buf += '<li><a class="button'+(curId==='teambuilder'?' cur':'')+' closable" href="'+app.root+'teambuilder"><i class="icon-edit"></i> <span>Teambuilder</span></a><a class="closebutton" href="'+app.root+'teambuilder"><i class="icon-remove-sign"></i></a></li>';
 			if (app.rooms['ladder']) buf += '<li><a class="button'+(curId==='ladder'?' cur':'')+' closable" href="'+app.root+'ladder"><i class="icon-list-ol"></i> <span>Ladder</span></a><a class="closebutton" href="'+app.root+'ladder"><i class="icon-remove-sign"></i></a></li>';
 			buf += '</ul>';
@@ -2622,14 +2724,14 @@
 					name = '<i class="text">'+parts[0]+'</i><span>'+name+'</span>';
 				}
 				if (room.isSideRoom) {
-					if (room.id !== 'rooms') sideBuf += '<li><a class="button'+(curId===id||curSideId===id?' cur':'')+(room.notifications?' notifying':'')+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
+					if (room.id !== 'rooms') sideBuf += '<li><a class="button'+(curId===id||curSideId===id?' cur':'')+room.notificationClass+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
 					continue;
 				}
 				if (!atLeastOne) {
 					buf += '<ul>';
 					atLeastOne = true;
 				}
-				buf += '<li><a class="button'+(curId===id?' cur':'')+(room.notifications?' notifying':'')+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
+				buf += '<li><a class="button'+(curId===id?' cur':'')+room.notificationClass+' closable" href="'+app.root+id+'">'+name+'</a><a class="closebutton" href="'+app.root+id+'"><i class="icon-remove-sign"></i></a></li>';
 			}
 			if (app.supports['rooms']) {
 				sideBuf += '<li><a class="button'+(curId==='rooms'||curSideId==='rooms'?' cur':'')+'" href="'+app.root+'rooms"><i class="icon-plus"></i> <span>&nbsp;</span></a></li>';
