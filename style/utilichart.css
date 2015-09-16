@@ -66,12 +66,17 @@
 }
 .utilichart .numcol
 {
-	width: 24px;
+	width: 35px;
 	padding-right: 5px;
 	text-align: right;
 	color: #999999;
-	padding-top: 7px;
+	padding-top: 2px;
 	font-size: 8pt;
+	display: table;
+}
+.utilichart .tiercol {
+	display: table-cell;
+	vertical-align: middle;
 }
 .utilichart .statcol,
 .utilichart .bstcol,

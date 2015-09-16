@@ -63,7 +63,14 @@ function BattleChart() {
 		var tier = pokemon.tier;
 		if (!tier) tier = Tools.getTemplate(pokemon.baseSpecies || pokemon.species).tier || 'Illegal';
 
-		text += '<span class="col numcol">' + tier + '</span> ';
+		if (tier === 'Unreleased') {
+			tier = '?';
+		}
+		else if (!exports.BattleTPP[pokemon.id] && tier !== 'CAP') {
+			tier = 'T-Rule ' + tier;
+		}
+
+		text += '<span class="col numcol"><span class="tiercol">' + tier + '</span></span> ';
 
 		var name = Tools.escapeHTML(pokemon.name);
 
