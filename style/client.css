@@ -94,7 +94,7 @@ a.subtle:hover {
 }
 .header .logo {
 	float: left;
-	margin: 2px 0 0 2px;
+	margin: 6px 0 0 2px;
 }
 
 .userbar {
@@ -160,7 +160,7 @@ a.subtle:hover {
 	box-shadow: 0 1px 2px rgba(0,0,0,.2);
 }
 .tabbar.maintabbar {
-	margin-left: 144px;
+	margin-left: 190px;
 	margin-right: 165px;
 	overflow: hidden;
 }
