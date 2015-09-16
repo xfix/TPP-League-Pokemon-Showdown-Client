@@ -158,6 +158,9 @@ License: GPLv2
 	background: #CCCCCC;
 	color: #CCCCCC;
 }
+.emote {
+	vertical-align: text-bottom;
+}
 .battle-log .rated
 {
 	padding: 3px 4px;
