@@ -19,8 +19,7 @@ if (@$_GET['act'] === 'dlteam') {
 	die();
 }
 
-include_once '../pokemonshowdown.com/lib/ntbb-session.lib.php';
-include_once '../pokemonshowdown.com/config/servers.inc.php';
+include_once 'lib/ntbb-session.lib.php';
 include_once 'lib/dispatcher.lib.php';
 
 $dispatcher = new ActionDispatcher(array(
