@@ -7,43 +7,40 @@
 -- Server version: 5.1.39
 -- PHP Version: 5.3.13
 
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
-
 --
--- Database: `pokemonshowdown`
+-- Database: pokemonshowdown
 --
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `ntbb_ladder`
+-- Table structure for table ntbb_ladder
 --
 
-CREATE TABLE IF NOT EXISTS `ntbb_ladder` (
-  `entryid` int(11) NOT NULL AUTO_INCREMENT,
-  `serverid` varchar(255) NOT NULL,
-  `formatid` varchar(255) NOT NULL,
-  `userid` varchar(255) NOT NULL,
-  `username` varchar(255) NOT NULL,
-  `w` int(11) NOT NULL DEFAULT '0',
-  `l` int(11) NOT NULL DEFAULT '0',
-  `t` int(11) NOT NULL DEFAULT '0',
-  `gxe` double NOT NULL DEFAULT '0',
-  `r` double NOT NULL DEFAULT '1500',
-  `rd` double NOT NULL DEFAULT '350',
-  `sigma` double NOT NULL DEFAULT '0.06',
-  `rptime` bigint(11) NOT NULL,
-  `rpr` double NOT NULL DEFAULT '1500',
-  `rprd` double NOT NULL DEFAULT '350',
-  `rpsigma` double NOT NULL DEFAULT '0.06',
-  `rpdata` text NOT NULL,
-  `acre` double NOT NULL DEFAULT '1000',
-  `lacre` double NOT NULL,
-  PRIMARY KEY (`entryid`),
-  KEY `ladderid` (`formatid`,`userid`,`gxe`),
-  KEY `serverid` (`serverid`),
-  KEY `acre` (`acre`),
-  KEY `lacre` (`lacre`),
-  KEY `userid` (`userid`),
-  KEY `formatid` (`formatid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=424968 ;
+CREATE TABLE IF NOT EXISTS ntbb_ladder (
+  entryid serial NOT NULL PRIMARY KEY,
+  serverid text NOT NULL,
+  formatid text NOT NULL,
+  userid text NOT NULL,
+  username text NOT NULL,
+  w int NOT NULL DEFAULT '0',
+  l int NOT NULL DEFAULT '0',
+  t int NOT NULL DEFAULT '0',
+  gxe double precision NOT NULL DEFAULT '0',
+  r double precision NOT NULL DEFAULT '1500',
+  rd double precision NOT NULL DEFAULT '350',
+  sigma double precision NOT NULL DEFAULT '0.06',
+  rptime int8 NOT NULL,
+  rpr double precision NOT NULL DEFAULT '1500',
+  rprd double precision NOT NULL DEFAULT '350',
+  rpsigma double precision NOT NULL DEFAULT '0.06',
+  rpdata text NOT NULL,
+  acre double precision NOT NULL DEFAULT '1000',
+  lacre double precision NOT NULL
+);
+CREATE INDEX ON ntbb_ladder (formatid,userid,gxe);
+CREATE INDEX ON ntbb_ladder (serverid);
+CREATE INDEX ON ntbb_ladder (acre);
+CREATE INDEX ON ntbb_ladder (lacre);
+CREATE INDEX ON ntbb_ladder (userid);
+CREATE INDEX ON ntbb_ladder (formatid);
