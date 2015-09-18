@@ -20,6 +20,7 @@ if (@$_GET['act'] === 'dlteam') {
 }
 
 include_once 'lib/ntbb-session.lib.php';
+include_once 'lib/ntbb-servers.lib.php';
 include_once 'lib/dispatcher.lib.php';
 
 $dispatcher = new ActionDispatcher(array(

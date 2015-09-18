@@ -85,6 +85,7 @@ class NTBBUsers {
 			return ';;';
 		}
 		if ($user['loggedin']) {
+			setcookie('showdown_username', $user['username']);
 			$status = 2;
 		}
 		else {
@@ -94,7 +95,6 @@ class NTBBUsers {
 			}
 			$status = 1;
 		}
-		setcookie('showdown_username', $user['username']);
 		list ($keyid, $actual_challenge) = explode('|', $challenge);
 		$message = implode(',', array($actual_challenge, $userid, $status, time(), 'tokenhost'));
 		return $this->sign($message);
