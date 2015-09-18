@@ -577,67 +577,6 @@
 		 *     triggered if the SockJS socket closes
 		 */
 		initializeConnection: function () {
-			if ((document.location.hostname !== Config.origindomain) && !Config.testclient) {
-				// Handle *.psim.us.
-				return this.initializeCrossDomainConnection();
-			} else if (Config.testclient) {
-				this.initializeTestClient();
-			} else if (document.location.protocol === 'https:') {
-				/* if (!$.cookie('showdown_ssl')) {
-					// Never used HTTPS before, so we have to copy over the
-					// HTTP origin localStorage. We have to redirect to the
-					// HTTP site in order to do this. We set a cookie
-					// indicating that we redirected for the purpose of copying
-					// over the localStorage.
-					$.cookie('showdown_ssl_convert', 1);
-					return document.location.replace('http://' + document.location.hostname +
-						document.location.pathname);
-				} */
-				// Renew the `showdown_ssl` cookie.
-				$.cookie('showdown_ssl', 1, {expires: 365 * 3});
-			} else if (!$.cookie('showdown_ssl')) {
-				// localStorage is currently located on the HTTP origin.
-
-				if (!$.cookie('showdown_ssl_convert') || !('postMessage' in window)) {
-					// This user is not using HTTPS now and has never used
-					// HTTPS before, so her localStorage is still under the
-					// HTTP origin domain: connect on port 8000, not 443.
-					Config.defaultserver.port = Config.defaultserver.httpport;
-				} else {
-					// First time using HTTPS: copy the existing HTTP storage
-					// over to the HTTPS origin.
-					$(window).on('message', function ($e) {
-						var e = $e.originalEvent;
-						var origin = 'https://' + Config.origindomain;
-						if (e.origin !== origin) return;
-						if (e.data === 'init') {
-							Storage.loadTeams();
-							e.source.postMessage($.toJSON({
-								teams: Storage.getPackedTeams(),
-								prefs: $.toJSON(Tools.prefs.data)
-							}), origin);
-						} else if (e.data === 'done') {
-							// Set a cookie to indicate that localStorage is now under
-							// the HTTPS origin.
-							$.cookie('showdown_ssl', 1, {expires: 365 * 3});
-							localStorage.clear();
-							return document.location.replace('https://' + document.location.hostname +
-								document.location.pathname);
-						}
-					});
-					var $iframe = $('<iframe src="https://play.pokemonshowdown.com/crossprotocol.html" style="display: none;"></iframe>');
-					$('body').append($iframe);
-					return;
-				}
-			} else {
-				// The user is using HTTP right now, but has used HTTPS in the
-				// past, so her localStorage is located on the HTTPS origin:
-				// hence we need to use the cross-domain code to load the
-				// localStorage because the HTTPS origin is considered a
-				// different domain for the purpose of localStorage.
-				return this.initializeCrossDomainConnection();
-			}
-
 			// Simple connection: no cross-domain logic needed.
 			Config.server = Config.server || Config.defaultserver;
 			// Config.server.afd = true;
