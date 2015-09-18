@@ -140,10 +140,8 @@
 	// address bar is `Config.origindomain`.
 	Config.defaultserver = {
 		id: 'showdown',
-		host: 'sim.smogon.com',
+		host: 'www.tppleague.me',
 		port: 443,
-		httpport: 8000,
-		altport: 80,
 		registered: true
 	};
 	Config.sockjsprefix = '/showdown';
