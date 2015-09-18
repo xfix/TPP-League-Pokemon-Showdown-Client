@@ -312,7 +312,7 @@ class DefaultActionHandler {
 				// the server must send all the required values
 				!isset($reqData['id']) ||
 				!isset($reqData['format']) ||
-				!isset($reqData['loghash']) ||
+				!isset($reqData['log']) ||
 				!isset($reqData['p1']) ||
 				!isset($reqData['p2']) ||
 				// player usernames cannot be longer than 18 characters
@@ -332,7 +332,7 @@ class DefaultActionHandler {
 			$reqData['id'] = $server['id'].'-'.$reqData['id'];
 		}
 
-		include_once __DIR__.'/../../replay.pokemonshowdown.com/replays.lib.php';
+		include_once 'ntbb-replays.lib.php';
 		$out = $GLOBALS['Replays']->prepUpload($reqData);
 
 		$dispatcher->setPrefix(''); // No need for prefix since only usable by server.

@@ -1154,25 +1154,7 @@
 			var id = data.id;
 			var serverid = Config.server.id && toId(Config.server.id.split(':')[0]);
 			if (serverid && serverid !== 'showdown') id = serverid + '-' + id;
-			$.post(app.user.getActionPHP() + '?act=uploadreplay', {
-				log: data.log,
-				id: id
-			}, function (data) {
-				if ((serverid === 'showdown') && (data === 'invalid id')) {
-					data = 'not found';
-				}
-				if (data === 'success') {
-					app.addPopup(ReplayUploadedPopup, {id: id});
-				} else if (data === 'hash mismatch') {
-					app.addPopupMessage("Someone else is already uploading a replay of this battle. Try again in five seconds.");
-				} else if (data === 'not found') {
-					app.addPopupMessage("This server isn't registered, and doesn't support uploading replays.");
-				} else if (data === 'invalid id') {
-					app.addPopupMessage("This server is using invalid battle IDs, so this replay can't be uploaded.");
-				} else {
-					app.addPopupMessage("Error while uploading replay: " + data);
-				}
-			});
+			app.addPopup(ReplayUploadedPopup, {id: id});
 		},
 		roomsResponse: function (data) {
 			app.supports['rooms'] = true;
@@ -2800,7 +2782,7 @@
 		initialize: function (data) {
 			var buf = '';
 			buf = '<p>Your replay has been uploaded! It\'s available at:</p>';
-			buf += '<p><a href="http://replay.pokemonshowdown.com/' + data.id + '" target="_blank">http://replay.pokemonshowdown.com/' + data.id + '</a></p>';
+			buf += '<p><a href="https://tppleague.me/replay/' + data.id + '" target="_blank">https://tppleague.me/replay/' + data.id + '</a></p>';
 			buf += '<p><button type="submit" class="autofocus"><strong>Open</strong></button> <button name="close">Cancel</button></p>';
 			this.$el.html(buf).css('max-width', 620);
 		},
