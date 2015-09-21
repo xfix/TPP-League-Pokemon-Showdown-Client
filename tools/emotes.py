@@ -10,7 +10,7 @@ from re import escape
 global_emotes_link = 'http://twitchemotes.com/api_cache/v2/global.json'
 subscriber_emotes_link = 'http://twitchemotes.com/api_cache/v2/subscriber.json'
 
-subscribe_to = ['turbo', 'twitchplayspokemon', 'puncayshun']
+subscribe_to = ['turbo', 'twitchplayspokemon', 'puncayshun', 'srkevo1', 'lffn']
 
 emote_path = '../fx/emotes/'
 
