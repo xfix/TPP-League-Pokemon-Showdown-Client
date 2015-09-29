@@ -1,10 +1,12 @@
 <?php
+
 function to_id($name) {
 	return preg_replace('/[^a-z0-9]/', '', strtolower($name));
 }
 
 class NTBBReplay {
 	function prepUpload($reqData) {
+		pg_connect('dbname=showdown');
 		$id = $reqData['id'];
 		$format = $reqData['format'];
 		$log = $reqData['log'];
@@ -28,3 +30,4 @@ class NTBBReplay {
 }
 
 $GLOBALS['Replays'] = new NTBBReplay;
+
