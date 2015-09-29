@@ -108,6 +108,7 @@ function h($text) {
 	soundManager.setup({url: '/swf/'});
 </script>
 <script src="/js/battledata.js"></script>
+<script src="/data/emoteregex.js"></script>
 <script src="/data/pokedex-mini.js"></script>
 <script src="/data/graphics.js"></script>
 <script src="/js/battle.js"></script>
