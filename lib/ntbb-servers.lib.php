@@ -4,5 +4,6 @@ $PokemonServers = array(
 	'showdown' => array(
 		'server' => $address,
 		'ipcache' => $address,
+		'id' => 'showdown',
 	),
 );
