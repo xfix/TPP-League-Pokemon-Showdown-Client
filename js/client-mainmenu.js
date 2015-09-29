@@ -10,6 +10,7 @@
 			'click .closebutton': 'closePM',
 			'click .minimizebutton': 'minimizePM',
 			'click .pm-window': 'clickPMBackground',
+			'dblclick .pm-window h3': 'dblClickPMHeader',
 			'focus textarea': 'onFocusPM',
 			'blur textarea': 'onBlurPM',
 			'click button.formatselect': 'selectFormat',
@@ -87,7 +88,7 @@
 			options.append = options.append || false;
 			options.noMinimize = options.noMinimize || false;
 
-			this.$pmBox[options.append ? 'append' : 'prepend']('<div class="pm-window ' + options.cssClass + '" ' + options.attributes + '><h3><button class="closebutton" tabindex="-1"><i class="icon-remove-sign"></i></button>' + (!options.noMinimize ? '<button class="minimizebutton" tabindex="-1"><i class="icon-minus-sign"></i></button>' : '') + options.title + '</h3><div class="pm-log" style="overflow:visible;height:' + (typeof options.height === 'number' ? options.height + 'px' : options.height) + ';' + (parseInt(options.height) ? 'max-height:none' : (options.maxHeight ? 'max-height:' + (typeof options.maxHeight === 'number' ? options.maxHeight + 'px' : options.maxHeight) : '')) + '">' +
+			this.$pmBox[options.append ? 'append' : 'prepend']('<div class="pm-window ' + options.cssClass + '" ' + options.attributes + '><h3><button class="closebutton" tabindex="-1"><i class="fa fa-times-circle"></i></button>' + (!options.noMinimize ? '<button class="minimizebutton" tabindex="-1"><i class="fa fa-minus-circle"></i></button>' : '') + options.title + '</h3><div class="pm-log" style="overflow:visible;height:' + (typeof options.height === 'number' ? options.height + 'px' : options.height) + ';' + (parseInt(options.height) ? 'max-height:none' : (options.maxHeight ? 'max-height:' + (typeof options.maxHeight === 'number' ? options.maxHeight + 'px' : options.maxHeight) : '')) + '">' +
 				options.html +
 				'</div></div>');
 		},
@@ -145,7 +146,7 @@
 				$chatFrame.scrollTop($chat.height());
 			}
 
-			if ($pmWindow.data('minimized') && name.substr(1) !== app.user.get('name')) {
+			if (!$pmWindow.hasClass('focused') && name.substr(1) !== app.user.get('name')) {
 				$pmWindow.find('h3').addClass('pm-notifying');
 			}
 		},
@@ -160,8 +161,8 @@
 					group = '<small>' + Tools.escapeHTML(group) + '</small>';
 				}
 				var buf = '<div class="pm-window pm-window-' + userid + '" data-userid="' + userid + '" data-name="' + name + '">';
-				buf += '<h3><button class="closebutton" href="' + app.root + 'teambuilder" tabindex="-1"><i class="icon-remove-sign"></i></button>';
-				buf += '<button class="minimizebutton" href="' + app.root + 'teambuilder" tabindex="-1"><i class="icon-minus-sign"></i></button>';
+				buf += '<h3><button class="closebutton" href="' + app.root + 'teambuilder" tabindex="-1"><i class="fa fa-times-circle"></i></button>';
+				buf += '<button class="minimizebutton" href="' + app.root + 'teambuilder" tabindex="-1"><i class="fa fa-minus-circle"></i></button>';
 				buf += group + Tools.escapeHTML(name.substr(1)) + '</h3>';
 				buf += '<div class="pm-log"><div class="inner"></div></div>';
 				buf += '<div class="pm-log-add"><form class="chatbox nolabel"><textarea class="textbox" type="text" size="70" autocomplete="off" name="message"></textarea></form></div></div>';
@@ -170,6 +171,8 @@
 					animate: false,
 					extraSpace: 0
 				});
+				// create up/down history for this PM
+				this.chatHistories[userid] = new ChatHistory();
 			} else {
 				$pmWindow.show();
 				if (!dontFocus) {
@@ -262,12 +265,13 @@
 			this.openPM(name).prependTo(this.$pmBox).find('textarea[name=message]').focus();
 		},
 		onFocusPM: function (e) {
-			$(e.currentTarget).closest('.pm-window').addClass('focused');
+			$(e.currentTarget).closest('.pm-window').addClass('focused').find('h3').removeClass('pm-notifying');
 		},
 		onBlurPM: function (e) {
 			$(e.currentTarget).closest('.pm-window').removeClass('focused');
 		},
 		keyPress: function (e) {
+			var cmdKey = (((e.cmdKey || e.metaKey) ? 1 : 0) + (e.ctrlKey ? 1 : 0) + (e.altKey ? 1 : 0) === 1);
 			if (e.keyCode === 13 && !e.shiftKey) { // Enter
 				var $target = $(e.currentTarget);
 				e.preventDefault();
@@ -278,7 +282,7 @@
 					var userid = $pmWindow.data('userid');
 					var $chat = $pmWindow.find('.inner');
 					// this.tabComplete.reset();
-					// this.chatHistory.push(text);
+					this.chatHistories[userid].push(text);
 					if (text.toLowerCase() === '/ignore') {
 						if (app.ignore[userid]) {
 							$chat.append('<div class="chat">User ' + userid + ' is already on your ignore list. (Moderator messages will not be ignored.)</div>');
@@ -301,6 +305,26 @@
 				}
 			} else if (e.keyCode === 27) { // Esc
 				this.closePM(e);
+			} else if (e.keyCode === 73 && cmdKey && !e.shiftKey) { // Ctrl + I key
+				if (Tools.toggleFormatChar(e.currentTarget, '_')) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			} else if (e.keyCode === 66 && cmdKey && !e.shiftKey) { // Ctrl + B key
+				if (Tools.toggleFormatChar(e.currentTarget, '*')) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			} else if (e.keyCode === 33) { // Pg Up key
+				var $target = $(e.currentTarget);
+				var $pmWindow = $target.closest('.pm-window');
+				var $chat = $pmWindow.find('.pm-log');
+				$chat.scrollTop($chat.scrollTop() - $chat.height() + 60);
+			} else if (e.keyCode === 34) { // Pg Dn key
+				var $target = $(e.currentTarget);
+				var $pmWindow = $target.closest('.pm-window');
+				var $chat = $pmWindow.find('.pm-log');
+				$chat.scrollTop($chat.scrollTop() + $chat.height() - 60);
 			} else if (e.keyCode === 9 && !e.shiftKey && !e.ctrlKey) { // Tab key
 				var handlerRoom = app.curSideRoom;
 				if (!handlerRoom) {
@@ -314,8 +338,40 @@
 					e.preventDefault();
 					e.stopPropagation();
 				}
+			} else if (e.keyCode === 38 && !e.shiftKey && !e.altKey) { // Up key
+				if (this.chatHistoryUp(e)) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			} else if (e.keyCode === 40 && !e.shiftKey && !e.altKey) { // Down key
+				if (this.chatHistoryDown(e)) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
 			}
 		},
+		chatHistoryUp: function (e) {
+			var $textbox = $(e.currentTarget);
+			var idx = +$textbox.prop('selectionStart');
+			var line = $textbox.val();
+			if (e && !e.ctrlKey && idx !== 0 && idx !== line.length) return false;
+			var userid = $textbox.closest('.pm-window').data('userid');
+			var chatHistory = this.chatHistories[userid];
+			if (chatHistory.index === 0) return false;
+			$textbox.val(chatHistory.up(line));
+			return true;
+		},
+		chatHistoryDown: function (e) {
+			var $textbox = $(e.currentTarget);
+			var idx = +$textbox.prop('selectionStart');
+			var line = $textbox.val();
+			if (e && !e.ctrlKey && idx !== 0 && idx !== line.length) return false;
+			var userid = $textbox.closest('.pm-window').data('userid');
+			var chatHistory = this.chatHistories[userid];
+			$textbox.val(chatHistory.down(line));
+			return true;
+		},
+		chatHistories: {},
 		clickUsername: function (e) {
 			e.stopPropagation();
 			var name = $(e.currentTarget).data('name');
@@ -330,8 +386,24 @@
 				var $target = $(e.currentTarget);
 				if ($target.data('minimized')) {
 					this.minimizePM(e);
+				} else if ($(e.target).closest('h3').length) {
+					// only preventDefault here, so clicking links/buttons in PMs
+					// still works
+					e.preventDefault();
+					e.stopPropagation();
+					this.minimizePM(e);
+					return;
 				}
 				$target.find('textarea[name=message]').focus();
+			}
+		},
+		dblClickPMHeader: function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			if (window.getSelection) {
+				window.getSelection().removeAllRanges();
+			} else if (document.selection) {
+				document.selection.empty();
 			}
 		},
 
@@ -383,7 +455,7 @@
 			} else {
 				$formatButton.addClass('preselected')[0].disabled = true;
 				$teamButton.addClass('preselected')[0].disabled = true;
-				$searchForm.find('button.big').html('<strong><i class="icon-refresh icon-spin"></i> Searching...</strong>').addClass('disabled');
+				$searchForm.find('button.big').html('<strong><i class="fa fa-refresh fa-spin"></i> Searching...</strong>').addClass('disabled');
 				var searchEntries = $.isArray(this.searching) ? this.searching : [this.searching];
 				for (var i = 0; i < searchEntries.length; i++) {
 					var format = searchEntries[i].format || searchEntries[i];
@@ -681,7 +753,7 @@
 
 			$formatButton.addClass('preselected')[0].disabled = true;
 			$teamButton.addClass('preselected')[0].disabled = true;
-			$searchForm.find('button.big').html('<strong><i class="icon-refresh icon-spin"></i> Connecting...</strong>').addClass('disabled');
+			$searchForm.find('button.big').html('<strong><i class="fa fa-refresh fa-spin"></i> Connecting...</strong>').addClass('disabled');
 			$searchForm.append('<p class="cancel buttonbar"><button name="cancelSearch">Cancel</button></p>');
 
 			app.sendTeam(team);
@@ -848,7 +920,7 @@
 	var BattleListPopup = this.BattleListPopup = Popup.extend({
 		type: 'modal',
 		initialize: function () {
-			var buf = '<div class="roomlist"><p><button name="refresh"><i class="icon-refresh"></i> Refresh</button> <button name="close" style="float:right"><i class="icon-remove"></i> Close</button></p>';
+			var buf = '<div class="roomlist"><p><button name="refresh"><i class="fa fa-refresh"></i> Refresh</button> <button name="close" style="float:right"><i class="fa fa-times"></i> Close</button></p>';
 
 			buf += '<p><label>Format:</label><select name="format"><option value="">(All formats)</option>';
 			if (window.BattleFormats) {
@@ -954,13 +1026,13 @@
 			buf += '<h2>Staff</h2>';
 			buf += '<ul><li><p><strong>Chris Monsanto</strong> [chaos] <small>&ndash; Sysadmin</small></p></li>';
 			buf += '<li><p><strong>Hugh Gordon</strong> [V4] <small>&ndash; Research (game mechanics), Development</small></p></li>';
+			buf += '<li><p><a href="http://www.juanmaserrano.com/" target="_blank" class="subtle"><strong>Juanma Serrano</strong> [Joim]</a> <small>&ndash; Development, Sysadmin</small></p></li>';
 			buf += '<li><p><strong>Leonardo Julca</strong> [Slayer95] <small>&ndash; Development</small></p></li>';
 			buf += '<li><p><strong>Mathieu Dias-Martins</strong> [Marty-D] <small>&ndash; Research (game mechanics), Development</small></p></li>';
 			buf += '<li><p>[<strong>The Immortal</strong>] <small>&ndash; Development</small></p></li></ul>';
 			buf += '<h2>Retired Staff</h2>';
 			buf += '<ul><li><p><a href="http://meltsner.com/" target="_blank" class="subtle"><strong>Bill Meltsner</strong> [bmelts]</a> <small>&ndash; Development</small></p></li>';
-			buf += '<li><p><a href="https://cathyjf.com/" target="_blank" class="subtle"><strong>Cathy J. Fitzpatrick</strong> [cathyjf]</a> <small>&ndash; Development, Sysadmin</small></p></li>';
-			buf += '<li><p><strong>Juanma Serrano</strong> [Joim] <small>&ndash; Development, Sysadmin</small></p></li></ul>';
+			buf += '<li><p><a href="https://cathyjf.com/" target="_blank" class="subtle"><strong>Cathy J. Fitzpatrick</strong> [cathyjf]</a> <small>&ndash; Development, Sysadmin</small></p></li></ul>';
 			buf += '<h2>Major Contributors</h2>';
 			buf += '<ul><li><p><strong>Kevin Lau</strong> [Ascriptmaster] <small>&ndash; Development, Art (battle animations)</small></p></li>';
 			buf += '<li><p><strong>Konrad Borowski</strong> [xfix] <small>&ndash; Development</small></p></li>';

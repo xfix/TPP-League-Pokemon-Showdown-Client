@@ -15,7 +15,8 @@
 			if (!this.events['click .message-pm i']) this.events['click .message-pm i'] = 'openPM';
 
 			this.initializeTabComplete();
-			this.initializeChatHistory();
+			// create up/down history for this room
+			this.chatHistory = new ChatHistory();
 
 			// this MUST set up this.$chatAdd
 			Room.apply(this, arguments);
@@ -111,79 +112,15 @@
 			if (e.keyCode === 13 && !e.shiftKey) { // Enter key
 				this.submit(e);
 			} else if (e.keyCode === 73 && cmdKey && !e.shiftKey) { // Ctrl + I key
-				if (!textbox.setSelectionRange) return;
-				var value = textbox.value;
-				var start = textbox.selectionStart;
-				var end = textbox.selectionEnd;
-
-				// make sure start and end aren't midway through the syntax
-				if (value.charAt(start) === '_' && value.charAt(start - 1) === '_' &&
-					value.charAt(start - 2) !== '_') {
-					start++;
+				if (Tools.toggleFormatChar(textbox, '_')) {
+					e.preventDefault();
+					e.stopPropagation();
 				}
-				if (value.charAt(end) === '_' && value.charAt(end - 1) === '_' &&
-					value.charAt(end - 2) !== '_') {
-					end--;
-				}
-
-				// wrap in __
-				value = value.substr(0, start) + '__' + value.substr(start, end - start) + '__' + value.substr(end);
-				start += 2, end += 2;
-
-				// prevent nesting
-				if (value.substr(start - 4, 4) === '____') {
-					value = value.substr(0, start - 4) + value.substr(start);
-					start -= 4, end -= 4;
-				} else if (start !== end && value.substr(start - 2, 4) === '____') {
-					value = value.substr(0, start - 2) + value.substr(start + 2);
-					start -= 2, end -= 4;
-				}
-				if (value.substr(end, 4) === '____') {
-					value = value.substr(0, end) + value.substr(end + 4);
-				} else if (start !== end && value.substr(end - 2, 4) === '____') {
-					value = value.substr(0, end - 2) + value.substr(end + 2);
-					end -= 2;
-				}
-
-				textbox.value = value;
-				textbox.setSelectionRange(start, end);
 			} else if (e.keyCode === 66 && cmdKey && !e.shiftKey) { // Ctrl + B key
-				if (!textbox.setSelectionRange) return;
-				var value = textbox.value;
-				var start = textbox.selectionStart;
-				var end = textbox.selectionEnd;
-
-				// make sure start and end aren't midway through the syntax
-				if (value.charAt(start) === '*' && value.charAt(start - 1) === '*' &&
-					value.charAt(start - 2) !== '*') {
-					start++;
+				if (Tools.toggleFormatChar(textbox, '*')) {
+					e.preventDefault();
+					e.stopPropagation();
 				}
-				if (value.charAt(end) === '*' && value.charAt(end - 1) === '*' &&
-					value.charAt(end - 2) !== '*') {
-					end--;
-				}
-
-				// wrap in **
-				value = value.substr(0, start) + '**' + value.substr(start, end - start) + '**' + value.substr(end);
-				start += 2, end += 2;
-
-				// prevent nesting
-				if (value.substr(start - 4, 4) === '****') {
-					value = value.substr(0, start - 4) + value.substr(start);
-					start -= 4, end -= 4;
-				} else if (start !== end && value.substr(start - 2, 4) === '****') {
-					value = value.substr(0, start - 2) + value.substr(start + 2);
-					start -= 2, end -= 4;
-				}
-				if (value.substr(end, 4) === '****') {
-					value = value.substr(0, end) + value.substr(end + 4);
-				} else if (start !== end && value.substr(end - 2, 4) === '****') {
-					value = value.substr(0, end - 2) + value.substr(end + 2);
-					end -= 2;
-				}
-
-				textbox.value = value;
-				textbox.setSelectionRange(start, end);
 			} else if (e.keyCode === 33) { // Pg Up key
 				this.$chatFrame.scrollTop(this.$chatFrame.scrollTop() - this.$chatFrame.height() + 60);
 			} else if (e.keyCode === 34) { // Pg Dn key
@@ -278,56 +215,19 @@
 		// chat history
 
 		chatHistory: null,
-		initializeChatHistory: function () {
-			var chatHistory = {
-				lines: [],
-				index: 0,
-				push: function (line) {
-					if (chatHistory.lines.length > 100) {
-						chatHistory.lines.splice(0, 20);
-					}
-					chatHistory.lines.push(line);
-					chatHistory.index = chatHistory.lines.length;
-				}
-			};
-			this.chatHistory = chatHistory;
-		},
 		chatHistoryUp: function ($textbox, e) {
 			var idx = +$textbox.prop('selectionStart');
 			var line = $textbox.val();
 			if (e && !e.ctrlKey && idx !== 0 && idx !== line.length) return false;
-			if (this.chatHistory.index > 0) {
-				if (this.chatHistory.index === this.chatHistory.lines.length) {
-					if (line !== '') {
-						this.chatHistory.push(line);
-						--this.chatHistory.index;
-					}
-				} else {
-					this.chatHistory.lines[this.chatHistory.index] = line;
-				}
-				$textbox.val(this.chatHistory.lines[--this.chatHistory.index]);
-				return true;
-			}
-			return false;
+			if (this.chatHistory.index === 0) return false;
+			$textbox.val(this.chatHistory.up(line));
+			return true;
 		},
 		chatHistoryDown: function ($textbox, e) {
 			var idx = +$textbox.prop('selectionStart');
 			var line = $textbox.val();
 			if (e && !e.ctrlKey && idx !== 0 && idx !== line.length) return false;
-			if (this.chatHistory.index === this.chatHistory.lines.length) {
-				if (line !== '') {
-					this.chatHistory.push(line);
-					$textbox.val('');
-				}
-			} else if (this.chatHistory.index === this.chatHistory.lines.length - 1) {
-				this.chatHistory.lines[this.chatHistory.index] = $textbox.val();
-				$textbox.val('');
-				++this.chatHistory.index;
-			} else {
-				this.chatHistory.lines[this.chatHistory.index] = $textbox.val();
-				line = this.chatHistory.lines[++this.chatHistory.index];
-				$textbox.val(line);
-			}
+			$textbox.val(this.chatHistory.down(line));
 			return true;
 		},
 
@@ -763,6 +663,7 @@
 			case 'ranking':
 			case 'rating':
 			case 'ladder':
+				if (app.localLadder) return text;
 				if (!target) target = app.user.get('userid');
 
 				var targets = target.split(',');
@@ -816,8 +717,6 @@
 									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -9.0 / N), 0) + '</td>';
 								} else if (row.formatid === 'doublesoucurrent' || row.formatid === 'doublesoususpecttest') {
 									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -12.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'pu') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -17.0 / N), 0) + '</td>';
 								} else {
 									buffer += '<td>--</td>';
 								}
@@ -1200,6 +1099,16 @@
 					this.$chat.append('<div class="notice">' + Tools.sanitizeHTML(row.slice(1).join('|')) + '</div>');
 					break;
 
+				case 'uhtml':
+					this.$chat.append('<div class="notice uhtml-' + toId(row[1]) + '">' + Tools.sanitizeHTML(row.slice(2).join('|')) + '</div>');
+					break;
+
+				case 'uhtmlchange':
+					var $elements = this.$chat.find('div.uhtml-' + toId(row[1]));
+					if (!$elements.length) break;
+					$elements.html(Tools.sanitizeHTML(row.slice(2).join('|')));
+					break;
+
 				case 'unlink':
 					// note: this message has global effects, but it's handled here
 					// so that it can be included in the scrollback buffer.
@@ -1209,6 +1118,10 @@
 					if (!$messages.length) break;
 					$messages.find('a').contents().unwrap();
 					if (row[2]) {
+						if (row[1] === 'roomhide') {
+							$messages = this.$chat.find('.chatmessage-' + user);
+							if (!$messages.length) break;
+						}
 						$messages.hide();
 						this.$chat.append('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + '</small></button></div>');
 					}
@@ -1367,7 +1280,7 @@
 				var oName = pmuserid === app.user.get('userid') ? name : pm;
 				var clickableName = '<span class="username" data-name="' + Tools.escapeHTML(name) + '">' + Tools.escapeHTML(name.substr(1)) + '</span>';
 				this.$chat.append(
-					'<div class="chat chatmessage-' + toId(name) + '">' + ChatRoom.getTimestamp('lobby', deltatime) + 
+					'<div class="chat chatmessage-' + toId(name) + '">' + ChatRoom.getTimestamp('lobby', deltatime) +
 					'<strong style="' + hashColor(userid) + '">' + clickableName + ':</strong>' +
 					'<span class="message-pm"><i class="pmnote" data-name="' + Tools.escapeHTML(oName) + '">(Private to ' + Tools.escapeHTML(pm) + ')</i> ' + Tools.parseMessage(message) + '</span>' +
 					'</div>'
@@ -1588,3 +1501,28 @@
 	});
 
 }).call(this, jQuery);
+
+function ChatHistory () {
+	this.lines = [];
+	this.index = 0;
+}
+
+ChatHistory.prototype.push = function (line) {
+	var duplicate = this.lines.indexOf(line);
+	if (duplicate >= 0) this.lines.splice(duplicate, 1);
+	if (this.lines.length > 100) this.lines.splice(0, 20);
+	this.lines.push(line);
+	this.index = this.lines.length;
+};
+
+ChatHistory.prototype.up = function (line) { // Ensure index !== 0 first!
+	if (line !== '') this.lines[this.index] = line;
+	return this.lines[--this.index];
+};
+
+ChatHistory.prototype.down = function (line) {
+	if (line !== '') this.lines[this.index] = line;
+	if (this.index === this.lines.length) return '';
+	if (++this.index === this.lines.length) return '';
+	return this.lines[this.index];
+};
