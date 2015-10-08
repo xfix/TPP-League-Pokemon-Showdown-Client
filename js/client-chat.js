@@ -59,18 +59,14 @@
 
 		focusText: function () {
 			if (this.$chatbox) {
-				var roomLeft, roomRight;
-				if (this === app.curSideRoom) {
-					roomLeft = app.topbar.curSideRoomLeft;
-					roomRight = app.topbar.curSideRoomRight;
-				} else {
-					roomLeft = app.topbar.curRoomLeft;
-					roomRight = app.topbar.curRoomRight;
-				}
-				if (roomLeft) roomLeft = "\u2190 " + roomLeft;
-				if (roomRight) roomRight = roomRight + " \u2192";
+				var rooms = app.roomList;
+				if (this === app.curSideRoom) rooms = app.sideRoomList;
+				else if (!app.curSideRoom) rooms = rooms.concat(app.sideRoomList);
+				var roomIndex = rooms.indexOf(this);
+				var roomLeft = rooms[roomIndex - 1];
+				var roomRight = rooms[roomIndex + 1];
 				if (roomLeft || roomRight) {
-					this.$chatbox.attr('placeholder', "  " + roomLeft + (app.arrowKeysUsed ? " | " : " (use arrow keys) ") + roomRight);
+					this.$chatbox.attr('placeholder', "  " + (roomLeft ? "\u2190 " + roomLeft.title : '') + (app.arrowKeysUsed ? " | " : " (use arrow keys) ") + (roomRight ? roomRight.title + " \u2192" : ''));
 				} else {
 					this.$chatbox.attr('placeholder', "");
 				}
@@ -507,11 +503,8 @@
 				return false;
 
 			case 'logout':
-				$.post(app.user.getActionPHP(), {
-					act: 'logout',
-					userid: app.user.get('userid')
-				});
-				return text;
+				app.user.logout();
+				return false;
 
 			case 'showdebug':
 				this.add('Debug battle messages: ON');
@@ -1022,17 +1015,18 @@
 					break;
 
 				case ':':
-					this.timeOffset = ~~(Date.now() / 1000) - parseInt(row[1], 10);
+					this.timeOffset = ~~(Date.now() / 1000) - (parseInt(row[1], 10) || 0);
 					break;
 				case 'c:':
 					if (/[a-zA-Z0-9]/.test(row[2].charAt(0))) row[2] = ' ' + row[2];
-					var deltaTime = ~~(Date.now() / 1000) - this.timeOffset - parseInt(row[1], 10);
-					this.addChat(row[2], row.slice(3).join('|'), false, deltaTime);
+					var msgTime = this.timeOffset + (parseInt(row[1], 10) || 0);
+					this.addChat(row[2], row.slice(3).join('|'), false, msgTime);
 					break;
 
 				case 'tc':
 					if (/[a-zA-Z0-9]/.test(row[2].charAt(0))) row[2] = ' ' + row[2];
-					this.addChat(row[2], row.slice(3).join('|'), false, row[1]);
+					var msgTime = row[1] ? ~~(Date.now() / 1000) - (parseInt(row[1], 10) || 0) : 0;
+					this.addChat(row[2], row.slice(3).join('|'), false, msgTime);
 					break;
 
 				case 'b':
@@ -1122,8 +1116,8 @@
 							$messages = this.$chat.find('.chatmessage-' + user);
 							if (!$messages.length) break;
 						}
-						$messages.hide();
-						this.$chat.append('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + '</small></button></div>');
+						$messages.hide().find('button').parent().remove();
+						this.$chat.append('<div class="chatmessage-' + user + '"><button name="toggleMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + ' (' + user + ')</small></button></div>');
 					}
 					break;
 
@@ -1144,10 +1138,19 @@
 				}
 			}
 		},
-		revealMessages: function (user) {
+		toggleMessages: function (user) {
 			var $messages = $('.chatmessage-' + user);
-			$messages.addClass('revealed').show();
-			$messages.find('button').parent().remove();
+			var $button = $messages.find('button');
+			if ($messages.hasClass('revealed')) {
+				$messages.removeClass('revealed').hide();
+				$button.html('<small>View ' + ($messages.length - 1) + ' hidden message' + ($messages.length > 1 ? 's' : '') + ' (' + user + ')</small>');
+				$button.parent().show();
+			} else {
+				$messages.addClass('revealed');
+				$button.html('<small>Hide ' + ($messages.length - 1) + ' revealed message' + ($messages.length > 1 ? 's' : '') + ' (' + user + ')</small>');
+				$button.parent().removeClass('revealed');
+				$messages.show();
+			}
 		},
 		tournamentButton: function (val, button) {
 			if (this.tournamentBox) this.tournamentBox[$(button).data('type')](val, button);
@@ -1261,7 +1264,7 @@
 			}
 			this.$joinLeave.html('<small style="color: #555555">' + message + '</small>');
 		},
-		addChat: function (name, message, pm, deltatime) {
+		addChat: function (name, message, pm, msgTime) {
 			var userid = toUserid(name);
 
 			if (app.ignore[userid] && (name.charAt(0) === ' ' || name.charAt(0) === '+')) return;
@@ -1280,7 +1283,7 @@
 				var oName = pmuserid === app.user.get('userid') ? name : pm;
 				var clickableName = '<span class="username" data-name="' + Tools.escapeHTML(name) + '">' + Tools.escapeHTML(name.substr(1)) + '</span>';
 				this.$chat.append(
-					'<div class="chat chatmessage-' + toId(name) + '">' + ChatRoom.getTimestamp('lobby', deltatime) +
+					'<div class="chat chatmessage-' + toId(name) + '">' + ChatRoom.getTimestamp('lobby', msgTime) +
 					'<strong style="' + hashColor(userid) + '">' + clickableName + ':</strong>' +
 					'<span class="message-pm"><i class="pmnote" data-name="' + Tools.escapeHTML(oName) + '">(Private to ' + Tools.escapeHTML(pm) + ')</i> ' + Tools.parseMessage(message) + '</span>' +
 					'</div>'
@@ -1289,7 +1292,7 @@
 			}
 
 			var isHighlighted = userid !== app.user.get('userid') && this.getHighlight(message);
-			var parsedMessage = Tools.parseChatMessage(message, name, ChatRoom.getTimestamp('chat', deltatime), isHighlighted);
+			var parsedMessage = Tools.parseChatMessage(message, name, ChatRoom.getTimestamp('chat', msgTime), isHighlighted);
 			if (!$.isArray(parsedMessage)) parsedMessage = [parsedMessage];
 			for (var i = 0; i < parsedMessage.length; i++) {
 				if (!parsedMessage[i]) continue;
@@ -1312,16 +1315,12 @@
 			}
 		}
 	}, {
-		getTimestamp: function (section, deltatime) {
+		getTimestamp: function (section, msgTime) {
 			var pref = Tools.prefs('timestamps') || {};
 			var sectionPref = ((section === 'pms') ? pref.pms : pref.lobby) || 'off';
 			if ((sectionPref === 'off') || (sectionPref === undefined)) return '';
-			var date;
-			if (deltatime && !isNaN(deltatime)) {
-				date = new Date(Date.now() - deltatime * 1000);
-			} else {
-				date = new Date();
-			}
+
+			var date = (msgTime && !isNaN(msgTime) ? new Date(msgTime * 1000) : new Date());
 			var components = [date.getHours(), date.getMinutes()];
 			if (sectionPref === 'seconds') {
 				components.push(date.getSeconds());

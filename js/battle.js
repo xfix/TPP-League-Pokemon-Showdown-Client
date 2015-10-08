@@ -2034,6 +2034,7 @@ var Side = (function () {
 			stockpile1: '<span class="good">Stockpile</span> ',
 			stockpile2: '<span class="good">Stockpile&times;2</span> ',
 			stockpile3: '<span class="good">Stockpile&times;3</span> ',
+			perish0: '<span class="bad">Perish&nbsp;now</span>',
 			perish1: '<span class="bad">Perish&nbsp;next&nbsp;turn</span> ',
 			perish2: '<span class="bad">Perish&nbsp;in&nbsp;2</span> ',
 			perish3: '<span class="bad">Perish&nbsp;in&nbsp;3</span> ',
@@ -3097,15 +3098,19 @@ var Battle = (function () {
 		switch (effect.id) {
 		case 'taunt':
 			this.message('' + pokemon.getName() + ' can\'t use ' + move.name + ' after the taunt!');
+			pokemon.markMove(move.name, 0);
 			break;
 		case 'gravity':
 			this.message('' + pokemon.getName() + ' can\'t use ' + move.name + ' because of gravity!');
+			pokemon.markMove(move.name, 0);
 			break;
 		case 'healblock':
 			this.message('' + pokemon.getName() + ' can\'t use ' + move.name + ' because of Heal Block!');
+			pokemon.markMove(move.name, 0);
 			break;
 		case 'imprison':
 			this.message('' + pokemon.getName() + ' can\'t use its sealed ' + move.name + '!');
+			pokemon.markMove(move.name, 0);
 			break;
 		case 'par':
 			this.resultAnim(pokemon, 'Paralyzed', 'par');
@@ -5746,8 +5751,8 @@ var Battle = (function () {
 			if (!$messages.length) break;
 			$messages.find('a').contents().unwrap();
 			if (window.BattleRoom && args[2]) {
-				$messages.hide();
-				this.log('<div class="chatmessage-' + user + '"><button name="revealMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + '</small></button></div>');
+				$messages.hide().find('button').parent().remove();
+				this.log('<div class="chatmessage-' + user + '"><button name="toggleMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + ' (' + user + ')</small></button></div>');
 			}
 			break;
 		default:
@@ -5878,7 +5883,7 @@ var Battle = (function () {
 		}
 		this.soundPause();
 	};
-	Battle.prototype.play = function () {
+	Battle.prototype.play = function (dontResetSound) {
 		if (this.fastForward) {
 			this.paused = false;
 			this.playbackState = 5;
@@ -5888,7 +5893,7 @@ var Battle = (function () {
 				this.soundStop();
 			}
 			this.playbackState = 2;
-			if (!this.done) {
+			if (!dontResetSound && !this.done) {
 				this.soundStart();
 			}
 			this.nextActivity();
