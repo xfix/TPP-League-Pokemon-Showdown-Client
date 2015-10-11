@@ -1,4 +1,4 @@
-/*
+﻿/*
 
 License: GPLv2
   <http://www.gnu.org/licenses/gpl-2.0.html>
@@ -2241,7 +2241,7 @@ var Battle = (function () {
 		if (!Tools.prefs('nopastgens')) {
 			if (this.gen <= 2) this.backdropImage = 'bg-gen1.png';
 			else if (this.gen <= 3) this.backdropImage = 'bg-gen3.png';
-			else if (this.gen <= 4) this.backdropImage = 'bg-gen4.png';
+			else if (this.gen <= 4) this.backdropImage = BattleBackdropsFour[Math.floor(Math.random() * BattleBackdropsFour.length)];
 		}
 		if (this.bgElem) this.bgElem.css('background-image', 'url(' + Tools.resourcePrefix + 'fx/' + this.backdropImage + ')');
 	};
@@ -3052,7 +3052,7 @@ var Battle = (function () {
 				} else {
 					this.message(pokemon.getName() + ' used <strong>' + move.name + '</strong>!');
 				}
-				if (!fromeffect.id) {
+				if (!fromeffect.id || fromeffect.id === 'pursuit') {
 					var pp = (target && target.side !== pokemon.side && toId(target.ability) === 'pressure' ? 2 : 1);
 					pokemon.markMove(move.name, pp);
 				}

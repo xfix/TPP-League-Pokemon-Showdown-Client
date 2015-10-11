@@ -1573,47 +1573,20 @@
 		},
 		focusRoomBy: function (room, amount) {
 			this.arrowKeysUsed = true;
+			var rooms = this.roomList.concat(this.sideRoomList);
 			if (room && room.id === 'rooms') {
-				if (amount > 0) return false;
-				if (this.sideRoomList.length) {
-					this.focusRoom(this.sideRoomList[this.sideRoomList.length - 1].id);
-					return true;
-				}
-				if (this.roomList.length) {
-					this.focusRoom(this.roomList[this.roomList.length - 1].id);
-					return true;
-				}
-				return false;
-			}
-			var index = this.roomList.indexOf(room);
-			if (index >= 0) {
-				var newIndex = index + amount;
-				if (newIndex < 0) return false;
-				if (newIndex >= this.roomList.length) {
-					if (!this.sideRoomList.length) {
-						this.joinRoom('rooms');
-						return true;
-					}
-					this.focusRoom(this.sideRoomList[0].id);
-					return true;
-				}
-				if (!this.roomList[newIndex]) return false;
-				this.focusRoom(this.roomList[newIndex].id);
+				if (!rooms.length) return false;
+				this.focusRoom(rooms[amount < 0 ? rooms.length - 1 : 0].id);
 				return true;
 			}
-			index = this.sideRoomList.indexOf(room);
+			var index = rooms.indexOf(room);
 			if (index >= 0) {
 				var newIndex = index + amount;
-				if (newIndex >= this.sideRoomList.length) {
+				if (!rooms[newIndex]) {
 					this.joinRoom('rooms');
 					return true;
 				}
-				if (newIndex < 0) {
-					if (!this.roomList.length) return false;
-					this.focusRoom(this.roomList[this.roomList.length - 1].id);
-				}
-				if (!this.sideRoomList[newIndex]) return false;
-				this.focusRoom(this.sideRoomList[newIndex].id);
+				this.focusRoom(rooms[newIndex].id);
 				return true;
 			}
 			return false;
@@ -1812,7 +1785,7 @@
 							name = '(empty room)';
 						}
 					}
-					return buf + '<i class="text">' + formatid + '</i><span>' + name + '</span></a><a class="closebutton" href="' + app.root + id + '"><i class="fa fa-times-circle"></i></a></li>';
+					return buf + '<i class="text">' + Tools.escapeFormat(formatid) + '</i><span>' + name + '</span></a><a class="closebutton" href="' + app.root + id + '"><i class="fa fa-times-circle"></i></a></li>';
 				} else {
 					return buf + '<i class="fa fa-comment-o"></i> <span>' + (Tools.escapeHTML(room.title) || (id === 'lobby' ? 'Lobby' : id)) + '</span></a><a class="closebutton" href="' + app.root + id + '"><i class="fa fa-times-circle"></i></a></li>';
 				}
