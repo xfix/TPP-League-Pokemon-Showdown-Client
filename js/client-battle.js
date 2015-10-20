@@ -1146,7 +1146,7 @@
 						}
 						text += '</p>';
 					} else if (myPokemon.item) {
-						text += '<p> / Item: ' + Tools.getItem(myPokemon.item).name + '</p>';
+						text += '<p>Item: ' + Tools.getItem(myPokemon.item).name + '</p>';
 					}
 					text += '<p>' + myPokemon.stats['atk'] + '&nbsp;Atk /&nbsp;' + myPokemon.stats['def'] + '&nbsp;Def /&nbsp;' + myPokemon.stats['spa'];
 					if (this.battle.gen === 1) {
@@ -1287,7 +1287,7 @@
 				}
 			}
 			// Other abilities that change the move type.
-			if (moveType === 'Normal' && move.id !== 'naturalgift') {
+			if (moveType === 'Normal' && move.category && move.category !== 'Status' && move.id !== 'naturalgift') {
 				if (ability === 'Aerilate') moveType = 'Flying';
 				if (ability === 'Pixilate') moveType = 'Fairy';
 				if (ability === 'Refrigerate') moveType = 'Ice';
