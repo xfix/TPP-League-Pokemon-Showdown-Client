@@ -19,7 +19,7 @@ regex_path = '../data/emoteregex.js'
 downloaded_emotes = []
 
 def slurp_binary(handle):
-    return handle.readall().decode()
+    return handle.read().decode()
 
 def read_api(url):
     return loads(slurp_binary(urlopen(url)))
