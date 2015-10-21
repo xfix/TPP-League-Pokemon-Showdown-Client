@@ -3663,6 +3663,7 @@ var Battle = (function () {
 				var poke = this.getPokemon(args[1]);
 				var effect = Tools.getEffect(args[2]);
 				var fromeffect = Tools.getEffect(kwargs.from);
+				var ofpoke = this.getPokemon(kwargs.of);
 				if (poke) {
 					this.resultAnim(poke, 'Failed', 'neutral', animDelay);
 				}
@@ -3752,7 +3753,14 @@ var Battle = (function () {
 					} else {
 						this.resultAnim(poke, 'Stat drop blocked', 'neutral', animDelay);
 					}
-					actions += "" + poke.getName() + "'s " + (args[3] ? args[3] + " was" : "stats were") + " not lowered!";
+					switch (fromeffect.id) {
+					case 'flowerveil':
+						actions += '' + ofpoke.getName() + ' surrounded itself with a veil of petals!';
+						break;
+					default:
+						var stat = Tools.escapeHTML(args[3]);
+						actions += "" + poke.getName() + "'s " + (stat ? stat + " was" : "stats were") + " not lowered!";
+					}
 					break;
 				default:
 					switch (fromeffect.id) {
@@ -4926,9 +4934,6 @@ var Battle = (function () {
 					break;
 				case 'aromaveil':
 					actions += '' + ofpoke.getName() + ' is protected by Aroma Veil!';
-					break;
-				case 'flowerveil':
-					actions += '' + ofpoke.getName() + ' surrounded itself with a veil of petals!';
 					break;
 				case 'sweetveil':
 					actions += '' + ofpoke.getName() + ' surrounded itself with a veil of sweetness!';
