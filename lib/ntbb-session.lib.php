@@ -84,7 +84,7 @@ class NTBBUsers {
 		if ($userid === "" || substr($userid, 0, 5) === 'guest') {
 			return ';;';
 		}
-		if ($user['loggedin']) {
+		if ($user['loggedin'] && $userid === $user['userid']) {
 			setcookie('showdown_username', $user['username']);
 			$status = 2;
 		}
