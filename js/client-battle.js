@@ -38,6 +38,8 @@
 
 			BattleSound.setMute(Tools.prefs('mute'));
 			this.battle = new Battle(this.$battle, this.$chatFrame);
+			this.battle.roomid = this.id;
+			this.users = {};
 
 			this.$chat = this.$chatFrame.find('.inner');
 
@@ -439,13 +441,13 @@
 						movebuttons += '<button disabled="disabled"' + this.tooltipAttrs(moveData.move, 'move') + '>';
 						hasDisabled = true;
 					} else {
-						movebuttons += '<button class="type-' + moveType + '" name="chooseMove" value="' + (i + 1) + '" data-move="' + Tools.escapeHTML(moveData.move) + '"' + this.tooltipAttrs(moveData.move, 'move') + '>';
+						movebuttons += '<button class="type-' + moveType + '" name="chooseMove" value="' + (i + 1) + '" data-move="' + Tools.escapeHTML(moveData.move) + '" data-target="' + Tools.escapeHTML(moveData.target) + '"' + this.tooltipAttrs(moveData.move, 'move') + '>';
 						hasMoves = true;
 					}
 					movebuttons += name + '<br /><small class="type">' + (moveType || "Unknown") + '</small> <small class="pp">' + pp + '</small>&nbsp;</button> ';
 				}
 				if (!hasMoves) {
-					controls += '<button class="movebutton" name="chooseMove" value="0" data-move="Struggle">Struggle<br /><small class="type">Normal</small> <small class="pp">&ndash;</small>&nbsp;</button> ';
+					controls += '<button class="movebutton" name="chooseMove" value="0" data-move="Struggle" data-target="randomNormal">Struggle<br /><small class="type">Normal</small> <small class="pp">&ndash;</small>&nbsp;</button> ';
 				} else {
 					controls += movebuttons;
 				}
@@ -763,7 +765,7 @@
 			var isMega = !!(this.$('input[name=megaevo]')[0] || '').checked;
 			if (pos !== undefined) {
 				var move = e.getAttribute('data-move');
-				var target = Tools.getMove(move).target;
+				var target = e.getAttribute('data-target');
 				var choosableTargets = {normal: 1, any: 1, adjacentAlly: 1, adjacentAllyOrSelf: 1, adjacentFoe: 1};
 				this.choice.choices.push('move ' + pos + (isMega ? ' mega' : ''));
 				if (myActive.length > 1 && target in choosableTargets) {
@@ -960,7 +962,7 @@
 			}
 			var y = offset.top - 5;
 
-			if (x > 335) x = 335;
+			if (x > this.leftWidth + 335) x = this.leftWidth + 335;
 			if (y < 140) y = 140;
 			if (x > $(window).width() - 303) x = Math.max($(window).width() - 303, 0);
 			if (!$('#tooltipwrapper').length) $(document.body).append('<div id="tooltipwrapper" onclick="$(\'#tooltipwrapper\').html(\'\');"></div>');
@@ -1171,11 +1173,17 @@
 						text += '<p>Ability: ' + Tools.getAbility(pokemon.baseAbility).name + '</p>';
 					}
 				}
-				if (pokemon.item) {
-					var name = Tools.getItem(pokemon.item).name;
-					if (pokemon.itemEffect) name = '[' + name + '] (' + pokemon.itemEffect + ')';
-					text += '<p>Item: ' + name + '</p>';
+				var item = '';
+				var itemEffect = pokemon.itemEffect || '';
+				if (pokemon.prevItem) {
+					item = 'None';
+					if (itemEffect) itemEffect += '; ';
+					var prevItem = Tools.getItem(pokemon.prevItem).name;
+					itemEffect += pokemon.prevItemEffect ? prevItem + ' was ' + pokemon.prevItemEffect : 'was ' + prevItem;
 				}
+				if (pokemon.item) item = Tools.getItem(pokemon.item).name;
+				if (itemEffect) itemEffect = ' (' + itemEffect + ')';
+				if (item) text += '<p>Item: ' + item + itemEffect + '</p>';
 				if (pokemon.stats) {
 					text += '<p>' + pokemon.stats['atk'] + '&nbsp;Atk /&nbsp;' + pokemon.stats['def'] + '&nbsp;Def /&nbsp;' + pokemon.stats['spa'];
 					if (this.battle.gen === 1) {
@@ -1227,6 +1235,15 @@
 				break;
 			}
 			$('#tooltipwrapper').html(text).appendTo(document.body);
+			if (elem) {
+				var height = $('#tooltipwrapper .tooltip').height();
+				if (height > y) {
+					y += height + 10;
+					if (ownHeight) y += $(elem).height();
+					else y += $(elem).parent().height();
+					$('#tooltipwrapper').css('top', y);
+				}
+			}
 		},
 		hideTooltip: function () {
 			$('#tooltipwrapper').html('');
