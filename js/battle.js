@@ -757,6 +757,7 @@ var Sprite = (function () {
 		this.left = parseInt(pos.left);
 		this.isBackSprite = !siden;
 		this.duringMove = false;
+		this.isMissedPokemon = false;
 
 		if (!spriteData) {
 			this.delay = function () {};
@@ -1218,6 +1219,7 @@ var Side = (function () {
 		this.missedPokemon = {
 			sprite: new Sprite(null, this.leftof(-100), this.y, this.z, this.battle, this.n)
 		};
+		this.missedPokemon.sprite.isMissedPokemon = true;
 
 		this.sideConditions = {};
 		this.wisher = null;
@@ -1256,6 +1258,7 @@ var Side = (function () {
 		this.missedPokemon = {
 			sprite: new Sprite(null, this.leftof(-100), this.y, this.z, this.battle, this.n)
 		};
+		this.missedPokemon.sprite.isMissedPokemon = true;
 		for (var i = 0; i < this.pokemon.length; i++) {
 			var poke = this.pokemon[i];
 			poke.sprite.destroy();
@@ -2536,8 +2539,30 @@ var Battle = (function () {
 		}
 		this.activityWait(effectElem);
 	};
-	Battle.prototype.switchSides = function () {
-		this.sidesSwitched = !this.sidesSwitched;
+	Battle.prototype.switchSides = function (replay) {
+		if (replay) {
+			this.reset(true);
+			this.setSidesSwitched(!this.sidesSwitched);
+			this.play();
+		} else if (this.done) {
+			this.reset(true);
+			this.setSidesSwitched(!this.sidesSwitched);
+			this.fastForwardTo(-1);
+		} else {
+			var turn = this.turn;
+			var playbackState = this.playbackState;
+			this.reset(true);
+			this.setSidesSwitched(!this.sidesSwitched);
+			if (turn) this.fastForwardTo(turn);
+			if (this.playbackState !== 3) {
+				this.play();
+			} else {
+				this.pause();
+			}
+		}
+	};
+	Battle.prototype.setSidesSwitched = function (sidesSwitched) {
+		this.sidesSwitched = sidesSwitched;
 		if (this.sidesSwitched) {
 			this.mySide = this.p2;
 			this.yourSide = this.p1;
@@ -5978,6 +6003,7 @@ var Battle = (function () {
 	};
 
 	Battle.prototype.pause = function () {
+		this.elem.find(':animated').finish();
 		this.paused = true;
 		this.playbackState = 3;
 		if (this.resumeButton) {
@@ -6019,13 +6045,15 @@ var Battle = (function () {
 		});
 		if (time <= this.turn && time !== -1) {
 			var paused = this.paused;
-			this.reset();
+			this.reset(true);
 			this.activityQueueActive = true;
 			if (paused) this.pause();
 			else this.paused = false;
-			this.fastForward = time;
-			this.elem.append('<div class="seeking"><strong>seeking...</strong></div>');
-			$.fx.off = true;
+			if (time) {
+				this.fastForward = time;
+				this.elem.append('<div class="seeking"><strong>seeking...</strong></div>');
+				$.fx.off = true;
+			}
 			this.elem.find(':animated').finish();
 			this.swapQueues();
 			this.nextActivity();
@@ -6049,6 +6077,7 @@ var Battle = (function () {
 		this.fastForward = false;
 		this.elem.find('.seeking').remove();
 		$.fx.off = false;
+		if (!this.paused) this.soundStart();
 		this.playbackState = 2;
 	};
 	Battle.prototype.nextActivity = function () {
