@@ -79,6 +79,13 @@ a.subtle:hover {
 	text-align: center;
 }
 
+hr {
+	border-top: 1px solid #999999;
+	border-bottom: 0;
+	border-left: 0;
+	border-right: 0;
+}
+
 /*********************************************************
  * Header
  *********************************************************/
@@ -518,21 +525,17 @@ p.or:after {
 	font-size: 8pt;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 	margin: 0 0 0 6px;
-	padding: 1px 4px;
+	padding: 3px 4px;
 	border: 0;
 	border-radius: 2px;
 	background: transparent;
 	color: black;
 	width: 204px;
-	height: 19px;
 	text-align: left;
 
 	box-sizing: border-box;
 }
 @media (max-height:590px) {
-	.popupmenu button {
-		height: 17px;
-	}
 	.popupmenu h3 {
 		margin-top: 2px;
 	}
@@ -541,23 +544,20 @@ p.or:after {
 	}
 }
 @media (max-height:518px) {
-	.popupmenu button {
-		height: 16px;
-	}
 	.popupmenu h3 {
 		margin-top: 1px;
 	}
 }
 
 .popupmenu button.sel {
-	padding: 0 3px;
+	padding: 2px 3px;
 	border: 1px solid #AAAAAA;
 	white-space: nowrap;
 	overflow: hidden;
 }
 .popupmenu button:hover,
 .popupmenu button.sel:hover {
-	padding: 0 3px;
+	padding: 2px 3px;
 	border: 1px solid #888888;
 	background: #D5D5D5;
 }
@@ -661,7 +661,7 @@ p.or:after {
 	bottom: 15px;
 	left: 20px;
 	color: #BBBBBB;
-	text-shadow: 0 0 1px black, 0 0 1px black, 0 0 1px black;
+	text-shadow: 0 0 3px black, 0 0 3px black, 0 0 3px black;
 }
 .mainmenufooter blockquote {
 	margin: 0 0 1em 0;
@@ -672,11 +672,11 @@ p.or:after {
 }
 .mainmenufooter a {
 	text-decoration: underline;
-	color: #6688CC;
+	color: #99BBEE;
 }
 .mainmenufooter a:hover {
 	text-decoration: underline;
-	color: #99BBFF;
+	color: #CCDDFF;
 }
 
 .pmbox {
@@ -739,6 +739,7 @@ p.or:after {
 	overflow-scrolling: touch;
 }
 .pm-log-add {
+	color: black;
 	border: 1px solid #AAAAAA;
 	border-bottom-left-radius: 5px;
 	border-bottom-right-radius: 5px;
@@ -767,6 +768,14 @@ p.or:after {
 }
 .challenge p {
 	margin: 4px 0;
+}
+.newsentry {
+	font-size: 9pt;
+	padding: 1px 10px;
+	border-bottom: 1px solid #AAAAAA;
+}
+.unread {
+	background: rgba(255,240,130,0.33);
 }
 
 .tiny-layout .leftmenu,
@@ -800,8 +809,8 @@ p.or:after {
 .menugroup {
 	display: block;
 	padding: 10px 0;
-	margin: 0 27px 30px 27px;
-	max-width: 400px;
+	margin: 0 auto 30px auto;
+	max-width: 270px;
 	border-radius: 20px;
 
 	background: rgba(201, 207, 219, .6);
@@ -839,8 +848,13 @@ p.or:after {
 }
 .menugroup button.big {
 	width: 230px;
-	padding: 6px 7px 6px 7px;
+	height: 50px;
+	padding: 0;
 	font-size: 14pt;
+}
+.menugroup button.big small {
+	display: block;
+	font-size: 9pt;
 }
 .menugroup .button:hover {
 	background: #5485B6;
@@ -855,9 +869,37 @@ p.or:after {
 	background: linear-gradient(to bottom,  hsl(210,40%,42%),  hsl(210,40%,58%));
 	border-color: hsl(210,40%,21%);
 }
-.menugroup .button.disabled,
-.menugroup .button.disabled:hover,
-.menugroup .button.disabled:active {
+
+.button.mainmenu1 { background: linear-gradient(to bottom,  hsl(5,40%,72%),  hsl(5,40%,52%)); border-color: hsl(5,40%,40%); }
+.button.mainmenu1:hover { background: linear-gradient(to bottom,  hsl(5,40%,62%),  hsl(5,40%,42%)); }
+.button.mainmenu1:active { background: linear-gradient(to bottom,  hsl(5,40%,42%),  hsl(5,40%,58%)); }
+
+.button.mainmenu2 { background: linear-gradient(to bottom,  hsl(30,40%,72%),  hsl(30,40%,52%)); border-color: hsl(30,40%,40%); }
+.button.mainmenu2:hover { background: linear-gradient(to bottom,  hsl(30,40%,62%),  hsl(30,40%,42%)); }
+.button.mainmenu2:active { background: linear-gradient(to bottom,  hsl(30,40%,42%),  hsl(30,40%,58%)); }
+
+.button.mainmenu3 { background: linear-gradient(to bottom,  hsl(60,40%,72%),  hsl(60,40%,52%)); border-color: hsl(60,40%,40%); }
+.button.mainmenu3:hover { background: linear-gradient(to bottom,  hsl(60,40%,62%),  hsl(60,40%,42%)); }
+.button.mainmenu3:active { background: linear-gradient(to bottom,  hsl(60,40%,42%),  hsl(60,40%,58%)); }
+
+.button.mainmenu4 { background: linear-gradient(to bottom,  hsl(130,40%,72%),  hsl(130,40%,52%)); border-color: hsl(130,40%,40%); }
+.button.mainmenu4:hover { background: linear-gradient(to bottom,  hsl(130,40%,62%),  hsl(130,40%,42%)); }
+.button.mainmenu4:active { background: linear-gradient(to bottom,  hsl(130,40%,42%),  hsl(130,40%,58%)); }
+
+.button.mainmenu5 { background: linear-gradient(to bottom,  hsl(210,40%,72%),  hsl(210,40%,52%)); border-color: hsl(210,40%,40%); }
+.button.mainmenu5:hover { background: linear-gradient(to bottom,  hsl(210,40%,62%),  hsl(210,40%,42%)); }
+.button.mainmenu5:active { background: linear-gradient(to bottom,  hsl(210,40%,42%),  hsl(210,40%,58%)); }
+
+.button.mainmenu6 { background: linear-gradient(to bottom,  hsl(270,40%,72%),  hsl(270,40%,52%)); border-color: hsl(270,40%,40%); }
+.button.mainmenu6:hover { background: linear-gradient(to bottom,  hsl(270,40%,62%),  hsl(270,40%,42%)); }
+.button.mainmenu6:active { background: linear-gradient(to bottom,  hsl(270,40%,42%),  hsl(300,40%,58%)); }
+
+.mainmenuwrapper .menugroup .button.disabled,
+.mainmenuwrapper .menugroup .button.disabled:hover,
+.mainmenuwrapper .menugroup .button.disabled:active,
+.mainmenuwrapper .menugroup .button.disabled,
+.mainmenuwrapper .menugroup .button.disabled:hover,
+.mainmenuwrapper .menugroup .button.disabled:active {
 	cursor: default;
 	background: #EEEEEE;
 	border: 1px solid #CCCCCC;
@@ -865,31 +907,6 @@ p.or:after {
 	text-shadow: none;
 	box-shadow: 0 1px 2px rgba(0,0,0,.1);
 }
-
-.mainmenu .menugroup:nth-child(1) .button { background: linear-gradient(to bottom,  hsl(5,40%,72%),  hsl(5,40%,52%)); border-color: hsl(5,40%,40%); }
-.mainmenu .menugroup:nth-child(1) .button:hover { background: linear-gradient(to bottom,  hsl(5,40%,62%),  hsl(5,40%,42%)); }
-.mainmenu .menugroup:nth-child(1) .button:active { background: linear-gradient(to bottom,  hsl(5,40%,42%),  hsl(5,40%,58%)); }
-.mainmenu .menugroup:nth-child(1) .button.disabled, .mainmenu .menugroup:nth-child(1) .button.disabled:hover, .mainmenu .menugroup:nth-child(1) .button.disabled:active { color: #5A3D39; }
-
-.mainmenu .menugroup:nth-child(2) p:nth-child(1) .button { background: linear-gradient(to bottom,  hsl(30,40%,72%),  hsl(30,40%,52%)); border-color: hsl(30,40%,40%); }
-.mainmenu .menugroup:nth-child(2) p:nth-child(1) .button:hover { background: linear-gradient(to bottom,  hsl(30,40%,62%),  hsl(30,40%,42%)); }
-.mainmenu .menugroup:nth-child(2) p:nth-child(1) .button:active { background: linear-gradient(to bottom,  hsl(30,40%,42%),  hsl(30,40%,58%)); }
-
-.mainmenu .menugroup:nth-child(2) p:nth-child(2) .button { background: linear-gradient(to bottom,  hsl(60,40%,72%),  hsl(60,40%,52%)); border-color: hsl(60,40%,40%); }
-.mainmenu .menugroup:nth-child(2) p:nth-child(2) .button:hover { background: linear-gradient(to bottom,  hsl(60,40%,62%),  hsl(60,40%,42%)); }
-.mainmenu .menugroup:nth-child(2) p:nth-child(2) .button:active { background: linear-gradient(to bottom,  hsl(60,40%,42%),  hsl(60,40%,58%)); }
-
-.mainmenu .menugroup:nth-child(2) p:nth-child(3) .button { background: linear-gradient(to bottom,  hsl(130,40%,72%),  hsl(130,40%,52%)); border-color: hsl(130,40%,40%); }
-.mainmenu .menugroup:nth-child(2) p:nth-child(3) .button:hover { background: linear-gradient(to bottom,  hsl(130,40%,62%),  hsl(130,40%,42%)); }
-.mainmenu .menugroup:nth-child(2) p:nth-child(3) .button:active { background: linear-gradient(to bottom,  hsl(130,40%,42%),  hsl(130,40%,58%)); }
-
-.mainmenu .menugroup:nth-child(3) p:nth-child(1) .button { background: linear-gradient(to bottom,  hsl(210,40%,72%),  hsl(210,40%,52%)); border-color: hsl(210,40%,40%); }
-.mainmenu .menugroup:nth-child(3) p:nth-child(1) .button:hover { background: linear-gradient(to bottom,  hsl(210,40%,62%),  hsl(210,40%,42%)); }
-.mainmenu .menugroup:nth-child(3) p:nth-child(1) .button:active { background: linear-gradient(to bottom,  hsl(210,40%,42%),  hsl(210,40%,58%)); }
-
-.mainmenu .menugroup:nth-child(3) p:nth-child(2) .button { background: linear-gradient(to bottom,  hsl(270,40%,72%),  hsl(270,40%,52%)); border-color: hsl(270,40%,40%); }
-.mainmenu .menugroup:nth-child(3) p:nth-child(2) .button:hover { background: linear-gradient(to bottom,  hsl(270,40%,62%),  hsl(270,40%,42%)); }
-.mainmenu .menugroup:nth-child(3) p:nth-child(2) .button:active { background: linear-gradient(to bottom,  hsl(270,40%,42%),  hsl(300,40%,58%)); }
 
 .rightmenu {
 	width: 294px;
@@ -947,12 +964,16 @@ p.or:after {
 	max-width: 480px;
 	margin-bottom: 10px;
 }
+.roomcounters {
+	margin: 4px auto;
+	max-width: 400px;
+}
 .roomcounters td {
 	text-align: center;
 }
 .roomcounters button {
 	margin: 0 auto;
-	width: 140px;
+	width: 120px;
 	height: 60px;
 	padding: 3px 8px;
 	text-align: center;
@@ -1724,6 +1745,30 @@ a.ilink.yours {
 	float: right;
 	font-size: 7pt;
 }
+.megaevo {
+    clear: both;
+    display: block;
+    width: 220px;
+    margin: 0 auto 10px;
+    position: relative;
+    top: 7px;
+    left: -7px;
+    padding: 2px;
+    text-align: center;
+
+    cursor: pointer;
+    border: 1px solid #BBB;
+    border-radius: 3px;
+    color: #333;
+    background: #EEF2F5;
+    font-size: 11pt;
+    font-weight: bold;
+}
+.megaevo:hover {
+    border: 1px solid #888;
+    background: #E5E5E5;
+    color: black;
+}
 
 .switchmenu,
 .movemenu {
@@ -1833,6 +1878,9 @@ a.ilink.yours {
 		border-radius: 6px;
 		background: #E5E5E5;
 	}
+	.megaevo {
+		margin: 0 auto 8px 50px;
+	}
 
 	.battle-controls .whatdo {
 		padding-bottom: 50px;
@@ -1865,6 +1913,7 @@ a.ilink.yours {
 	left: 100px;
 	text-align: left;
 	color: black;
+	pointer-events: none;
 }
 #tooltipwrapper .tooltipinner {
 	position: relative;
@@ -2647,24 +2696,41 @@ a.ilink.yours {
 	clear: both;
 }
 
-.avatarlist button {
+.bglist {
+	margin: 0 -7px;
+}
+.avatarlist button,
+.bglist button {
 	display: block;
 	float: left;
 	margin: 2px;
-	width: 80px;
-	height: 80px;
+	padding: 2px;
 
 	border: 1px solid #E1E8E8;
-	background: transparent url(//play.pokemonshowdown.com/sprites/trainers-sheet.png) no-repeat scroll 0px 0px;
 	border-radius: 4px;
 	box-shadow: none;
 	cursor: pointer;
+	background: transparent;
 }
-.avatarlist button.cur {
+.avatarlist button {
+	width: 80px;
+	height: 80px;
+	background: transparent url(//play.pokemonshowdown.com/sprites/trainers-sheet.png) no-repeat scroll 0px 0px;
+}
+.bglist button span {
+	display: block;
+	width: 144px;
+	height: 90px;
+	background: url(//play.pokemonshowdown.com/fx/client-bgsheet.png) no-repeat scroll 0px 0px;
+}
+.avatarlist button.cur,
+.bglist button.cur {
 	border-color: #999999;
 }
 .avatarlist button:hover,
-.avatarlist button.cur:hover {
+.avatarlist button.cur:hover,
+.bglist button:hover,
+.bglist button.cur:hover {
 	border: 1px solid #8899AA;
 	background-color: #F1F4F9;
 	box-shadow: 1px 1px 1px #D5D5D5;

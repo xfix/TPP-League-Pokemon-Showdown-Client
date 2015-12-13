@@ -1,3 +1,13 @@
+Config.origindomain = 'play.pokemonshowdown.com';
+// `defaultserver` specifies the server to use when the domain name in the
+// address bar is `Config.origindomain`.
+Config.defaultserver = {
+	id: 'showdown',
+	host: 'www.tppleague.me',
+	port: 443,
+	registered: true
+};
+
 function Storage() {}
 
 Storage.initialize = function () {
@@ -9,6 +19,344 @@ Storage.initialize = function () {
 		this.stopLoggingChat = this.nwStopLoggingChat;
 		this.logChat = this.nwLogChat;
 	}
+	Storage.initPrefs();
+};
+
+/*********************************************************
+ * Background
+ *********************************************************/
+
+// Backgrounds are handled separately from other prefs because
+// they're server-specific and should be loaded faster
+
+Storage.bg = {
+	id: '',
+	changeCount: 0,
+	set: function (bgUrl, bgid, noSave) {
+		if (!this.load(bgUrl, bgid)) {
+			this.extractMenuColors(bgUrl, bgid, noSave);
+		} else if (bgid) {
+			localStorage.setItem('showdown_bg', bgUrl + '\n' + bgid);
+		} else {
+			localStorage.removeItem('showdown_bg');
+		}
+	},
+	/**
+	 * Load a background. Returns true if hues were loaded, or false if
+	 * they still need to be extracted using Color Thief.
+	 */
+	load: function (bgUrl, bgid, hues) {
+		this.id = bgid;
+		if (!bgid) {
+			if (location.host === 'smogtours.psim.us') {
+				bgid = 'shaymin';
+			} else if (location.host === 'play.pokemonshowdown.com') {
+				bgid = ['horizon', 'ocean', 'waterfall', 'shaymin', 'charizards'][Math.floor(Math.random() * 5)];
+			} else {
+				$(document.body).css({
+					background: '',
+					'background-size': ''
+				});
+				$('#mainmenubuttoncolors').remove();
+				return true;
+			}
+			bgUrl = Tools.resourcePrefix + 'fx/client-bg-' + bgid + '.jpg';
+		}
+		$(document.body).css({
+			background: (bgUrl.charAt(0) === '#' ? bgUrl : '#546bac url(' + bgUrl + ') no-repeat left center fixed'),
+			'background-size': 'cover'
+		});
+		this.changeCount++;
+
+		if (!hues) switch (bgid) {
+		case 'horizon':
+			hues = ["318.87640449438203,35.177865612648226%", "216,46.2962962962963%", "221.25,32.25806451612904%", "197.8021978021978,52.60115606936417%", "232.00000000000003,19.480519480519483%", "228.38709677419354,60.7843137254902%"];
+			break;
+		case 'ocean':
+			hues = ["82.8169014084507,34.63414634146342%", "216.16438356164383,29.55465587044534%", "212.92682926829266,59.42028985507245%", "209.18918918918916,57.51295336787566%", "199.2857142857143,48.275862068965495%", "213.11999999999998,55.06607929515419%"];
+			break;
+		case 'waterfall':
+			hues = ["119.31034482758622,37.66233766233767%", "184.36363636363635,23.012552301255226%", "108.92307692307692,37.14285714285714%", "70.34482758620689,20.567375886524818%", "98.39999999999998,36.76470588235296%", "140,38.18181818181818%"];
+			break;
+		case 'shaymin':
+			hues = ["39.000000000000064,21.7391304347826%", "170.00000000000003,2.380952380952378%", "157.5,11.88118811881188%", "174.78260869565216,12.041884816753928%", "185.00000000000003,12.76595744680851%", "20,5.660377358490567%"];
+			break;
+		case 'charizards':
+			hues = ["37.159090909090914,74.57627118644066%", "10.874999999999998,70.79646017699115%", "179.51612903225808,52.10084033613446%", "20.833333333333336,36.73469387755102%", "192.3076923076923,80.41237113402063%", "210,29.629629629629633%"];
+			break;
+		}
+		if (!hues && bgUrl.charAt(0) === '#') {
+			var r = parseInt(bgUrl.slice(1, 3), 16) / 255;
+			var g = parseInt(bgUrl.slice(3, 5), 16) / 255;
+			var b = parseInt(bgUrl.slice(5, 7), 16) / 255;
+			var hs = this.getHueSat(r, g, b);
+			hues = [hs, hs, hs, hs, hs, hs];
+		}
+		if (hues) {
+			this.loadHues(hues);
+		}
+		return !!hues;
+	},
+	loadHues: function (hues) {
+		$('#mainmenubuttoncolors').remove();
+		var cssBuf = '';
+		for (var i = 0; i < 6; i++) {
+			var n = i + 1;
+			var hs = hues[i];
+			cssBuf += '.mainmenuwrapper .button.mainmenu' + n + ' { background: linear-gradient(to bottom,  hsl(' + hs + ',72%),  hsl(' + hs + ',52%)); border-color: hsl(' + hs + ',40%); }\n';
+			cssBuf += '.mainmenuwrapper .button.mainmenu' + n + ':hover { background: linear-gradient(to bottom,  hsl(' + hs + ',62%),  hsl(' + hs + ',42%)); border-color: hsl(' + hs + ',21%); }\n';
+			cssBuf += '.mainmenuwrapper .button.mainmenu' + n + ':active { background: linear-gradient(to bottom,  hsl(' + hs + ',42%),  hsl(' + hs + ',58%)); border-color: hsl(' + hs + ',21%); }\n';
+		}
+		$('head').append('<style id="mainmenubuttoncolors">' + cssBuf + '</style>');
+	},
+	extractMenuColors: function (bgUrl, bgid, noSave) {
+		var changeCount = this.changeCount;
+		// We need the image object to load it on a canvas to detect the main color.
+		var img = new Image();
+		img.onload = function () {
+			// in case ColorThief throws from canvas,
+			// or localStorage throws
+			try {
+				var colorThief = new ColorThief();
+				var colors = colorThief.getPalette(img, 6);
+
+				var hues = [];
+				if (!colors) {
+					hues = ['0, 0%', '0, 0%', '0, 0%', '0, 0%', '0, 0%', '0, 0%'];
+				} else {
+					for (var i = 0; i < 6; i++) {
+						var color = colors[i];
+						var hs = Storage.bg.getHueSat(color[0] / 255, color[1] / 255, color[2] / 255);
+						hues.unshift(hs);
+					}
+				}
+				Storage.bg.loadHues(hues);
+				if (!noSave && Storage.bg.changeCount === changeCount) {
+					localStorage.setItem('showdown_bg', bgUrl + '\n' + Storage.bg.id + '\n' + hues.join('\n'));
+				}
+			} catch (e) {}
+		};
+		img.src = bgUrl;
+	},
+	getHueSat: function (r, g, b) {
+		var max = Math.max(r, g, b);
+		var min = Math.min(r, g, b);
+		var h;
+		var s;
+		var l = (max + min) / 2;
+		if (max === min) {
+			h = s = 0;
+			return '0, 0%';
+		} else {
+			var d = max - min;
+			s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+			switch (max) {
+			case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+			case g: h = (b - r) / d + 2; break;
+			case b: h = (r - g) / d + 4; break;
+			}
+			h /= 6;
+		}
+		return '' + (h * 360) + ',' + (s * 100) + '%';
+	}
+};
+
+try {
+	var bg = localStorage.getItem('showdown_bg').split('\n');
+	if (bg.length >= 2) {
+		Storage.bg.load(bg[0], bg[1]);
+		if (bg.length === 8) Storage.bg.loadHues(bg.slice(2));
+	}
+} catch (e) {}
+
+if (!Storage.bg.id) {
+	Storage.bg.load();
+}
+
+/*********************************************************
+ * Prefs
+ *********************************************************/
+
+// Prefs are canonically stored in showdown_prefs in localStorage
+// in the origin https://play.pokemonshowdown.com
+
+// We try loading things from the origin, anyway, in case third-party
+// localStorage is banned, and since prefs are cached in other
+// places in certain cases.
+
+Storage.origin = 'https://play.pokemonshowdown.com';
+
+Storage.prefs = function (prop, value, save) {
+	if (value === undefined) {
+		// get preference
+		return this.prefs.data[prop];
+	}
+	// set preference
+	if (value === null) {
+		delete this.prefs.data[prop];
+	} else if (this.prefs.data[prop] === value) {
+		return false; // no need to save
+	} else {
+		this.prefs.data[prop] = value;
+	}
+	if (save !== false) this.prefs.save();
+	return true;
+};
+
+Storage.prefs.data = {};
+try {
+	if (window.localStorage) {
+		Storage.prefs.data = $.parseJSON(localStorage.getItem('showdown_prefs')) || {};
+	}
+} catch (e) {}
+
+Storage.prefs.save = function () {
+	if (!window.localStorage) return;
+	try {
+		localStorage.setItem('showdown_prefs', $.toJSON(this.data));
+	} catch (e) {}
+};
+
+Storage.whenPrefsLoaded = Tools.makeLoadTracker();
+Storage.whenTeamsLoaded = Tools.makeLoadTracker();
+Storage.whenAppLoaded = Tools.makeLoadTracker();
+
+Storage.initPrefs = function () {
+	Storage.loadTeams();
+	// Same origin, everything can be kept as default
+	Config.server = Config.server || Config.defaultserver;
+	this.whenPrefsLoaded.load();
+	if (!window.nodewebkit) this.whenTeamsLoaded.load();
+	return;
+};
+
+Storage.crossOriginFrame = null;
+Storage.crossOriginRequests = {};
+Storage.crossOriginRequestCount = 0;
+Storage.onMessage = function ($e) {
+	var e = $e.originalEvent;
+	if (e.origin !== Storage.origin) return;
+
+	Storage.crossOriginFrame = e.source;
+	var data = e.data;
+	switch (data.charAt(0)) {
+	case 'c':
+		Config.server = $.parseJSON(data.substr(1));
+		if (Config.server.registered && Config.server.id !== 'showdown' && Config.server.id !== 'smogtours') {
+			var $link = $('<link rel="stylesheet" ' +
+				'href="//play.pokemonshowdown.com/customcss.php?server=' +
+				encodeURIComponent(Config.server.id) + '" />');
+			$('head').append($link);
+		}
+		break;
+	case 'p':
+		var newData = $.parseJSON(data.substr(1));
+		if (newData) Storage.prefs.data = newData;
+		Storage.prefs.save = function () {
+			var prefData = $.toJSON(this.data);
+			Storage.postCrossOriginMessage('P' + prefData);
+
+			// in Safari, cross-origin local storage is apparently treated as session
+			// storage, so mirror the storage in the current origin just in case
+			try {
+				localStorage.setItem('showdown_prefs', prefData);
+			} catch (e) {}
+		};
+		Storage.whenPrefsLoaded.load();
+		break;
+	case 't':
+		if (window.nodewebkit) return;
+		var oldTeams;
+		if (Storage.teams && Storage.teams.length) {
+			// Teams are still stored in the old location; merge them with the
+			// new teams.
+			oldTeams = Storage.teams;
+		}
+		Storage.loadPackedTeams(data.substr(1));
+		Storage.saveTeams = function () {
+			var packedTeams = Storage.packAllTeams(Storage.teams);
+			Storage.postCrossOriginMessage('T' + packedTeams);
+
+			// in Safari, cross-origin local storage is apparently treated as session
+			// storage, so mirror the storage in the current origin just in case
+			if (document.location.hostname === Config.origindomain) {
+				try {
+					localStorage.setItem('showdown_teams_local', packedTeams);
+				} catch (e) {}
+			}
+		};
+		if (oldTeams) {
+			Storage.teams = Storage.teams.concat(oldTeams);
+			Storage.saveTeams();
+			localStorage.removeItem('showdown_teams');
+		}
+		if (data === 'tnull' && !Storage.teams.length) {
+			Storage.loadPackedTeams(localStorage.getItem('showdown_teams_local'));
+		}
+		Storage.whenTeamsLoaded.load();
+		break;
+	case 'a':
+		if (data === 'a0') {
+			Storage.noThirdParty = true;
+			Storage.whenTeamsLoaded.load();
+			Storage.whenPrefsLoaded.load();
+		}
+		if (!window.nodewebkit) {
+			// for whatever reason, Node-Webkit doesn't let us make remote
+			// Ajax requests or something. Oh well, making them direct
+			// isn't a problem, either.
+			$.get = function (uri, data, callback, type) {
+				var idx = Storage.crossOriginRequestCount++;
+				Storage.crossOriginRequests[idx] = callback;
+				Storage.postCrossOriginMessage('R' + JSON.stringify([uri, data, idx, type]));
+			};
+			$.post = function (uri, data, callback, type) {
+				var idx = Storage.crossOriginRequestCount++;
+				Storage.crossOriginRequests[idx] = callback;
+				Storage.postCrossOriginMessage('S' + JSON.stringify([uri, data, idx, type]));
+			};
+		}
+		break;
+	case 'r':
+		var reqData = JSON.parse(data.slice(1));
+		var idx = reqData[0];
+		if (Storage.crossOriginRequests[idx]) {
+			Storage.crossOriginRequests[idx](reqData[1]);
+			delete Storage.crossOriginRequests[idx];
+		}
+		break;
+	}
+};
+Storage.postCrossOriginMessage = function (data) {
+	return Storage.crossOriginFrame.postMessage(data, Storage.origin);
+};
+
+// Test client
+
+Storage.initTestClient = function () {
+	Config.server = Config.server || Config.defaultserver;
+	Storage.whenTeamsLoaded.load();
+	Storage.whenAppLoaded(function (app) {
+		$.get = function (uri, data, callback, type) {
+			if (type === 'html') {
+				uri += '&testclient';
+			}
+			if (data) {
+				uri += '?testclient';
+				for (var i in data) {
+					uri += '&' + i + '=' + encodeURIComponent(data[i]);
+				}
+			}
+			if (uri[0] === '/') { // relative URI
+				uri = Tools.resourcePrefix + uri.substr(1);
+			}
+			app.addPopup(ProxyPopup, {uri: uri, callback: callback});
+		};
+		$.post = function (/*uri, data, callback, type*/) {
+			app.addPopupMessage('The requested action is not supported by testclient.html. Please complete this action in the official client instead.');
+		};
+		Storage.whenPrefsLoaded.load();
+	});
 };
 
 /*********************************************************
@@ -30,7 +378,6 @@ Storage.loadTeams = function () {
 	this.teams = [];
 	if (window.localStorage) {
 		Storage.loadPackedTeams(localStorage.getItem('showdown_teams'));
-		app.trigger('init:loadteams');
 	}
 };
 
@@ -38,9 +385,11 @@ Storage.loadPackedTeams = function (buffer) {
 	try {
 		this.teams = Storage.unpackAllTeams(buffer);
 	} catch (e) {
-		app.addPopup(Popup, {
-			type: 'modal',
-			htmlMessage: "Your teams are corrupt and could not be loaded. :( We may be able to recover a team from this data:<br /><textarea rows=\"10\" cols=\"60\">" + Tools.escapeHTML(buffer) + "</textarea>"
+		Storage.whenAppLoaded(function (app) {
+			app.addPopup(Popup, {
+				type: 'modal',
+				htmlMessage: "Your teams are corrupt and could not be loaded. :( We may be able to recover a team from this data:<br /><textarea rows=\"10\" cols=\"60\">" + Tools.escapeHTML(buffer) + "</textarea>"
+			});
 		});
 	}
 };
@@ -98,7 +447,6 @@ Storage.unpackAllTeams = function (buffer) {
 				iconCache: ''
 			};
 		});
-		return;
 	}
 
 	return buffer.split('\n').map(function (line) {
@@ -250,7 +598,7 @@ Storage.fastUnpackTeam = function (buf) {
 		j = buf.indexOf('|', i);
 		var ability = buf.substring(i, j);
 		var template = Tools.getTemplate(set.species);
-		set.ability = (template.abilities && ability in {'':1, 0:1, 1:1, H:1} ? template.abilities[ability||'0'] : ability);
+		set.ability = (template.abilities && ability in {'':1, 0:1, 1:1, H:1} ? template.abilities[ability || '0'] : ability);
 		i = j + 1;
 
 		// moves
@@ -353,13 +701,13 @@ Storage.unpackTeam = function (buf) {
 		j = buf.indexOf('|', i);
 		var ability = Tools.getAbility(buf.substring(i, j)).name;
 		var template = Tools.getTemplate(set.species);
-		set.ability = (template.abilities && ability in {'':1, 0:1, 1:1, H:1} ? template.abilities[ability||'0'] : ability);
+		set.ability = (template.abilities && ability in {'':1, 0:1, 1:1, H:1} ? template.abilities[ability || '0'] : ability);
 		i = j + 1;
 
 		// moves
 		j = buf.indexOf('|', i);
 		set.moves = buf.substring(i, j).split(',').map(function (moveid) {
-			return Tools.getMove(moveid).name
+			return Tools.getMove(moveid).name;
 		});
 		i = j + 1;
 
@@ -585,7 +933,7 @@ Storage.importTeam = function (text, teams) {
 				var spaceIndex = evLine.indexOf(' ');
 				if (spaceIndex === -1) continue;
 				var statid = BattleStatIDs[evLine.substr(spaceIndex + 1)];
-				var statval = parseInt(evLine.substr(0, spaceIndex));
+				var statval = parseInt(evLine.substr(0, spaceIndex), 10);
 				if (!statid) continue;
 				curSet.evs[statid] = statval;
 			}
@@ -598,7 +946,7 @@ Storage.importTeam = function (text, teams) {
 				var spaceIndex = ivLine.indexOf(' ');
 				if (spaceIndex === -1) continue;
 				var statid = BattleStatIDs[ivLine.substr(spaceIndex + 1)];
-				var statval = parseInt(ivLine.substr(0, spaceIndex));
+				var statval = parseInt(ivLine.substr(0, spaceIndex), 10);
 				if (!statid) continue;
 				if (isNaN(statval)) statval = 31;
 				curSet.ivs[statid] = statval;
@@ -752,6 +1100,67 @@ Storage.exportTeam = function (team) {
 };
 
 /*********************************************************
+ * Replay files
+ *********************************************************/
+
+// Replay files are .html files that display a replay for a battle.
+
+// The .html files mainly contain replay log data; the actual replay
+// player is downloaded online. Also included is a textual log and
+// some minimal CSS to make it look pretty, for offline viewing.
+
+// This strategy helps keep the replay file reasonably small; of
+// the 30 KB or so for a 50-turn battle, around 10 KB is the log
+// data, and around 20 KB is the textual log.
+
+// The actual replay player is downloaded from replay-embed.js,
+// which handles loading all the necessary resources for turning the log
+// data into a playable replay.
+
+// Battle log data is stored in and loaded from a
+// <script type="text/plain" class="battle-log-data"> tag.
+
+// replay-embed.js is loaded through a cache-buster that rotates daily.
+// This allows pretty much anything about the replay viewer to be
+// updated as desired.
+
+Storage.createReplayFile = function (room) {
+	var battle = room.battle;
+	var replayid = room.id.slice(7);
+	if (Config.server.id !== 'showdown') {
+		if (!Config.server.registered) {
+			replayid = 'unregisteredserver-' + replayid;
+		} else {
+			replayid = Config.server.id + '-' + replayid;
+		}
+	}
+	battle.fastForwardTo(-1);
+	var buf = '<!DOCTYPE html>\n';
+	buf += '<meta charset="utf-8" />\n';
+	buf += '<!-- version 1 -->\n';
+	buf += '<title>' + Tools.escapeHTML(battle.tier) + ' replay: ' + Tools.escapeHTML(battle.p1.name) + ' vs. ' + Tools.escapeHTML(battle.p2.name) + '</title>\n';
+	buf += '<style>\n';
+	buf += 'html,body {font-family:Verdana, sans-serif;font-size:10pt;margin:0;padding:0;}body{padding:12px 0;} .battle-log {font-family:Verdana, sans-serif;font-size:10pt;} .battle-log-inline {border:1px solid #AAAAAA;background:#EEF2F5;color:black;max-width:640px;margin:0 auto 80px;padding-bottom:5px;} .battle-log .inner {padding:4px 8px 0px 8px;} .battle-log .inner-preempt {padding:0 8px 4px 8px;} .battle-log .inner-after {margin-top:0.5em;} .battle-log h2 {margin:0.5em -8px;padding:4px 8px;border:1px solid #AAAAAA;background:#E0E7EA;border-left:0;border-right:0;font-family:Verdana, sans-serif;font-size:13pt;} .battle-log .chat {vertical-align:middle;padding:3px 0 3px 0;font-size:8pt;} .battle-log .chat strong {color:#40576A;} .battle-log .chat em {padding:1px 4px 1px 3px;color:#000000;font-style:normal;} .chat.mine {background:rgba(0,0,0,0.05);margin-left:-8px;margin-right:-8px;padding-left:8px;padding-right:8px;} .spoiler {color:#BBBBBB;background:#BBBBBB;padding:0px 3px;} .spoiler:hover, .spoiler:active, .spoiler-shown {color:#000000;background:#E2E2E2;padding:0px 3px;} .spoiler a {color:#BBBBBB;} .spoiler:hover a, .spoiler:active a, .spoiler-shown a {color:#2288CC;} .chat code, .chat .spoiler:hover code, .chat .spoiler:active code, .chat .spoiler-shown code {border:1px solid #C0C0C0;background:#EEEEEE;color:black;padding:0 2px;} .chat .spoiler code {border:1px solid #CCCCCC;background:#CCCCCC;color:#CCCCCC;} .battle-log .rated {padding:3px 4px;} .battle-log .rated strong {color:white;background:#89A;padding:1px 4px;border-radius:4px;} .spacer {margin-top:0.5em;} .message-announce {background:#6688AA;color:white;padding:1px 4px 2px;} .message-announce a, .broadcast-green a, .broadcast-blue a, .broadcast-red a {color:#DDEEFF;} .broadcast-green {background-color:#559955;color:white;padding:2px 4px;} .broadcast-blue {background-color:#6688AA;color:white;padding:2px 4px;} .infobox {border:1px solid #6688AA;padding:2px 4px;} .infobox-limited {max-height:200px;overflow:auto;overflow-x:hidden;} .broadcast-red {background-color:#AA5544;color:white;padding:2px 4px;} .message-learn-canlearn {font-weight:bold;color:#228822;text-decoration:underline;} .message-learn-cannotlearn {font-weight:bold;color:#CC2222;text-decoration:underline;} .message-effect-weak {font-weight:bold;color:#CC2222;} .message-effect-resist {font-weight:bold;color:#6688AA;} .message-effect-immune {font-weight:bold;color:#666666;} .message-learn-list {margin-top:0;margin-bottom:0;} .message-throttle-notice, .message-error {color:#992222;} .message-overflow, .chat small.message-overflow {font-size:0pt;} .message-overflow::before {font-size:9pt;content:\'...\';} .subtle {color:#3A4A66;}\n';
+	buf += '</style>\n';
+	buf += '<div class="wrapper replay-wrapper" style="max-width:1180px;margin:0 auto">\n';
+	buf += '<input type="hidden" name="replayid" value="' + replayid + '" />\n';
+	buf += '<div class="battle"></div><div class="battle-log"></div><div class="replay-controls"></div><div class="replay-controls-2"></div>\n';
+	buf += '<h1 style="font-weight:normal;text-align:center"><strong>' + Tools.escapeHTML(battle.tier) + '</strong><br /><a href="http://pokemonshowdown.com/users/' + toId(battle.p1.name) + '" class="subtle" target="_blank">' + Tools.escapeHTML(battle.p1.name) + '</a> vs. <a href="http://pokemonshowdown.com/users/' + toId(battle.p2.name) + '" class="subtle" target="_blank">' + Tools.escapeHTML(battle.p2.name) + '</a></h1>\n';
+	buf += '<script type="text/plain" class="battle-log-data">' + battle.activityQueue.join('\n').replace(/\//g, '\\/') + '</script>\n';
+	buf += '</div>\n';
+	buf += '<div class="battle-log battle-log-inline"><div class="inner">' + battle.logElem.html() + '</div></div>\n';
+	buf += '</div>\n';
+	buf += '<script>\n';
+	buf += 'var daily = Math.floor(Date.now()/1000/60/60/24);document.write(\'<script src="https://play.pokemonshowdown.com/js/replay-embed.js?version\'+daily+\'"></\'+\'script>\');\n';
+	buf += '</script>\n';
+	return buf;
+};
+
+Storage.createReplayFileHref = function (room) {
+	return 'data:text/plain;base64,' + encodeURIComponent(window.btoa(unescape(encodeURIComponent(Storage.createReplayFile(room)))));
+};
+
+/*********************************************************
  * Node-webkit
  *********************************************************/
 
@@ -815,6 +1224,9 @@ Storage.nwLoadTeams = function () {
 		if (err) return;
 		self.teams = [];
 		self.nwTeamsLeft = files.length;
+		if (!self.nwTeamsLeft) {
+			self.nwFinishedLoadingTeams(localApp);
+		}
 		for (var i = 0; i < files.length; i++) {
 			self.nwLoadTeamFile(files[i], localApp);
 		}
@@ -859,8 +1271,7 @@ Storage.nwLoadTeamFile = function (filename, localApp) {
 
 Storage.nwFinishedLoadingTeams = function (app) {
 	this.teams.sort(this.teamCompare);
-	if (!app) app = window.app;
-	if (app) app.trigger('init:loadteams');
+	Storage.whenTeamsLoaded.load();
 };
 
 Storage.teamCompare = function (a, b) {

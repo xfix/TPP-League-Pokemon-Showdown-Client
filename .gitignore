@@ -3,6 +3,7 @@
 /js/config.js
 /index.php
 node_modules/
+eslint-cache/
 .DS_Store
 Thumbs.db
 /lib/ntbb-config.lib.php

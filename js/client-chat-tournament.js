@@ -241,8 +241,9 @@
 					if (tournaments.length > 0) {
 						$infoList = $('<ul></ul>');
 						tournaments.forEach(function (tournament) {
+							var formatName = window.BattleFormats && BattleFormats[tournament.format] ? BattleFormats[tournament.format].name : tournament.format;
 							var $info = $('<li></li>');
-							$info.text(": " + Tools.escapeFormat(tournament.format) + " " + tournament.generator + (tournament.isStarted ? " (Started)" : ""));
+							$info.text(": " + formatName + " " + tournament.generator + (tournament.isStarted ? " (Started)" : ""));
 							$info.prepend($('<a class="ilink"></a>').attr('href', app.root + toRoomid(tournament.room).toLowerCase()).text(tournament.room));
 							$infoList.append($info);
 						});
@@ -256,10 +257,10 @@
 			} else {
 				switch (cmd) {
 				case 'create':
-					var format = Tools.escapeFormat(data[0]);
+					var formatName = window.BattleFormats && BattleFormats[data[0]] ? BattleFormats[data[0]].name : data[0];
 					var type = data[1];
-					this.room.$chat.append("<div class=\"notice tournament-message-create\">" + format + " " + Tools.escapeHTML(type) + " Tournament created.</div>");
-					this.room.notifyOnce("Tournament created", "Room: " + this.room.title + "\nFormat: " + format + "\nType: " + type, 'tournament-create');
+					this.room.$chat.append("<div class=\"notice tournament-message-create\">" + Tools.escapeHTML(formatName) + " " + Tools.escapeHTML(type) + " Tournament created.</div>");
+					this.room.notifyOnce("Tournament created", "Room: " + this.room.title + "\nFormat: " + formatName + "\nType: " + type, 'tournament-create');
 					this.curTeamIndex = 0;
 					this.updateTeams();
 					break;
@@ -349,7 +350,7 @@
 					}
 
 					if ('format' in this.updates) {
-						this.$format.text(Tools.escapeFormat(this.info.format));
+						this.$format.text(window.BattleFormats && BattleFormats[this.info.format] ? BattleFormats[this.info.format].name : this.info.format);
 						this.updateTeams();
 					}
 					if ('generator' in this.updates)
@@ -459,9 +460,8 @@
 						}
 					}
 
-					var format = Tools.escapeFormat(endData.format);
 					var type = endData.generator;
-					this.room.$chat.append("<div class=\"notice tournament-message-end-winner\">Congratulations to " + Tools.escapeHTML(arrayToPhrase(endData.results[0])) + " for winning the " + format + " " + Tools.escapeHTML(type) + " Tournament!</div>");
+					this.room.$chat.append("<div class=\"notice tournament-message-end-winner\">Congratulations to " + Tools.escapeHTML(arrayToPhrase(endData.results[0])) + " for winning the " + Tools.escapeFormat(endData.format) + " " + Tools.escapeHTML(type) + " Tournament!</div>");
 					if (endData.results[1])
 						this.room.$chat.append("<div class=\"notice tournament-message-end-runnerup\">Runner-up" + (endData.results[1].length > 1 ? "s" : "") + ": " + Tools.escapeHTML(arrayToPhrase(endData.results[1])) + "</div>");
 
@@ -555,7 +555,7 @@
 				if (!data.rootNode) {
 					if (!('users' in data)) return;
 					var users = data.users.length;
-					if (users) $div.html('<b>' + users + '</b> user' + (users !== 1 ? 's' : '') + ':<br />' + data.users.join(", "));
+					if (users) $div.html('<b>' + users + '</b> user' + (users !== 1 ? 's' : '') + ':<br />' + Tools.escapeHTML(data.users.join(", ")));
 					return $div;
 				}
 

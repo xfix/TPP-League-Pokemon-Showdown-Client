@@ -7,9 +7,12 @@ License: MIT License
 
 if (!window.exports) window.exports = window;
 
+if (window.soundManager) soundManager.setup({url:'https://play.pokemonshowdown.com/swf/'});
+
 window.nodewebkit = false;
 if (typeof process !== 'undefined' && process.versions && process.versions['node-webkit']) window.nodewebkit = true;
 
+/* eslint-disable */
 // ES5 indexOf
 if (!Array.prototype.indexOf) {
 	Array.prototype.indexOf = function (searchElement /*, fromIndex */) {
@@ -52,6 +55,7 @@ j(c,d,e,b,g[f+7],22,4249261313),b=j(b,c,d,e,g[f+8],7,1770035416),e=j(e,b,c,d,g[f
 d=k(d,e,b,c,g[f+15],14,3634488961),c=k(c,d,e,b,g[f+4],20,3889429448),b=k(b,c,d,e,g[f+9],5,568446438),e=k(e,b,c,d,g[f+14],9,3275163606),d=k(d,e,b,c,g[f+3],14,4107603335),c=k(c,d,e,b,g[f+8],20,1163531501),b=k(b,c,d,e,g[f+13],5,2850285829),e=k(e,b,c,d,g[f+2],9,4243563512),d=k(d,e,b,c,g[f+7],14,1735328473),c=k(c,d,e,b,g[f+12],20,2368359562),b=l(b,c,d,e,g[f+5],4,4294588738),e=l(e,b,c,d,g[f+8],11,2272392833),d=l(d,e,b,c,g[f+11],16,1839030562),c=l(c,d,e,b,g[f+14],23,4259657740),b=l(b,c,d,e,g[f+1],4,2763975236),
 e=l(e,b,c,d,g[f+4],11,1272893353),d=l(d,e,b,c,g[f+7],16,4139469664),c=l(c,d,e,b,g[f+10],23,3200236656),b=l(b,c,d,e,g[f+13],4,681279174),e=l(e,b,c,d,g[f+0],11,3936430074),d=l(d,e,b,c,g[f+3],16,3572445317),c=l(c,d,e,b,g[f+6],23,76029189),b=l(b,c,d,e,g[f+9],4,3654602809),e=l(e,b,c,d,g[f+12],11,3873151461),d=l(d,e,b,c,g[f+15],16,530742520),c=l(c,d,e,b,g[f+2],23,3299628645),b=m(b,c,d,e,g[f+0],6,4096336452),e=m(e,b,c,d,g[f+7],10,1126891415),d=m(d,e,b,c,g[f+14],15,2878612391),c=m(c,d,e,b,g[f+5],21,4237533241),
 b=m(b,c,d,e,g[f+12],6,1700485571),e=m(e,b,c,d,g[f+3],10,2399980690),d=m(d,e,b,c,g[f+10],15,4293915773),c=m(c,d,e,b,g[f+1],21,2240044497),b=m(b,c,d,e,g[f+8],6,1873313359),e=m(e,b,c,d,g[f+15],10,4264355552),d=m(d,e,b,c,g[f+6],15,2734768916),c=m(c,d,e,b,g[f+13],21,1309151649),b=m(b,c,d,e,g[f+4],6,4149444226),e=m(e,b,c,d,g[f+11],10,3174756917),d=m(d,e,b,c,g[f+2],15,718787259),c=m(c,d,e,b,g[f+9],21,3951481745),b=i(b,o),c=i(c,p),d=i(d,q),e=i(e,r);return(n(b)+n(c)+n(d)+n(e)).toLowerCase()};
+/* eslint-enable */
 
 var colorCache = {};
 
@@ -60,7 +64,7 @@ function hashColor(name) {
 	var hash;
 	if (window.Config && Config.customcolors && Config.customcolors[name]) {
 		if (Config.customcolors[name].color) {
-			return colorCache[name] = 'color:' + Config.customcolors[name].color + ';';
+			return (colorCache[name] = 'color:' + Config.customcolors[name].color + ';');
 		}
 		hash = MD5(Config.customcolors[name]);
 	} else {
@@ -298,6 +302,38 @@ var Tools = {
 		return prefix + '//play.pokemonshowdown.com/';
 	})(),
 
+
+	/*
+	 * Load trackers are loosely based on Promises, but very simplified.
+	 * Trackers are made with: var tracker = Tools.makeLoadTracker();
+	 * Pass callbacks like so: tracker(callback)
+	 * When tracker.load() is called, all callbacks are run.
+	 * If tracker.load() has already been called, tracker(callback) will
+	 * call the callback instantly.
+	 */
+	makeLoadTracker: function () {
+		var tracker = function (callback, context) {
+			if (tracker.isLoaded) {
+				callback.call(context, tracker.value);
+			} else {
+				tracker.callbacks.push([callback, context]);
+			}
+			return tracker;
+		};
+		tracker.callbacks = [];
+		tracker.value = undefined;
+		tracker.isLoaded = false;
+		tracker.load = function (value) {
+			if (tracker.isLoaded) return;
+			tracker.isLoaded = true;
+			tracker.value = value;
+			for (var i = 0; i < tracker.callbacks.length; i++) {
+				tracker.callbacks[i][0].call(tracker.callbacks[i][1], value);
+			}
+		};
+		return tracker;
+	},
+
 	resolveAvatar: function (avatar) {
 		var avatarnum = Number(avatar);
 		if (!isNaN(avatarnum)) {
@@ -410,7 +446,7 @@ var Tools = {
 			options.hidestrikethrough ? '$1' : '<s>$1</s>');
 		// <<roomid>>
 		str = str.replace(/&lt;&lt;([a-z0-9-]+)&gt;&gt;/g,
-			options.hidelinks ? '&laquo;$1&raquo;' : '&laquo;<a href="/$1">$1</a>&raquo;');
+			options.hidelinks ? '&laquo;$1&raquo;' : '&laquo;<a href="/$1" target="_blank">$1</a>&raquo;');
 		// linking of URIs
 		if (!options.hidelinks) {
 			str = str.replace(linkRegex, function (uri) {
@@ -540,8 +576,7 @@ var Tools = {
 
 	unescapeHTML: function (str) {
 		str = (str ? '' + str : '');
-		return str.replace(/&quot;/g, '"').replace(/&gt;/g, '>').
-			replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+		return str.replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 	},
 
 	escapeRegExp: function (str) {
@@ -588,7 +623,7 @@ var Tools = {
 			if (html4.ELEMENTS[tagName] & html4.eflags['UNSAFE']) {
 				return;
 			}
-			var targetIdx;
+			var targetIdx, srcIdx;
 			if (tagName === 'a') {
 				// Special handling of <a> tags.
 
@@ -605,7 +640,19 @@ var Tools = {
 					}
 				}
 			}
+			var dataUri = '';
+			if (tagName === 'img') {
+				for (var i = 0; i < attribs.length - 1; i += 2) {
+					if (attribs[i] === 'src' && attribs[i + 1].substr(0, 11) === 'data:image/') {
+						srcIdx = i;
+						dataUri = attribs[i + 1];
+					}
+				}
+			}
 			attribs = html.sanitizeAttribs(tagName, attribs, uriRewriter);
+			if (dataUri && tagName === 'img') {
+				attribs[srcIdx + 1] = dataUri;
+			}
 			if (tagName === 'a' || tagName === 'form') {
 				if (targetIdx !== undefined) {
 					attribs[targetIdx] = '_blank';
@@ -658,36 +705,10 @@ var Tools = {
 		};
 	},
 
-	prefs: (function () {
-		var localStorageEntry = 'showdown_prefs';
-		var prefs = function (prop, value, save) {
-			if (value === undefined) {
-				// get preference
-				return prefs.data[prop];
-			}
-			// set preference
-			if (value === null) {
-				delete prefs.data[prop];
-			} else {
-				prefs.data[prop] = value;
-			}
-			if (save !== false) prefs.save();
-		};
-		prefs.data = {};
-		try {
-			prefs.data = (window.localStorage &&
-				$.parseJSON(localStorage.getItem(localStorageEntry))) || {};
-			// outdated prefs
-			delete prefs.data.nolobbypm;
-		} catch (e) {}
-		prefs.save = function () {
-			if (!window.localStorage) return;
-			try {
-				localStorage.setItem(localStorageEntry, $.toJSON(this.data));
-			} catch (e) {}
-		};
-		return prefs;
-	})(),
+	prefs: function (prop, value, save) {
+		if (window.Storage && Storage.prefs) return Storage.prefs(prop, value, save);
+		return undefined;
+	},
 
 	getEffect: function (effect) {
 		if (!effect || typeof effect === 'string') {
@@ -754,6 +775,23 @@ var Tools = {
 			if (!move.effectType) move.effectType = 'Move';
 			if (!move.secondaries && move.secondary) move.secondaries = [move.secondary];
 			if (!move.flags) move.flags = {};
+			if (!move.gen) {
+				if (move.num >= 560) {
+					move.gen = 6;
+				} else if (move.num >= 468) {
+					move.gen = 5;
+				} else if (move.num >= 355) {
+					move.gen = 4;
+				} else if (move.num >= 252) {
+					move.gen = 3;
+				} else if (move.num >= 166) {
+					move.gen = 2;
+				} else if (move.num >= 1) {
+					move.gen = 1;
+				} else {
+					move.gen = 0;
+				}
+			}
 
 			if (window.BattleMoveAnims) {
 				if (!move.anim) move.anim = BattleOtherAnims.attack.anim;
@@ -773,6 +811,17 @@ var Tools = {
 			if (!item.name) item.name = Tools.escapeHTML(name);
 			if (!item.category) item.category = 'Effect';
 			if (!item.effectType) item.effectType = 'Item';
+			if (!item.gen) {
+				if (item.num >= 577) {
+					item.gen = 6;
+				} else if (item.num >= 537) {
+					item.gen = 5;
+				} else if (item.num >= 377) {
+					item.gen = 4;
+				} else {
+					item.gen = 3;
+				}
+			}
 		}
 		return item;
 	},
@@ -787,6 +836,19 @@ var Tools = {
 			if (!ability.name) ability.name = Tools.escapeHTML(name);
 			if (!ability.category) ability.category = 'Effect';
 			if (!ability.effectType) ability.effectType = 'Ability';
+			if (!ability.gen) {
+				if (ability.num >= 165) {
+					ability.gen = 6;
+				} else if (ability.num >= 124) {
+					ability.gen = 5;
+				} else if (ability.num >= 77) {
+					ability.gen = 4;
+				} else if (ability.num >= 1) {
+					ability.gen = 3;
+				} else {
+					ability.gen = 0;
+				}
+			}
 		}
 		return ability;
 	},
@@ -847,6 +909,31 @@ var Tools = {
 			}
 			if (!template.spriteid) template.spriteid = toId(template.baseSpecies) + template.formeid;
 			if (!template.effectType) template.effectType = 'Template';
+			if (!template.gen) {
+				if (template.forme && template.forme in {'Mega':1, 'Mega-X':1, 'Mega-Y':1}) {
+					template.gen = 6;
+					template.isMega = true;
+					template.battleOnly = true;
+				} else if (template.forme === 'Primal') {
+					template.gen = 6;
+					template.isPrimal = true;
+					template.battleOnly = true;
+				} else if (template.num >= 650) {
+					template.gen = 6;
+				} else if (template.num >= 494) {
+					template.gen = 5;
+				} else if (template.num >= 387) {
+					template.gen = 4;
+				} else if (template.num >= 252) {
+					template.gen = 3;
+				} else if (template.num >= 152) {
+					template.gen = 2;
+				} else if (template.num >= 1) {
+					template.gen = 1;
+				} else {
+					template.gen = 0;
+				}
+			}
 		}
 		return template;
 	},
@@ -925,7 +1012,7 @@ var Tools = {
 		}
 
 		// Decide what gen sprites to use.
-		var gen = {1:'rby', 2:'gsc', 3:'rse', 4:'dpp', 5:'bw', 6:'xy'}[options.gen];
+		var gen = {1:'rby', 2:'gsc', 3:'rse', 4:'dpp', 5:'bw', 6:'xy'}[Math.max(options.gen, pokemon.gen)];
 		if (Tools.prefs('nopastgens')) gen = 'xy';
 		if (Tools.prefs('bwgfx') && gen === 'xy') gen = 'bw';
 
@@ -935,12 +1022,12 @@ var Tools = {
 		} else {
 			animationData = BattlePokemonSprites && window.BattlePokemonSprites[pokemon.speciesid];
 		}
-		if (animationData) {
+		if (animationData && typeof animationData.num !== 'undefined') {
 			var num = '' + animationData.num;
 			if (num.length < 3) num = '0' + num;
 			if (num.length < 3) num = '0' + num;
 			spriteData.cryurl = 'audio/cries/' + num;
-			if (pokemon.forme && (pokemon.forme.substr(0, 4) === 'Mega' || pokemon.forme === 'Sky' || pokemon.forme === 'Therian' || pokemon.forme === 'Black' || pokemon.forme === 'White' || pokemon.forme === 'Super')) {
+			if (pokemon.isMega || pokemon.forme && (pokemon.forme === 'Sky' || pokemon.forme === 'Therian' || pokemon.forme === 'Black' || pokemon.forme === 'White' || pokemon.forme === 'Super')) {
 				spriteData.cryurl += pokemon.formeid;
 			}
 			spriteData.cryurl += '.wav';
@@ -971,8 +1058,13 @@ var Tools = {
 				return spriteData;
 			}
 		}
-		// if there is no entry or enough data in pokedex-mini.js or the animations are disabled or past gen, use the proper sprites
-		gen = (gen === 'xy') ? 'bw' : gen;
+
+		// There is no entry or enough data in pokedex-mini.js
+		// Handle these in case-by-case basis; either using BW sprites or matching the played gen.
+		if (pokemon.speciesid !== 'substitute') {
+			if (pokemon.tier === 'CAP') gen = 'bw';
+			if (gen === 'xy') gen = 'bw';
+		}
 		dir = gen + dir;
 
 		spriteData.url += dir + '/' + name + '.png';

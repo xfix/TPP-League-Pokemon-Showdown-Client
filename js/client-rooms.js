@@ -6,9 +6,6 @@
 		type: 'rooms',
 		title: 'Rooms',
 		isSideRoom: true,
-		events: {
-			'click .ilink': 'clickLink'
-		},
 		initialize: function () {
 			this.$el.addClass('ps-room-light').addClass('scrollable');
 			var buf = '<div class="pad"><button style="float:right" name="close">Close</button><div class="roomlisttop"></div><div class="roomlist" style="max-width:480px"><p><em style="font-size:20pt">Loading...</em></p></div><div class="roomlist" style="max-width:480px"></div><p><button name="joinRoomPopup">Join other room</button></p></div>';
@@ -17,13 +14,6 @@
 			app.send('/cmd rooms');
 			app.user.on('change:named', this.updateUser, this);
 			this.update();
-		},
-		clickLink: function (e) {
-			if (e.cmdKey || e.metaKey || e.ctrlKey) return;
-			e.preventDefault();
-			e.stopPropagation();
-			var roomid = $(e.currentTarget).attr('href').substr(app.root.length);
-			app.tryJoinRoom(roomid);
 		},
 		updateUser: function () {
 			this.update();
@@ -69,8 +59,8 @@
 				var userCount = Number(rooms.userCount);
 				var battleCount = Number(rooms.battleCount);
 				buf += '<table class="roomcounters" border="0" cellspacing="0" cellpadding="0" width="100%"><tr><td>';
-				buf += '<button class="button" name="finduser"><strong>' + userCount + '</strong> ' + (userCount == 1 ? 'user' : 'users') + ' online</button></td><td>';
-				buf += '<button class="button" name="roomlist"><strong>' + battleCount + '</strong> active ' + (battleCount == 1 ? 'battle' : 'battles') + '</button>';
+				buf += '<span style="' + Tools.getIcon('meloetta') + ';display:inline-block;vertical-align:middle;transform:scaleX(-1);webkit-transform:scaleX(-1);" class="pokemonicon" title="Meloetta is PS\'s mascot! The Aria forme is about using its voice, and represents our chatrooms."></span> <button class="button" name="finduser"><strong>' + userCount + '</strong> ' + (userCount == 1 ? 'user' : 'users') + ' online</button></td><td>';
+				buf += '<button class="button" name="roomlist"><strong>' + battleCount + '</strong> active ' + (battleCount == 1 ? 'battle' : 'battles') + '</button> <span style="' + Tools.getIcon('meloetta-pirouette') + ';display:inline-block;vertical-align:middle" class="pokemonicon" title="Meloetta is PS\'s mascot! The Pirouette forme is Fighting-type, and represents our battles."></span>';
 				buf += '</td></tr></table>';
 				this.$('.roomlisttop').html(buf);
 			}

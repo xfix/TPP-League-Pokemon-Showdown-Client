@@ -19,12 +19,12 @@
 			// tooltips
 			var buf = '';
 			var tooltips = {
-				your2: { top: 70, left: 250, width: 80, height: 100 },
-				your1: { top: 85, left: 320, width: 90, height: 100 },
-				your0: { top: 90, left: 390, width: 100, height: 100 },
-				my0: { top: 200, left: 130, width: 120, height: 160 },
-				my1: { top: 200, left: 250, width: 150, height: 160 },
-				my2: { top: 200, left: 350, width: 150, height: 160 }
+				your2: {top: 70, left: 250, width: 80, height: 100},
+				your1: {top: 85, left: 320, width: 90, height: 100},
+				your0: {top: 90, left: 390, width: 100, height: 100},
+				my0: {top: 200, left: 130, width: 120, height: 160},
+				my1: {top: 200, left: 250, width: 150, height: 160},
+				my2: {top: 200, left: 350, width: 150, height: 160}
 			};
 			for (var active in tooltips) {
 				buf += '<div style="position:absolute;';
@@ -54,17 +54,18 @@
 		},
 		events: {
 			'change input[name=ignorespects]': 'toggleIgnoreSpects',
-			'change input[name=ignoreopp]': 'toggleIgnoreOpponent'
+			'change input[name=ignoreopp]': 'toggleIgnoreOpponent',
+			'click .replayDownloadButton': 'clickReplayDownloadButton'
 		},
 		battleEnded: false,
 		join: function () {
 			app.send('/join ' + this.id);
 		},
-		showChat: function() {
+		showChat: function () {
 			this.$('.battle-chat-toggle').attr('name', 'hideChat').text('Battle');
 			this.$el.addClass('showing-chat');
 		},
-		hideChat: function() {
+		hideChat: function () {
 			this.$('.battle-chat-toggle').attr('name', 'showChat').text('Chat');
 			this.$el.removeClass('showing-chat');
 		},
@@ -73,7 +74,7 @@
 			if (this.battle) this.battle.destroy();
 		},
 		requestLeave: function (e) {
-			if (this.side && this.battle && !this.battleEnded && !this.battle.forfeitPending) {
+			if (this.side && this.battle && !this.battleEnded && !this.expired && !this.battle.forfeitPending) {
 				app.addPopup(ForfeitPopup, {room: this, sourceEl: e && e.currentTarget});
 				return false;
 			}
@@ -87,7 +88,7 @@
 				this.battle.messageDelay = 8;
 			}
 			if (width && width < 640) {
-				var scale = (width/640);
+				var scale = (width / 640);
 				this.$battle.css('transform', 'scale(' + scale + ')');
 				this.$foeHint.css('transform', 'scale(' + scale + ')');
 				this.$controls.css('top', 360 * scale + 10);
@@ -231,14 +232,16 @@
 
 			}
 
-			if (this.battle.done) {
+			if (this.battle.ended) {
+
+				var replayDownloadButton = '<span style="float:right;"><a href="//replay.pokemonshowdown.com/" class="button replayDownloadButton" style="padding:2px 6px"><i class="fa fa-download"></i> Download replay</a><br /><br /><button name="saveReplay"><i class="fa fa-upload"></i> Upload and share replay</button></span>';
 
 				// battle has ended
 				if (this.side) {
 					// was a player
-					this.$controls.html('<div class="controls"><p><em><button name="instantReplay"><i class="fa fa-undo"></i> Instant Replay</button> <button name="saveReplay"><i class="fa fa-upload"></i> Share replay</button></p><p><button name="closeAndMainMenu"><strong>Main menu</strong><br /><small>(closes this battle)</small></button> <button name="closeAndRematch"><strong>Rematch</strong><br /><small>(closes this battle)</small></button></p></div>');
+					this.$controls.html('<div class="controls"><p>' + replayDownloadButton + '<em><button name="instantReplay"><i class="fa fa-undo"></i> Instant Replay</button></p><p><button name="closeAndMainMenu"><strong>Main menu</strong><br /><small>(closes this battle)</small></button> <button name="closeAndRematch"><strong>Rematch</strong><br /><small>(closes this battle)</small></button></p></div>');
 				} else {
-					this.$controls.html('<div class="controls"><p><em><button name="switchSides"><i class="fa fa-random"></i> Switch sides</button> <button name="instantReplay"><i class="fa fa-undo"></i> Instant Replay</button> <button name="saveReplay"><i class="fa fa-upload"></i> Share replay</button></p></div>');
+					this.$controls.html('<div class="controls"><p>' + replayDownloadButton + '<em><button name="switchSides"><i class="fa fa-random"></i> Switch sides</button> <button name="instantReplay"><i class="fa fa-undo"></i> Instant Replay</button></p></div>');
 				}
 
 			} else if (!this.battle.mySide.initialized || !this.battle.yourSide.initialized) {
@@ -454,7 +457,7 @@
 					controls += movebuttons;
 				}
 				if (switchables[pos].canMegaEvo) {
-					controls += '<br /><label><input type="checkbox" name="megaevo" />&nbsp;Mega&nbsp;Evolution</label>';
+					controls += '<br /><label class="megaevo"><input type="checkbox" name="megaevo" />&nbsp;Mega&nbsp;Evolution</label>';
 				}
 				if (this.finalDecisionMove) {
 					controls += '<em style="display:block;clear:both">You <strong>might</strong> have some moves disabled, so you won\'t be able to cancel an attack!</em><br/>';
@@ -710,6 +713,23 @@
 		},
 		saveReplay: function () {
 			this.send('/savereplay');
+		},
+		clickReplayDownloadButton: function (e) {
+			var filename = (this.battle.tier || 'Battle').replace(/[^A-Za-z0-9]/g, '');
+
+			// ladies and gentlemen, JavaScript dates
+			var date = new Date();
+			filename += '-' + date.getFullYear();
+			filename += (date.getMonth() >= 9 ? '-' : '-0') + (date.getMonth() + 1);
+			filename += (date.getDate() >= 10 ? '-' : '-0') + date.getDate();
+
+			filename += '-' + toId(this.battle.p1.name);
+			filename += '-' + toId(this.battle.p2.name);
+
+			e.currentTarget.href = Storage.createReplayFileHref(this);
+			e.currentTarget.download = filename + '.html';
+
+			e.stopPropagation();
 		},
 		switchSides: function () {
 			this.battle.switchSides();
@@ -993,7 +1013,7 @@
 					var activeTarget = yourActive[0] || yourActive[1] || yourActive[2];
 					basePower = this.getMoveBasePower(move, pokemon, activeTarget) || basePower;
 					if (!basePower) basePower = '&mdash;';
-					basePowerText = '<p>Base power: ' + basePower + '</p>'
+					basePowerText = '<p>Base power: ' + basePower + '</p>';
 				}
 				var accuracy = move.accuracy;
 				if (!accuracy || accuracy === true) accuracy = '&mdash;';
@@ -1082,7 +1102,7 @@
 				var myPokemon;
 				if (this.myPokemon) {
 					if (!pokemon) {
-						pokemon = this.myPokemon[parseInt(thing)];
+						pokemon = this.myPokemon[parseInt(thing, 10)];
 						battlePokemon = this.battle.getPokemon('other: old: ' + pokemon.ident, pokemon.details);
 					} else if (this.controlsShown && pokemon.side === this.battle.mySide) {
 						myPokemon = this.myPokemon[pokemon.slot];
@@ -1122,10 +1142,14 @@
 					text += 'Types unknown';
 				}
 				text += '</h2>';
-				var exacthp = '';
-				if (pokemon.maxhp != 100 && pokemon.maxhp != 1000 && pokemon.maxhp != 48) exacthp = ' (' + pokemon.hp + '/' + pokemon.maxhp + ')';
-				if (pokemon.maxhp == 48 && isActive) exacthp = ' <small>(' + pokemon.hp + '/' + pokemon.maxhp + ' pixels)</small>';
-				text += '<p>HP: ' + pokemon.hpDisplay() + exacthp + (pokemon.status ? ' <span class="status ' + pokemon.status + '">' + pokemon.status.toUpperCase() + '</span>' : '') + '</p>';
+				if (pokemon.fainted) {
+					text += '<p>HP: (fainted)</p>';
+				} else {
+					var exacthp = '';
+					if (pokemon.maxhp != 100 && pokemon.maxhp != 1000 && pokemon.maxhp != 48) exacthp = ' (' + pokemon.hp + '/' + pokemon.maxhp + ')';
+					if (pokemon.maxhp == 48 && isActive) exacthp = ' <small>(' + pokemon.hp + '/' + pokemon.maxhp + ' pixels)</small>';
+					text += '<p>HP: ' + pokemon.hpDisplay() + exacthp + (pokemon.status ? ' <span class="status ' + pokemon.status + '">' + pokemon.status.toUpperCase() + '</span>' : '') + '</p>';
+				}
 				if (myPokemon) {
 					if (this.battle.gen > 2) {
 						text += '<p>Ability: ' + Tools.getAbility(myPokemon.baseAbility).name;
@@ -1143,7 +1167,7 @@
 						text += '&nbsp;SpA /&nbsp;' + myPokemon.stats['spd'] + '&nbsp;SpD /&nbsp;';
 					}
 					text += myPokemon.stats['spe'] + '&nbsp;Spe</p>';
-					text += '<p class="section">Opponent sees:</p>'
+					text += '<p class="section">Opponent sees:</p>';
 				}
 				if (this.battle.gen > 2) {
 					if (!pokemon.baseAbility && !pokemon.ability) {
@@ -1243,10 +1267,10 @@
 			var iv = (this.battle.gen < 3) ? 30 : 31;
 			var value = iv + (this.battle.tier === 'Random Battle' ? 21 : 63);
 			var nature = (this.battle.tier === 'Random Battle' || this.battle.gen < 3) ? 1 : 1.1;
-			return maxSpe = Math.floor(Math.floor(Math.floor(2 * template.baseStats['spe'] + value) * level / 100 + 5) * nature);
+			return Math.floor(Math.floor(Math.floor(2 * template.baseStats['spe'] + value) * level / 100 + 5) * nature);
 		},
 		// Gets the proper current type for moves with a variable type.
-		getMoveType: function(move, pokemon) {
+		getMoveType: function (move, pokemon) {
 			var myPokemon = this.myPokemon[pokemon.slot];
 			var ability = Tools.getAbility(myPokemon.baseAbility).name;
 			var moveType = move.type;
@@ -1302,7 +1326,7 @@
 		// Gets the proper current base power for moves which have a variable base power.
 		// Takes into account the target for some moves.
 		// If it is unsure of the actual base power, it gives an estimate.
-		getMoveBasePower: function(move, pokemon, target) {
+		getMoveBasePower: function (move, pokemon, target) {
 			var myPokemon = this.myPokemon[pokemon.slot];
 			var ability = Tools.getAbility(myPokemon.baseAbility).name;
 			var basePower = move.basePower;
@@ -1374,7 +1398,7 @@
 			if (move.id === 'venoshock') {
 				if (target.status === 'psn' || target.status === 'tox') {
 					basePower *= 2;
-					basePowerComment =' (Boosted by status)';
+					basePowerComment = ' (Boosted by status)';
 				}
 			}
 			if (move.id === 'wakeupslap') {

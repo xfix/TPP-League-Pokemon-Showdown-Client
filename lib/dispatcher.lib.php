@@ -126,6 +126,7 @@ class ActionDispatcher {
 class DefaultActionHandler {
 	public function login($dispatcher, &$reqData, &$out) {
 		global $users, $curuser;
+		$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 
 		if (!$_POST || empty($reqData['name']) || empty($reqData['pass'])) die();
 		$users->login($reqData['name'], $reqData['pass']);
@@ -138,13 +139,13 @@ class DefaultActionHandler {
 		if (!$challenge) {
 			$challenge = !isset($reqData['challstr']) ? '' : $reqData['challstr'];
 		}
-		$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 		$out['assertion'] = $users->getAssertion($curuser['userid'], $serverhostname, null,
 			$challengekeyid, $challenge, $challengeprefix);
 	}
 
 	public function register($dispatcher, &$reqData, &$out) {
 		global $users, $curuser;
+		$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 
 		$serverhostname = '' . $dispatcher->getServerHostName(@$reqData['serverid']);
 		$user = array();
@@ -172,7 +173,6 @@ class DefaultActionHandler {
 			if (!$challenge) {
 				$challenge = !isset($reqData['challstr']) ? '' : $reqData['challstr'];
 			}
-			$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 			$out['curuser'] = $user;
 			$out['assertion'] = $users->getAssertion($user['userid'],
 					$serverhostname, $user, $challengekeyid, $challenge, $challengeprefix);
@@ -222,6 +222,7 @@ class DefaultActionHandler {
 
 	public function getassertion($dispatcher, &$reqData, &$out) {
 		global $users, $curuser;
+		$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 
 		$serverhostname = '' . $dispatcher->getServerHostName(@$reqData['serverid']);
 		$challengekeyid = !isset($reqData['challengekeyid']) ? -1 : intval($reqData['challengekeyid']);
@@ -229,7 +230,6 @@ class DefaultActionHandler {
 		if (!$challenge) {
 			$challenge = !isset($reqData['challstr']) ? '' : $reqData['challstr'];
 		}
-		$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 		header('Content-Type: text/plain; charset=utf-8');
 		if (empty($reqData['userid'])) {
 			$userid = $curuser['userid'];
@@ -246,6 +246,7 @@ class DefaultActionHandler {
 
 	public function upkeep($dispatcher, &$reqData, &$out) {
 		global $users, $curuser;
+		$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 
 		$out['loggedin'] = $curuser['loggedin'];
 		$userid = '';
@@ -263,7 +264,6 @@ class DefaultActionHandler {
 			if (!$challenge) {
 				$challenge = !isset($reqData['challstr']) ? '' : $reqData['challstr'];
 			}
-			$challengeprefix = $dispatcher->verifyCrossDomainRequest();
 			$out['assertion'] = $users->getAssertion($userid, $serverhostname, null, $challengekeyid, $challenge, $challengeprefix);
 		}
 	}
@@ -498,8 +498,8 @@ class LadderActionHandler {
 		include_once dirname(__FILE__) . '/ntbb-ladder.lib.php';
 
 		$server = $dispatcher->findServer();
-		if (!$server) {
-			$out['errorip'] = $dispatcher->getIp();
+		if (!$server || $server['id'] !== 'showdown') {
+			$out['errorip'] = "Your version of PS is too old for this ladder system. Please update.";
 			return;
 		}
 
@@ -526,7 +526,9 @@ class LadderActionHandler {
 		include_once dirname(__FILE__) . '/ntbb-ladder.lib.php';
 
 		$server = @$PokemonServers[@$reqData['serverid']];
-		if (!$server) die;
+		if (!$server || $server['id'] !== 'showdown') {
+			die;
+		}
 
 		$ladder = new NTBBLadder($server['id'], @$reqData['format']);
 		$user = $this->getUserData(@$reqData['user']);
@@ -540,8 +542,8 @@ class LadderActionHandler {
 		include_once dirname(__FILE__) . '/ntbb-ladder.lib.php';
 
 		$server = $dispatcher->findServer();
-		if (!$server) {
-			$out['errorip'] = $dispatcher->getIp();
+		if (!$server || $server['id'] !== 'showdown') {
+			$out['errorip'] = "Your version of PS is too old for this ladder system. Please update.";
 			return;
 		}
 
@@ -551,7 +553,7 @@ class LadderActionHandler {
 		if ($user) {
 			$ladder->getRating($user);
 			if (@$user['rating']) {
-				$out = intval($user['rating']['acre']);
+				$out = intval($user['rating']['elo']);
 			}
 		}
 	}

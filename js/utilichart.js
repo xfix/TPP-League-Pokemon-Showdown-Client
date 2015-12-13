@@ -40,23 +40,23 @@ function BattleChart() {
 		if (self.selectCallback) self.selectCallback(x);
 	};
 
-	this.row = function (thing, attrs, match, isFirst, dataCommand) {
+	this.row = function (thing, attrs, match, isFirst, dataCommand, gen) {
 		if (isFirst) {
 			self.firstResult = thing.name;
 		}
 		attrs = attrs || '';
 		switch (match.thingType) {
 		case 'pokemon':
-			return self.pokemonRow(thing, attrs, match, isFirst, dataCommand);
+			return self.pokemonRow(thing, attrs, match, isFirst, dataCommand, gen);
 		case 'item':
 			return self.itemRow(thing, attrs, match, isFirst, dataCommand);
 		case 'ability':
 			return self.abilityRow(thing, attrs, match, isFirst, dataCommand);
 		case 'move':
-			return self.moveRow(thing, attrs, match, isFirst, dataCommand);
+			return self.moveRow(thing, attrs, match, isFirst, dataCommand, gen);
 		}
 	};
-	this.pokemonRow = function (pokemon, attrs, match, isFirst, dataCommand) {
+	this.pokemonRow = function (pokemon, attrs, match, isFirst, dataCommand, gen) {
 		var tag = dataCommand ? 'div' : 'a';
 		var text = '<li class="result' + (isFirst ? ' firstresult' : '') + '"><' + tag + attrs + ' data-name="' + Tools.escapeHTML(pokemon.species) + '">';
 
@@ -82,8 +82,7 @@ function BattleChart() {
 			if (match.name && match.name.end > pokemon.baseSpecies.length) {
 				if (match.name.start < pokemon.baseSpecies.length + 1) match.name.start = pokemon.baseSpecies.length + 1;
 				name += '<small>-' + pokemon.forme.substr(0, match.name.start - (pokemon.baseSpecies.length + 1)) + '<b>' + pokemon.name.substr(match.name.start, match.name.end - match.name.start) + '</b>' + pokemon.name.substr(match.name.end) + '</small>';
-			}
-			else {
+			} else {
 				name += '<small>-' + pokemon.forme + '</small>';
 			}
 		}
@@ -112,36 +111,41 @@ function BattleChart() {
 		}
 		text += '</span> ';
 
-		text += '<span style="float:left;min-height:26px">';
-		if (pokemon.abilities['1']) {
-			text += '<span class="col twoabilitycol">';
-		}
-		else {
-			text += '<span class="col abilitycol">';
-		}
-		for (var i in pokemon.abilities) {
-			var ability = pokemon.abilities[i];
-			if (!ability) continue;
+		if (!gen || gen > 2) {
+			text += '<span style="float:left;min-height:26px">';
+			if (pokemon.abilities['1']) {
+				text += '<span class="col twoabilitycol">';
+			} else {
+				text += '<span class="col abilitycol">';
+			}
+			for (var i in pokemon.abilities) {
+				var ability = pokemon.abilities[i];
+				if (!ability) continue;
 
-			if (i === '1') text += '<br />';
-			if (match.ability && match.ability[i]) {
-				ability = ability.substr(0, match.ability[i].start) + '<b>' + ability.substr(match.ability[i].start, match.ability[i].end - match.ability[i].start) + '</b>' + ability.substr(match.ability[i].end);
+				if (i === '1') text += '<br />';
+				if (match.ability && match.ability[i]) {
+					ability = ability.substr(0, match.ability[i].start) + '<b>' + ability.substr(match.ability[i].start, match.ability[i].end - match.ability[i].start) + '</b>' + ability.substr(match.ability[i].end);
+				}
+				if (i == 'H') {
+					ability = '</span><span class="col abilitycol"><em>' + (pokemon.unreleasedHidden ? '<s>' + ability + '</s>' : ability) + '</em>';
+				}
+				text += ability;
 			}
-			if (i == 'H') {
-				ability = '</span><span class="col abilitycol"><em>' + (pokemon.unreleasedHidden ? '<s>' + ability + '</s>' : ability) + '</em>';
-			}
-			text += ability;
+			if (!pokemon.abilities['H']) text += '</span><span class="col abilitycol">';
+			text += '</span>';
+			text += '</span>';
 		}
-		if (!pokemon.abilities['H']) text += '</span><span class="col abilitycol">';
-		text += '</span>';
-		text += '</span>';
 
 		text += '<span style="float:left;min-height:26px">';
 		text += '<span class="col statcol"><em>HP</em><br />' + pokemon.baseStats.hp + '</span> ';
 		text += '<span class="col statcol"><em>Atk</em><br />' + pokemon.baseStats.atk + '</span> ';
 		text += '<span class="col statcol"><em>Def</em><br />' + pokemon.baseStats.def + '</span> ';
-		text += '<span class="col statcol"><em>SpA</em><br />' + pokemon.baseStats.spa + '</span> ';
-		text += '<span class="col statcol"><em>SpD</em><br />' + pokemon.baseStats.spd + '</span> ';
+		if (!gen || gen > 1) {
+			text += '<span class="col statcol"><em>SpA</em><br />' + pokemon.baseStats.spa + '</span> ';
+			text += '<span class="col statcol"><em>SpD</em><br />' + pokemon.baseStats.spd + '</span> ';
+		} else {
+			text += '<span class="col statcol"><em>Spc</em><br />' + pokemon.baseStats.spa + '</span> ';
+		}
 		text += '<span class="col statcol"><em>Spe</em><br />' + pokemon.baseStats.spe + '</span> ';
 		var bst = 0;
 		for (i in pokemon.baseStats) bst += pokemon.baseStats[i];
@@ -202,7 +206,7 @@ function BattleChart() {
 
 		return text;
 	};
-	this.moveRow = function (move, attrs, match, isFirst) {
+	this.moveRow = function (move, attrs, match, isFirst, gen) {
 		var text = '<li class="result' + (isFirst ? ' firstresult' : '') + '"><a' + attrs + ' data-name="' + Tools.escapeHTML(move.name) + '">';
 
 		var name = Tools.escapeHTML(move.name);
@@ -215,8 +219,7 @@ function BattleChart() {
 			if (match.name && match.name.end > hplen) {
 				if (match.name.start < hplen + 1) match.name.start = hplen + 1;
 				name += '<small> ' + move.name.substr(hplen + 1, match.name.start - (hplen + 1)) + '<b>' + move.name.substr(match.name.start, match.name.end - match.name.start) + '</b>' + move.name.substr(match.name.end) + '</small>';
-			}
-			else {
+			} else {
 				name += '<small> ' + move.name.substr(hplen + 1) + '</small>';
 			}
 		}
@@ -243,7 +246,7 @@ function BattleChart() {
 
 		return text;
 	};
-	this.chart = function (searchTerm, type, init, thisArrange, thisSort) {
+	this.chart = function (searchTerm, type, init, thisArrange, thisSort, gen) {
 		if (!searchTerm) searchTerm = '';
 		else searchTerm = searchTerm.toLowerCase();
 		if (!init && searchTerm === self.lastSearch) return;
@@ -274,28 +277,48 @@ function BattleChart() {
 				self.pokemon.sort(thisSort);
 				self.lastPokemonSort = thisSort;
 			}
-			things = self.pokemon;
+			if (gen > 0) {
+				things = self.pokemon.filter(function (mon) {return Tools.getTemplate(mon.speciesid).gen <= gen;});
+			} else {
+				things = self.pokemon;
+			}
 			break;
 		case 'item':
 			if (thisSort !== self.lastItemSort) {
 				self.items.sort(thisSort);
 				self.lastItemSort = thisSort;
 			}
-			things = self.items;
+			if (gen === 1) {
+				things = [];
+			} else if (gen > 0) {
+				things = self.items.filter(function (item) {return Tools.getItem(item.id).gen <= gen;});
+			} else {
+				things = self.items;
+			}
 			break;
 		case 'ability':
 			if (thisSort !== self.lastAbilitySort) {
 				self.abilities.sort(thisSort);
 				self.lastAbilitySort = thisSort;
 			}
-			things = self.abilities;
+			if (gen === 1 || gen === 2) {
+				things = [];
+			} else if (gen > 0) {
+				things = self.abilities.filter(function (ability) {return Tools.getAbility(ability.id).gen <= gen;});
+			} else {
+				things = self.abilities;
+			}
 			break;
 		case 'move':
 			if (thisSort !== self.lastMoveSort) {
 				self.moves.sort(thisSort);
 				self.lastMoveSort = thisSort;
 			}
-			things = self.moves;
+			if (gen > 0) {
+				things = self.moves.filter(function (move) {return Tools.getMove(move.id).gen <= gen;});
+			} else {
+				things = self.moves;
+			}
 			break;
 		}
 
@@ -323,15 +346,13 @@ function BattleChart() {
 						self.exactResult = thing.name;
 						matchType = 'exact';
 					}
-				}
-				else if (index >= 0) {
+				} else if (index >= 0) {
 					matchType = 'contains';
 					match.name = {
 						start: index,
 						end: index + searchTerm.length
 					};
-				}
-				else if (type === 'pokemon') {
+				} else if (type === 'pokemon') {
 					index = thing.types[0].toLowerCase().indexOf(searchTerm);
 
 					if (index == 0) {
@@ -384,9 +405,7 @@ function BattleChart() {
 							}};
 						}
 					}
-				}
-				else if (type === 'move')
-				{
+				} else if (type === 'move') {
 					index = thing.type.toLowerCase().indexOf(searchTerm);
 
 					if (index == 0) {
@@ -436,7 +455,7 @@ function BattleChart() {
 					if (firstMatch) {
 						text += '<li><h3>Matches</h3></li>';
 					}
-					text += self.row(match.thing, '', match, firstMatch);
+					text += self.row(match.thing, '', match, firstMatch, null, gen);
 					firstMatch = false;
 				}
 			}
@@ -457,7 +476,7 @@ function BattleChart() {
 				if (firstMatch) {
 					text += '<li><h3>Details Matches</h3></li>';
 				}
-				text += self.row(match.thing, '', match, firstMatch && noNameMatch);
+				text += self.row(match.thing, '', match, firstMatch && noNameMatch, null, gen);
 				firstMatch = false;
 			}
 		}
@@ -468,7 +487,7 @@ function BattleChart() {
 				if (firstMatch) {
 					text += '<li><h3>Details Matches</h3></li>';
 				}
-				text += self.row(match.thing, '', match, firstMatch && noNameMatch);
+				text += self.row(match.thing, '', match, firstMatch && noNameMatch, null, gen);
 				firstMatch = false;
 			}
 		}
@@ -484,7 +503,7 @@ function BattleChart() {
 						text += '<li><h3>' + buckets[i] + '</h3></li>';
 						firstMatch = false;
 					}
-					text += self.row(match.thing, '', match);
+					text += self.row(match.thing, '', match, null, null, gen);
 				}
 			}
 		}
@@ -507,7 +526,8 @@ function BattleChart() {
 		{
 			return a.num - b.num;
 		} */
-		return (a.name == b.name) ? 0 : ( (a.name > b.name) ? 1 : -1 );
+		if (a.name === b.name) return 0;
+		return (a.name > b.name ? 1 : -1);
 	};
 }
 

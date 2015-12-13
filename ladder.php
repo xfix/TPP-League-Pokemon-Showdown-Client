@@ -43,7 +43,7 @@ foreach ($toplist as $row)
 	$N=$row['w']+$row['l']+$row['t'];
 ?>
 		<tr<?php /* if (floatval($row['rprd']) > 100) echo ' style="color:#999"'; */ ?>>
-			<td><?php echo $i; ?></td><td><?php echo htmlspecialchars($row['username']); ?></td><td><strong><?php echo round($row['acre']); ?></strong></td><td><?php echo number_format($row['gxe'],1); ?></td>
+			<td><?php echo $i; ?></td><td><?php echo htmlspecialchars($row['username']); ?></td><td><strong><?php echo round($row['elo']); ?></strong></td><td><?php echo number_format($row['gxe'],1); ?></td>
 			<td><?php echo '<em>'.round($row['rpr']).'<small> &#177; '.round($row['rprd']).'</small></em>'; /* if (floatval($row['rprd']) > 100) echo ' <small>(provisional)</small>'; */ ?></td>
 			<td>
 			<?php if ($row['formatid'] == 'oususpecttest') echo number_format($N ? 40*$row['gxe']*pow(2.0,-17.0/$N) : 0,1,'.','');
@@ -51,6 +51,7 @@ foreach ($toplist as $row)
 			elseif ($row['formatid'] == 'uususpecttest') echo number_format($N ? 40*$row['gxe']*pow(2.0,-20.0/$N) : 0,1,'.','');
 			elseif ($row['formatid'] == 'rususpecttest') echo number_format($N ? 40*$row['gxe']*pow(2.0,-9.0/$N) : 0,1,'.','');
 			elseif ($row['formatid'] == 'nususpecttest') echo number_format($N ? 40*$row['gxe']*pow(2.0,-20.0/$N) : 0,1,'.','');
+			elseif ($row['formatid'] == 'pususpecttest') echo number_format($N ? 40*$row['gxe']*pow(2.0,-9.0/$N) : 0,1,'.','');
 			elseif ($row['formatid'] == 'lcsuspecttest') echo number_format($N ? 40*$row['gxe']*pow(2.0,-9.0/$N) : 0,1,'.','');
 			elseif ($row['formatid'] == 'doublesoucurrent' || $row['formatid'] == 'doublesoususpecttest') echo number_format($N ? 40*$row['gxe']*pow(2.0,-12.0/$N) : 0,1,'.','');
 			elseif ($row['formatid'] == 'monotype') echo number_format($N ? 40*$row['gxe']*pow(2.0,-16.0/$N) : 0,1,'.','');
