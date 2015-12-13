@@ -49,7 +49,7 @@ Storage.bg = {
 		this.id = bgid;
 		if (!bgid) {
 			bgid = 'lotid';
-			bgUrl = Tools.resourcePrefix + 'fx/client-bg-' + bgid + '.jpg';
+			bgUrl = 'fx/client-bg-' + bgid + '.jpg';
 		}
 		$(document.body).css({
 			background: (bgUrl.charAt(0) === '#' ? bgUrl : '#546bac url(' + bgUrl + ') no-repeat left center fixed'),
