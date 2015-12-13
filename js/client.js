@@ -2956,8 +2956,9 @@
 			buf += '</div><div style="clear:left"></div>';
 			buf += '<p><strong>Official</strong></p>';
 			buf += '<div class="bglist">';
-			var bgs = ['charizards', 'horizon', 'waterfall', 'ocean', 'shaymin'];
+			var bgs = ['lotid', 'charizards', 'horizon', 'waterfall', 'ocean', 'shaymin'];
 
+			buf += '<button name="setBg" value="lotid"' + (cur === 'lotid' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 5) + 'px"></span>Lotid</button>';
 			buf += '<button name="setBg" value="charizards"' + (cur === 'charizards' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 0) + 'px"></span>Charizards</button>';
 			buf += '<button name="setBg" value="horizon"' + (cur === 'horizon' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 1) + 'px"></span>Horizon</button>';
 			buf += '<button name="setBg" value="waterfall"' + (cur === 'waterfall' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 2) + 'px"></span>Waterfall</button>';
@@ -2976,7 +2977,7 @@
 			this.$el.html(buf);
 		},
 		setBg: function (bgid) {
-			var bgUrl = (bgid === 'solidblue' ? '#344b6c' : Tools.resourcePrefix + 'fx/client-bg-' + bgid + '.jpg');
+			var bgUrl = (bgid === 'solidblue' ? '#344b6c' : '/fx/client-bg-' + bgid + '.jpg');
 			Storage.bg.set(bgUrl, bgid);
 			this.$('.cur').removeClass('cur');
 			this.$('button[value="' + bgid + '"]').addClass('cur');

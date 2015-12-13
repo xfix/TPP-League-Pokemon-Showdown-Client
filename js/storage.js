@@ -48,18 +48,7 @@ Storage.bg = {
 	load: function (bgUrl, bgid, hues) {
 		this.id = bgid;
 		if (!bgid) {
-			if (location.host === 'smogtours.psim.us') {
-				bgid = 'shaymin';
-			} else if (location.host === 'play.pokemonshowdown.com') {
-				bgid = ['horizon', 'ocean', 'waterfall', 'shaymin', 'charizards'][Math.floor(Math.random() * 5)];
-			} else {
-				$(document.body).css({
-					background: '',
-					'background-size': ''
-				});
-				$('#mainmenubuttoncolors').remove();
-				return true;
-			}
+			bgid = 'lotid';
 			bgUrl = Tools.resourcePrefix + 'fx/client-bg-' + bgid + '.jpg';
 		}
 		$(document.body).css({
@@ -83,6 +72,9 @@ Storage.bg = {
 			break;
 		case 'charizards':
 			hues = ["37.159090909090914,74.57627118644066%", "10.874999999999998,70.79646017699115%", "179.51612903225808,52.10084033613446%", "20.833333333333336,36.73469387755102%", "192.3076923076923,80.41237113402063%", "210,29.629629629629633%"];
+			break;
+		case 'lotid':
+			hues = ["84.99999999999999,27.27272727272727%", "62.837837837837824,77.0833333333333%", "39.0909090909091,51.5625%", "41.81818181818183,42.85714285714285%", "41.142857142857125,50.724637681159436%", "45.857142857142854,56.45161290322579%"];
 			break;
 		}
 		if (!hues && bgUrl.charAt(0) === '#') {
