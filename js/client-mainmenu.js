@@ -736,18 +736,21 @@
 			if (window.BattleFormats[formatid].team) {
 				return '<button class="select teamselect preselected" name="team" value="random" disabled>' + TeamPopup.renderTeam('random') + '</button>';
 			}
+
+			var format = window.BattleFormats[formatid];
+			var teamFormat = (format.teambuilderFormat || (format.isTeambuilderFormat ? formatid : false));
+
 			var teams = Storage.teams;
 			if (!teams.length) {
 				return '<button class="select teamselect" name="team" disabled>You have no teams</button>';
 			}
 			if (teamIndex === undefined) {
-				teamIndex = 0;
 				if (this.curTeamIndex >= 0) {
 					teamIndex = this.curTeamIndex;
 				}
-				if (this.curTeamFormat !== formatid) {
+				if (this.curTeamFormat !== teamFormat) {
 					for (var i = 0; i < teams.length; i++) {
-						if (teams[i].format === formatid) {
+						if (teams[i].format === teamFormat) {
 							teamIndex = i;
 							break;
 						}
@@ -756,7 +759,7 @@
 			} else {
 				teamIndex = +teamIndex;
 			}
-			return '<button class="select teamselect" name="team" value="' + teamIndex + '">' + TeamPopup.renderTeam(teamIndex) + '</button>';
+			return '<button class="select teamselect" name="team" value="' + (teamIndex === undefined ? '' : teamIndex) + '">' + TeamPopup.renderTeam(teamIndex) + '</button>';
 		},
 
 		// buttons
@@ -780,8 +783,12 @@
 			var teamIndex = $teamButton.val();
 			var team = null;
 			if (Storage.teams[teamIndex]) team = Storage.teams[teamIndex];
-			if (!window.BattleFormats[format].team && !team) {
-				app.addPopupMessage("You need to go into the Teambuilder and build a team for this format.");
+			if (!window.BattleFormats[format].team && (teamIndex === '' || !team)) {
+				if (Storage.teams) {
+					app.addPopupMessage("Please select a team.");
+				} else {
+					app.addPopupMessage("You need to go into the Teambuilder and build a team for this format.");
+				}
 				return;
 			}
 
@@ -819,15 +826,21 @@
 	var FormatPopup = this.FormatPopup = this.Popup.extend({
 		initialize: function (data) {
 			var curFormat = data.format;
-			var selectType = (this.sourceEl.closest('form').data('search') ? 'search' : 'challenge');
+			this.onselect = data.onselect;
+			var selectType = data.selectType;
+			if (!selectType) selectType = (this.sourceEl.closest('form').data('search') ? 'search' : 'challenge');
 			var bufs = [];
 			var curBuf = 0;
 			var curSection = '';
 			for (var i in BattleFormats) {
 				var format = BattleFormats[i];
 				var selected = false;
-				if (format.effectType !== 'Format') continue;
-				if (selectType && !format[selectType + 'Show']) continue;
+				if (selectType === 'teambuilder') {
+					if (!format.isTeambuilderFormat) continue;
+				} else {
+					if (format.effectType !== 'Format') continue;
+					if (selectType && !format[selectType + 'Show']) continue;
+				}
 
 				if (format.section && format.section !== curSection) {
 					curSection = format.section;
@@ -860,10 +873,16 @@
 			this.$el.html(html);
 		},
 		selectFormat: function (format) {
-			var $teamButton = this.sourceEl.closest('form').find('button[name=team]');
+			if (this.onselect) {
+				this.onselect(format);
+			} else if (app.rooms[''].curFormat !== format) {
+				app.rooms[''].curFormat = format;
+				app.rooms[''].curTeamIndex = -1;
+				var $teamButton = this.sourceEl.closest('form').find('button[name=team]');
+				if ($teamButton.length) $teamButton.replaceWith(app.rooms[''].renderTeams(format));
+			}
 			this.sourceEl.val(format).html(Tools.escapeFormat(format));
-			$teamButton.replaceWith(app.rooms[''].renderTeams(format));
-			app.rooms[''].curFormat = format;
+
 			this.close();
 		}
 	});
@@ -885,12 +904,19 @@
 				bufBoundary = Math.ceil(teams.length / 2);
 			}
 
+			this.team = data.team;
+			this.format = data.format;
+
 			var format = BattleFormats[data.format];
+
+			var teamFormat = (format.teambuilderFormat || (format.isTeambuilderFormat ? data.format : false));
+			this.teamFormat = teamFormat;
+
 			if (!teams.length) {
-				bufs[curBuf] = '<li><em>You have no teams</em></li>';
+				bufs[curBuf] = '<li><p><em>You have no teams</em></p></li>';
+				bufs[curBuf] += '<li><button name="teambuilder" class="button"><strong>Teambuilder</strong><br />' + Tools.escapeFormat(teamFormat) + ' teams</button></li>';
 			} else {
-				var curTeam = +data.team;
-				var teamFormat = (format.teambuilderFormat || (format.isTeambuilderFormat ? data.format : false));
+				var curTeam = (data.team === '' ? -1 : +data.team);
 				var count = 0;
 				if (teamFormat) {
 					bufs[curBuf] = '<li><h3>' + Tools.escapeFormat(teamFormat) + ' teams</h3></li>';
@@ -902,17 +928,24 @@
 							if (count % bufBoundary == 0 && curBuf < 4) curBuf++;
 						}
 					}
-					if (!count) bufs[curBuf] += '<li><em>You have no ' + Tools.escapeFormat(teamFormat) + ' teams</em></li>';
+					if (!count) bufs[curBuf] += '<li><p><em>You have no ' + Tools.escapeFormat(teamFormat) + ' teams</em></p></li>';
+					bufs[curBuf] += '<li><button name="teambuilder" class="button"><strong>Teambuilder</strong><br />' + Tools.escapeFormat(teamFormat) + ' teams</button></li>';
 					bufs[curBuf] += '<li><h3>Other teams</h3></li>';
 				} else {
-					bufs[curBuf] = '<li><h3>All teams</h3></li>';
+					bufs[curBuf] = '<li><button name="teambuilder" class="button"><strong>Teambuilder</strong></button></li>';
+					bufs[curBuf] += '<li><h3>All teams</h3></li>';
+					data.moreTeams = true;
 				}
-				for (var i = 0; i < teams.length; i++) {
-					if (teamFormat && teams[i].format === teamFormat) continue;
-					var selected = (i === curTeam);
-					bufs[curBuf] += '<li><button name="selectTeam" value="' + i + '"' + (selected ? ' class="sel"' : '') + '>' + Tools.escapeHTML(teams[i].name) + '</button></li>';
-					count++;
-					if (count % bufBoundary == 0 && curBuf < 4) curBuf++;
+				if (data.moreTeams) {
+					for (var i = 0; i < teams.length; i++) {
+						if (teamFormat && teams[i].format === teamFormat) continue;
+						var selected = (i === curTeam);
+						bufs[curBuf] += '<li><button name="selectTeam" value="' + i + '"' + (selected ? ' class="sel"' : '') + '>' + Tools.escapeHTML(teams[i].name) + '</button></li>';
+						count++;
+						if (count % bufBoundary == 0 && curBuf < 4) curBuf++;
+					}
+				} else {
+					bufs[curBuf] += '<li><button name="moreTeams" class="button">Show all teams</button></li>';
 				}
 			}
 			if (format.canUseRandomTeam) {
@@ -924,6 +957,22 @@
 				this.$el.html('<ul class="popupmenu" style="float:left">' + bufs.join('</ul><ul class="popupmenu" style="float:left;padding-left:5px">') + '</ul><div style="clear:left"></div>');
 			} else {
 				this.$el.html('<ul class="popupmenu">' + bufs[0] + '</ul>');
+			}
+		},
+		moreTeams: function () {
+			var sourceEl = this.sourceEl;
+			var team = this.team;
+			var format = this.format;
+			this.close();
+			app.addPopup(TeamPopup, {team: team, format: format, sourceEl: sourceEl, moreTeams: true});
+		},
+		teambuilder: function () {
+			var teamFormat = this.teamFormat;
+			this.close();
+			app.joinRoom('teambuilder');
+			var teambuilder = app.rooms['teambuilder'];
+			if (!teambuilder.exportMode && !teambuilder.curTeam && teamFormat) {
+				teambuilder.selectFolder(teamFormat);
 			}
 		},
 		selectTeam: function (i) {
@@ -941,6 +990,9 @@
 		}
 	}, {
 		renderTeam: function (i) {
+			if (i === undefined) {
+				return '<em>Select a team</em>';
+			}
 			if (i === 'random') {
 				var buf = 'Random team<br />';
 				for (var i = 0; i < 6; i++) {

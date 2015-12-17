@@ -29,11 +29,12 @@
 				this.saveFlag = false;
 				app.user.trigger('saveteams');
 			}
+			this.curFormatKeep = '';
 		},
 		events: {
 			// team changes
 			'change input.teamnameedit': 'teamNameChange',
-			'change select[name=format]': 'formatChange',
+			'click button.formatselect': 'selectFormat',
 			'change input[name=nickname]': 'nicknameChange',
 
 			// details
@@ -53,11 +54,15 @@
 
 			// drag/drop
 			'click .team': 'edit',
+			'click .selectFolder': 'selectFolder',
 			'mouseover .team': 'mouseOverTeam',
 			'mouseout .team': 'mouseOutTeam',
 			'dragstart .team': 'dragStartTeam',
 			'dragend .team': 'dragEndTeam',
 			'dragenter .team': 'dragEnterTeam',
+			'dragenter .folder .selectFolder': 'dragEnterFolder',
+			'dragleave .folder .selectFolder': 'dragLeaveFolder',
+			'dragexit .folder .selectFolder': 'dragExitFolder',
 
 			// clipboard
 			'click .teambuilder-clipboard-data .result': 'clipboardResultSelect',
@@ -107,6 +112,7 @@
 		curTeamLoc: 0,
 		curSet: null,
 		curSetLoc: 0,
+		curFormat: '',
 		exportMode: false,
 		update: function () {
 			teams = Storage.teams;
@@ -117,7 +123,7 @@
 				}
 				return this.updateTeamView();
 			}
-			return this.updateTeamList();
+			return this.updateTeamInterface();
 		},
 
 		/*********************************************************
@@ -126,12 +132,11 @@
 
 		deletedTeam: null,
 		deletedTeamLoc: -1,
-		updateTeamList: function () {
-			var teams = Storage.teams;
-			var buf = '';
-
+		updateTeamInterface: function () {
 			this.deletedSet = null;
 			this.deletedSetLoc = -1;
+
+			var buf = '';
 
 			if (this.exportMode) {
 				buf = '<div class="pad"><button name="back"><i class="fa fa-chevron-left"></i> List</button> <button name="saveBackup" class="savebutton"><i class="fa fa-floppy-o"></i> Save</button></div>';
@@ -147,22 +152,119 @@
 				this.$el.html(buf);
 				return;
 			}
-			buf = '<div class="pad"><p>y\'know <s>strawberries</s> avocados have more potassium than bananas</p>';
-			buf += '<p>that doesn\'t have anything to do with teambuilding!</p>';
-			buf += '<p><i>fiiiiiiine</i> press Ctrl + F to find teams by pokemon name</p>';
+
+			// folderpane
+			buf = '<div class="folderpane">';
+			buf += '</div>';
+
+			// teampane
+			buf += '<div class="teampane">';
+			buf += '</div>';
+
+			this.$el.html(buf);
+
+			this.updateFolderList();
+			this.updateTeamList();
+		},
+		updateFolderList: function () {
+			var buf = '<div class="folderlist"><div class="folderlistbefore"></div>';
+
+			buf += '<div class="folder' + (!this.curFormat ? ' cur"><div class="folderhack3"><div class="folderhack1"></div><div class="folderhack2"></div>' : '">') + '<div class="selectFolder" data-value="all">(all)</div></div>' + (!this.curFormat ? '</div>' : '');
+			var folderTable = {};
+			var folders = [];
+			if (Storage.teams) for (var i = -2; i < Storage.teams.length; i++) {
+				var format;
+				if (i === -2) {
+					format = this.curFormatKeep;
+				} else if (i === -1) {
+					format = this.curFormat;
+				} else {
+					format = Storage.teams[i].format;
+					if (!format || format === 'gen6') {
+						if ('gen6' in folderTable) continue;
+						folderTable['gen6'] = 1;
+						folders.push('A~');
+						continue;
+					}
+				}
+				if (!format) continue;
+				if (format in folderTable) continue;
+				folderTable[format] = 1;
+				switch (format.slice(0, 4)) {
+				case 'gen1': format = 'Z' + format.slice(4); break;
+				case 'gen2': format = 'X' + format.slice(4); break;
+				case 'gen3': format = 'Y' + format.slice(4); break;
+				case 'gen4': format = 'W' + format.slice(4); break;
+				case 'gen5': format = 'V' + format.slice(4); break;
+				default: format = 'A' + format; break;
+				}
+				folders.push(format);
+			}
+			folders.sort();
+			var gen = '';
+			for (var i = 0; i < folders.length; i++) {
+				var format = folders[i];
+				var newGen;
+				switch (format.charAt(0)) {
+				case 'Z': newGen = '1'; break;
+				case 'X': newGen = '2'; break;
+				case 'Y': newGen = '3'; break;
+				case 'W': newGen = '4'; break;
+				case 'V': newGen = '5'; break;
+				case 'A': newGen = '6'; break;
+				}
+				if (gen !== newGen) {
+					gen = newGen;
+					buf += '<div class="folder"><h3>Gen ' + gen + '</h3></div>';
+				}
+				var formatName = format.slice(1);
+				if (formatName === '~') formatName = '';
+				if (newGen === '6' && formatName) {
+					format = formatName;
+				} else {
+					format = 'gen' + newGen + formatName;
+				}
+				if (format === 'gen6') formatName = '(uncategorized)';
+				// folders are <div>s rather than <button>s because in theory it has
+				// less weird interactions with HTML5 drag-and-drop
+				buf += '<div class="folder' + (this.curFormat === format ? ' cur"><div class="folderhack3"><div class="folderhack1"></div><div class="folderhack2"></div>' : '">') + '<div class="selectFolder" data-value="' + format + '"><i class="fa ' + (this.curFormat === format ? 'fa-folder-open-o' : 'fa-folder-o') + '"></i>' + formatName + '</div></div>' + (this.curFormat === format ? '</div>' : '');
+			}
+
+			buf += '<div class="folder"><h3></h3></div>';
+			buf += '<div class="folder"><div class="selectFolder" data-value="+"><i class="fa fa-plus"></i>(New format folder)</div></div>';
+
+			buf += '<div class="folderlistafter"></div></div>';
+
+			this.$('.folderpane').html(buf);
+		},
+		updateTeamList: function (resetScroll) {
+			var teams = Storage.teams;
+			var buf = '';
+
+			// teampane
 			buf += this.clipboardHTML();
-			buf += '<ul class="teamlist">';
+
+			if (!this.curFormat) {
+				buf += '<h2>All teams</h2>';
+			} else {
+				buf += '<h2>' + this.curFormat + '</h2>';
+			}
+
 			if (!window.localStorage && !window.nodewebkit) buf += '<li>== CAN\'T SAVE ==<br /><small>Your browser doesn\'t support <code>localStorage</code> and can\'t save teams! Update to a newer browser.</small></li>';
 			if (Storage.cantSave) buf += '<li>== CAN\'T SAVE ==<br /><small>You hit your browser\'s limit for team storage! Please backup them and delete some of them. Your teams won\'t be saved until you\'re under the limit again.</small></li>';
 			if (!teams.length) {
 				if (this.deletedTeamLoc >= 0) {
-					buf += '<li><button name="undoDelete"><i class="fa fa-undo"></i> Undo Delete</button></li>';
+					buf += '<ul class="teamlist"><li><button name="undoDelete"><i class="fa fa-undo"></i> Undo Delete</button></li></ul>';
 				}
-				buf += '<li><em>you don\'t have any teams lol</em></li>';
+				buf += '<p><em>you don\'t have any teams lol</em></p>';
 			} else {
-				buf += '<li><button name="newTop"><i class="fa fa-plus-circle"></i> New team</button></li>';
+				var atLeastOne = false;
 				for (var i = 0; i < teams.length + 1; i++) {
 					if (i === this.deletedTeamLoc) {
+						if (!atLeastOne) {
+							buf += '<p><button name="newTop" class="button big"><i class="fa fa-plus-circle"></i> New' + (this.curFormat && this.curFormat !== 'gen6' ? ' ' + this.curFormat : '') + ' team</button></p><ul class="teamlist">';
+							atLeastOne = true;
+						}
 						buf += '<li><button name="undoDelete"><i class="fa fa-undo"></i> Undo Delete</button></li>';
 					}
 					if (i >= teams.length) break;
@@ -180,30 +282,61 @@
 						continue;
 					}
 
+					if (this.curFormat && this.curFormat !== (team.format || 'gen6')) continue;
+
+					if (!atLeastOne) {
+						buf += '<p><button name="newTop" class="button big"><i class="fa fa-plus-circle"></i> New' + (this.curFormat && this.curFormat !== 'gen6' ? ' ' + this.curFormat : '') + ' team</button></p><ul class="teamlist">';
+						atLeastOne = true;
+					}
 					var formatText = '';
 					if (team.format) {
 						formatText = '[' + team.format + '] ';
 					}
 
+					// teams are <div>s rather than <button>s because Firefox doesn't
+					// support dragging and dropping buttons.
 					buf += '<li><div name="edit" data-value="' + i + '" class="team" draggable="true">' + formatText + '<strong>' + Tools.escapeHTML(team.name) + '</strong><br /><small>';
 					buf += Storage.getTeamIcons(team);
-					buf += '</small></div> <button name="edit" value="' + i + '"><i class="fa fa-pencil"></i>Edit</button> <button name="delete" value="' + i + '"><i class="fa fa-trash"></i>Delete</button></li>';
+					buf += '</small></div><button name="edit" value="' + i + '"><i class="fa fa-pencil"></i>Edit</button><button name="delete" value="' + i + '"><i class="fa fa-trash"></i>Delete</button></li>';
 				}
+				if (!atLeastOne) {
+					buf += '<ul class="teamlist"><li><em>you don\'t have any ' + this.curFormat + ' teams lol</em></li>';
+				}
+				buf += '</ul>';
 			}
-			buf += '<li><button name="new"><i class="fa fa-plus-circle"></i> New team</button></li>';
-			buf += '</ul>';
+			buf += '<p><button name="new" class="button big"><i class="fa fa-plus-circle"></i> New' + (this.curFormat && this.curFormat !== 'gen6' ? ' ' + this.curFormat : '') + ' team</button></p>';
 
 			if (window.nodewebkit) {
-				buf += '<button name="revealFolder"><i class="fa fa-folder-open"></i> Reveal teams folder</button> <button name="reloadTeamsFolder"><i class="fa fa-refresh"></i> Reload teams files</button> <button name="backup"><i class="fa fa-upload"></i> Backup/Restore all teams</button>';
+				buf += '<button name="revealFolder" class="button"><i class="fa fa-folder-open"></i> Reveal teams folder</button> <button name="reloadTeamsFolder" class="button"><i class="fa fa-refresh"></i> Reload teams files</button> <button name="backup" class="button"><i class="fa fa-upload"></i> Backup/Restore all teams</button>';
 			} else {
-				buf += '<button name="backup"><i class="fa fa-upload"></i> Backup/Restore all teams</button>';
-
-				buf += '<p><strong>Clearing your cookies (specifically, <code>localStorage</code>) will delete your teams.</strong></p><p>If you want to clear your cookies or <code>localStorage</code>, you can use the Backup/Restore feature to save your teams as text first.</p>';
+				buf += '<p><strong>Clearing your cookies (specifically, <code>localStorage</code>) will delete your teams.</strong></p>';
+				buf += '<button name="backup" class="button"><i class="fa fa-upload"></i> Backup/Restore all teams</button>';
+				buf += '<p>If you want to clear your cookies or <code>localStorage</code>, you can use the Backup/Restore feature to save your teams as text first.</p>';
 			}
 
-			buf += '</div>';
-
-			this.$el.html(buf);
+			var $pane = this.$('.teampane');
+			$pane.html(buf);
+			if (resetScroll) $pane.scrollTop(0);
+		},
+		selectFolder: function (format) {
+			if (format && format.currentTarget) {
+				var e = format;
+				format = $(e.currentTarget).data('value');
+				e.preventDefault();
+				if (format === '+') {
+					e.stopImmediatePropagation();
+					var self = this;
+					app.addPopup(FormatPopup, {format: '', sourceEl: e.currentTarget, selectType: 'teambuilder', onselect: function (newFormat) {
+						self.changeFormat(newFormat);
+					}});
+					return;
+				}
+			} else {
+				this.curFormatKeep = format;
+			}
+			this.curFormat = (format === 'all' ? '' : format);
+			this.updateFolderList();
+			this.updateTeamList(true);
 		},
 		show: function () {
 			Room.prototype.show.apply(this, arguments);
@@ -254,7 +387,7 @@
 			}
 			Storage.deleteTeam(this.deletedTeam);
 			app.user.trigger('saveteams');
-			this.update();
+			this.updateTeamList();
 		},
 		undoDelete: function () {
 			if (this.deletedTeamLoc >= 0) {
@@ -292,7 +425,7 @@
 		"new": function () {
 			var newTeam = {
 				name: 'Untitled ' + (teams.length + 1),
-				format: '',
+				format: (this.curFormat || ''),
 				team: '',
 				iconCache: ''
 			};
@@ -302,7 +435,7 @@
 		newTop: function () {
 			var newTeam = {
 				name: 'Untitled ' + (teams.length + 1),
-				format: '',
+				format: (this.curFormat || ''),
 				team: '',
 				iconCache: ''
 			};
@@ -387,8 +520,9 @@
 			}
 			var newLoc = Math.floor(app.draggingLoc);
 			if (app.draggingLoc < originalLoc) newLoc += 1;
+			var team = Storage.teams[originalLoc];
+			var edited = false;
 			if (newLoc !== originalLoc) {
-				var team = Storage.teams[originalLoc];
 				Storage.teams.splice(originalLoc, 1);
 				Storage.teams.splice(newLoc, 0, team);
 				for (var room in app.rooms) {
@@ -403,15 +537,27 @@
 						obj.curTeamIndex--;
 					}
 				}
-				Storage.saveTeams();
-				app.user.trigger('saveteams');
+				edited = true;
 			}
 
 			// possibly half-works-around a hover issue in
 			this.$('.teamlist').css('pointer-events', 'none');
 			$(teamEl).parent().removeClass('dragging');
 
-			this.updateTeamList();
+			if (app.draggingFolder) {
+				var format = app.draggingFolder.dataset.value;
+				app.draggingFolder = null;
+				team.format = format;
+				this.selectFolder(format);
+				edited = true;
+			} else {
+				this.updateTeamList();
+			}
+
+			if (edited) {
+				Storage.saveTeams();
+				app.user.trigger('saveteams');
+			}
 
 			// We're going to try to animate the team settling into its new position
 
@@ -440,7 +586,8 @@
 				// everything is sane.
 
 				var $newTeamEl = this.$('.team[data-value=' + newLoc + ']');
-				$newTeamEl.css('transform', 'translate(' + this.finalOffset[0] + 'px, ' + this.finalOffset[1] + 'px)');
+				var finalPos = $newTeamEl.offset();
+				$newTeamEl.css('transform', 'translate(' + (this.finalOffset[0] - finalPos.left) + 'px, ' + (this.finalOffset[1] - finalPos.top) + 'px)');
 				setTimeout(function () {
 					$newTeamEl.css('transition', 'transform 0.15s');
 					// it's 2015 and Safari doesn't support unprefixed transition!!!
@@ -451,6 +598,8 @@
 		},
 		dragEnterTeam: function (e) {
 			if (!app.dragging) return;
+			var $draggingLi = $(app.dragging).parent();
+			this.dragLeaveFolder();
 			if (e.currentTarget === app.dragging) {
 				e.preventDefault();
 				return;
@@ -458,13 +607,40 @@
 			var hoverLoc = parseInt(e.currentTarget.dataset.value, 10);
 			if (app.draggingLoc > hoverLoc) {
 				// dragging up
-				$(e.currentTarget).parent().before($(app.dragging).parent());
+				$(e.currentTarget).parent().before($draggingLi);
 				app.draggingLoc = parseInt(e.currentTarget.dataset.value, 10) - 0.5;
 			} else {
 				// dragging down
-				$(e.currentTarget).parent().after($(app.dragging).parent());
+				$(e.currentTarget).parent().after($draggingLi);
 				app.draggingLoc = parseInt(e.currentTarget.dataset.value, 10) + 0.5;
 			}
+		},
+		dragEnterFolder: function (e) {
+			if (!app.dragging) return;
+			this.dragLeaveFolder();
+			if (e.currentTarget === app.draggingFolder) {
+				return;
+			}
+			var format = e.currentTarget.dataset.value;
+			if (format === '+' || format === 'all' || format === this.curFormat) {
+				return;
+			}
+			if (parseInt(app.dragging.dataset.value, 10) >= Storage.teams.length) {
+				// dragging a team file, already has a known format
+				return;
+			}
+			app.draggingFolder = e.currentTarget;
+			$(app.draggingFolder).addClass('active');
+			// amusing note: using .detach() instead of .hide() will make `dragend` not fire
+			$(app.dragging).parent().hide();
+		},
+		dragLeaveFolder: function (e) {
+			// sometimes there's a race condition and dragEnter happens before dragLeave
+			if (e && e.currentTarget !== app.draggingFolder) return;
+			if (!app.dragging || !app.draggingFolder) return;
+			$(app.draggingFolder).removeClass('active');
+			app.draggingFolder = null;
+			$(app.dragging).parent().show();
 		},
 		defaultDragEnterTeam: function (e) {
 			var dataTransfer = e.originalEvent.dataTransfer;
@@ -473,6 +649,7 @@
 			if (dataTransfer.types.contains && !dataTransfer.types.contains('Files')) return;
 			if (dataTransfer.files[0] && dataTransfer.files[0].name.slice(-4) !== '.txt') return;
 			// We're dragging a file! It might be a team!
+			this.selectFolder('all');
 			this.$('.teamlist').append('<li class="dragging"><div class="team" data-value="' + Storage.teams.length + '"></div></li>');
 			app.dragging = this.$('.dragging .team')[0];
 			app.draggingLoc = Storage.teams.length;
@@ -521,8 +698,7 @@
 				};
 				reader.readAsText(file);
 			}
-			var finalPos = $(app.dragging).offset();
-			this.finalOffset = [e.originalEvent.pageX - app.draggingOffsetX - finalPos.left, e.originalEvent.pageY - app.draggingOffsetY - finalPos.top];
+			this.finalOffset = [e.originalEvent.pageX - app.draggingOffsetX, e.originalEvent.pageY - app.draggingOffsetY];
 		},
 
 		/*********************************************************
@@ -547,22 +723,9 @@
 					this.curSetList.splice(this.curSetList.length - 1, 1);
 				}
 				if (exports.BattleFormats) {
-					buf += '<li class="format-select"><label>Format:</label><select name="format"><option value="">(None)</option>';
-					var curSection = '';
-					for (var i in BattleFormats) {
-						var format = BattleFormats[i];
-						if (format.isTeambuilderFormat) {
-							if (format.section !== curSection) {
-								if (curSection) buf += '</optgroup>';
-								curSection = format.section;
-								if (curSection) buf += '<optgroup label="' + Tools.escapeHTML(curSection) + '">';
-							}
-							var activeFormat = (this.curTeam.format === i ? ' selected="selected"' : '');
-							buf += '<option value="' + i + '"' + activeFormat + '>' + Tools.escapeFormat(format.id) + '</option>';
-						}
-					}
-					if (curSection) buf += '</optgroup>';
-					buf += '</select><button name="validate"><i class="fa fa-check"></i> Validate</button></li>';
+					buf += '<li class="format-select">';
+					buf += '<label class="label">Format:</label><button class="select formatselect teambuilderformatselect" name="format" value="' + this.curTeam.format + '">' + (Tools.escapeFormat(this.curTeam.format) || '<em>Select a format</em>') + '</button>';
+					buf += ' <button name="validate" class="button"><i class="fa fa-check"></i> Validate</button></li>';
 				}
 				if (!this.curSetList.length) {
 					buf += '<li><em>you have no pokemon lol</em></li>';
@@ -577,10 +740,10 @@
 					buf += '<li><button name="undeleteSet"><i class="fa fa-undo"></i> Undo Delete</button></li>';
 				}
 				if (i === 0) {
-					buf += '<li><button name="import" class="majorbutton"><i class="fa fa-upload"></i> Import from text</button></li>';
+					buf += '<li><button name="import" class="button big"><i class="fa fa-upload"></i> Import from text</button></li>';
 				}
 				if (i < 6) {
-					buf += '<li><button name="addPokemon" class="majorbutton"><i class="fa fa-plus"></i> Add Pokemon</button></li>';
+					buf += '<li><button name="addPokemon" class="button big"><i class="fa fa-plus"></i> Add Pok&eacute;mon</button></li>';
 				}
 				buf += '</ol>';
 				buf += '</div>';
@@ -732,8 +895,17 @@
 			e.currentTarget.value = this.curTeam.name;
 			this.save();
 		},
-		formatChange: function (e) {
-			this.curTeam.format = e.currentTarget.value;
+		format: function (format, button) {
+			if (!window.BattleFormats) {
+				return;
+			}
+			var self = this;
+			app.addPopup(FormatPopup, {format: format, sourceEl: button, selectType: 'teambuilder', onselect: function (newFormat) {
+				self.changeFormat(newFormat);
+			}});
+		},
+		changeFormat: function (format) {
+			this.curTeam.format = format;
 			this.curTeam.gen = this.getGen(this.curTeam.format);
 			this.save();
 			if (this.curTeam.gen === 5 && !Tools.loadedSpriteData['bw']) Tools.loadSpriteData('bw');

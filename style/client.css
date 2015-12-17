@@ -191,7 +191,8 @@ hr {
 	border-radius: 0;
 }
 
-.button {
+.button,
+.popupmenu button.button {
 	outline: none;
 	cursor: pointer;
 	text-align: center;
@@ -211,12 +212,14 @@ hr {
 	background: #e3e3e3;
 	background: linear-gradient(to bottom,  #f6f6f6,  #e3e3e3);
 }
-.button:hover {
+.button:hover,
+.popupmenu button.button:hover {
 	background: #cfcfcf;
 	background: linear-gradient(to bottom,  #f2f2f2,  #c2c2c2);
 	border-color: #606060;
 }
-.button:active {
+.button:active,
+.popupmenu button.button:active {
 	background: linear-gradient(to bottom,  #cfcfcf,  #f2f2f2);
 }
 .button.notifying {
@@ -560,6 +563,14 @@ p.or:after {
 	padding: 2px 3px;
 	border: 1px solid #888888;
 	background: #D5D5D5;
+}
+.popupmenu button.button {
+	margin: 2px auto 5px;
+	width: 184px;
+}
+.popupmenu button.button:hover,
+.popupmenu button.button.sel:hover {
+	padding: 3px 4px;
 }
 .select, .team {
 	cursor: pointer;
@@ -1951,20 +1962,182 @@ a.ilink.yours {
  * Teambuilder
  *********************************************************/
 
+.folderpane {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	padding: 0;
+	border-left: 5px solid #d7e3ec;
+	width: 154px;
+	overflow: auto;
+	overflow-x: hidden;
+}
+.teampane {
+	position: absolute;
+	left: 159px;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	padding: 5px 0 5px 12px;
+	overflow: auto;
+}
+@media (max-width:649px) {
+	.folderpane {
+		display: none;
+	}
+	.teampane {
+		left: 0;
+	}
+}
+
+.folderlist {
+	height: 100%;
+	width: 154px;
+	display: table;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.folderlist .folder {
+	display: table-row;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	height: 30px;
+}
+.folderlistafter {
+	display: table-row;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	height: auto;
+}
+.folderlistbefore {
+	display: table-row;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	height: 12px;
+	content: '';
+}
+.folderlistafter:before,
+.folderlistbefore:before {
+	display: table-cell;
+	background: #d7e3ec;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-right: 1px solid #888888;
+	content: '';
+}
+
+.folderpane i {
+	display: inline-block;
+	width: 16px;
+	color: #777777;
+}
+.folderpane h3 {
+	margin: 0;
+	padding: 13px 0 0 0;
+	height: 17px;
+	font-size: 9pt;
+	background: #d7e3ec;
+	border-right: 1px solid #888888;
+}
+.folder .selectFolder {
+	display: block;
+	padding: 0 0 0 7px;
+	border: 0;
+	border-right: 1px solid #888888;
+	background: #d7e3ec;
+	color: black;
+	width: auto;
+	padding-top: 7px;
+	height: 23px;
+	font-size: 9pt;
+	font-family: Verdana, sans-serif;
+	white-space: nowrap;
+	overflow: hidden;
+	text-align: left;
+	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+}
+.folder .selectFolder:hover {
+	background: #c7d3dc;
+}
+.folder .selectFolder:active {
+	background: #b7c3cc;
+}
+.folder .selectFolder.active {
+	background: #27333c;
+	color: white;
+}
+.folder.cur .selectFolder,
+.folder.cur .selectFolder:hover,
+.folder.cur .selectFolder:active {
+	padding-top: 6px;
+	height: 22px;
+	cursor: default;
+	background: transparent;
+	color: black;
+	border-top: 1px solid #888888;
+	border-bottom: 1px solid #888888;
+	border-left: 1px solid #888888;
+	border-right: 0;
+	padding-left: 6px;
+	border-top-left-radius: 3px;
+	border-bottom-left-radius: 3px;
+}
+
+/* believe me, there was no other way to do this */
+.folderhack1,
+.folderhack2 {
+	position: absolute;
+	display: block;
+	left: 0;
+	width: 1px;
+	height: 1px;
+	background: #d7e3ec;
+	content: '';
+}
+.folderhack1 {
+	top: 0;
+}
+.folderhack2 {
+	bottom: 0;
+}
+.folderhack3 {
+	position: relative;
+	height: 30px;
+}
+
+.teampane .button,
+.teamwrapper .button {
+	font-size: 9pt;
+	padding: 3px 8px;
+}
+.teampane .button.big,
+.teamwrapper .button.big {
+	font-size: 12pt;
+	padding: 5px 10px;
+}
+
 .teamlist {
 	list-style: none;
 	margin: 0;
 	padding: 0;
 }
 .teamlist li {
-	margin: 3px 16px;
+	margin: 3px 0;
 	padding: 0;
 }
 
 .teamlist .team {
 	display: inline-block;
 	white-space: nowrap;
-	width: 360px;
+	width: 350px;
 	height: 49px;
 	padding: 1px 6px 1px 6px;
 	font-size: 8pt;
@@ -1976,9 +2149,9 @@ a.ilink.yours {
 }
 .teamlist .dragging .team {
 	visibility: visible;
-	background: #DDDDDD;
-	border-color: #DDDDDD;
-	color: #DDDDDD;
+	background: #b7c3cc;
+	border-color: #b7c3cc;
+	color: #b7c3cc;
 	box-shadow: none;
 }
 .teamlist .dragging .team small {
@@ -1986,7 +2159,7 @@ a.ilink.yours {
 }
 .teamlist .team small {
 	display: block;
-	padding: 3px 74px 0 74px;
+	padding: 3px 69px 0 69px;
 }
 .teamlist .team .pokemonicon span {
 	font-size: 9px !important;
@@ -2100,17 +2273,26 @@ a.ilink.yours {
 	width: 503px;
 	text-align: right;
 }
-.setmenu button {
+.setmenu button,
+.teamlist button {
 	cursor: pointer;
 	background: transparent;
 	border: 0;
 	border-radius: 4px;
 	padding: 3px 6px;
+	margin: 0;
+	font-size: 9pt;
+	font-family: Verdana, sans-serif;
 }
-.setmenu button:hover {
+.setmenu button:hover,
+.teamlist button:hover {
 	border: 1px solid #888888;
 	padding: 2px 5px;
 	background: #D5D5D5;
+}
+.setmenu button i,
+.teamlist button i {
+	margin-right: 2px;
 }
 .setmenu-left {
 	position: absolute;

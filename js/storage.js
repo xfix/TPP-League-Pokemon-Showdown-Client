@@ -55,8 +55,16 @@ Storage.bg = {
 			bgid = 'lotid';
 			bgUrl = 'fx/client-bg-' + bgid + '.jpg';
 		}
+		var background;
+		if (bgUrl.charAt(0) === '#') {
+			background = bgUrl;
+		} else if (bgid !== 'custom') {
+			background = '#546bac url(' + bgUrl + ') no-repeat left center fixed';
+		} else {
+			background = '#546bac url(' + bgUrl + ') no-repeat center center fixed';
+		}
 		$(document.body).css({
-			background: (bgUrl.charAt(0) === '#' ? bgUrl : '#546bac url(' + bgUrl + ') no-repeat left center fixed'),
+			background: background,
 			'background-size': 'cover'
 		});
 		this.changeCount++;
@@ -223,7 +231,6 @@ Storage.initPrefs = function () {
 	Config.server = Config.server || Config.defaultserver;
 	this.whenPrefsLoaded.load();
 	if (!window.nodewebkit) this.whenTeamsLoaded.load();
-	return;
 };
 
 Storage.crossOriginFrame = null;
