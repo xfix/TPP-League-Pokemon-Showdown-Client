@@ -702,7 +702,12 @@
 
 		// number
 		// buf += '<span class="col numcol">' + (pokemon.num >= 0 ? pokemon.num : 'CAP') + '</span> ';
-		buf += '<span class="col numcol">' + (pokemon.tier || Tools.getTemplate(pokemon.baseSpecies).tier) + '</span> ';
+		var tier = pokemon.tier || Tools.getTemplate(pokemon.baseSpecies).tier;
+
+		if (!exports.BattleTPP[id] && tier !== 'CAP') {
+			tier = 'T-Rule ' + tier;
+		}
+		buf += '<span class="col numcol">' + tier + '</span> ';
 
 		// icon
 		buf += '<span class="col iconcol">';
