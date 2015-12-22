@@ -453,7 +453,7 @@ function BattleChart() {
 				for (var j = 0; j < chartData[matchType][i].length; j++) {
 					var match = chartData[matchType][i][j];
 					if (firstMatch) {
-						text += '<li><h3>Matches</h3></li>';
+						text += '<li class="resultheader"><h3>Matches</h3></li>';
 					}
 					text += self.row(match.thing, '', match, firstMatch, null, gen);
 					firstMatch = false;
@@ -462,7 +462,7 @@ function BattleChart() {
 		}
 
 		if (searchTerm && firstMatch) {
-			text += '<li><h3>Matches</h3></li><li><em>No matches</em></li>';
+			text += '<li class="resultheader"><h3>Matches</h3></li><li><em>No matches</em></li>';
 			firstMatch = false;
 			noNameMatch = true;
 		}
@@ -474,7 +474,7 @@ function BattleChart() {
 			for (var j = 0; j < chartData.fullstart[i].length; j++) {
 				var match = chartData.fullstart[i][j];
 				if (firstMatch) {
-					text += '<li><h3>Details Matches</h3></li>';
+					text += '<li class="resultheader"><h3>Details Matches</h3></li>';
 				}
 				text += self.row(match.thing, '', match, firstMatch && noNameMatch, null, gen);
 				firstMatch = false;
@@ -485,7 +485,7 @@ function BattleChart() {
 			for (var j = 0; j < chartData.illegalfullstart[i].length; j++) {
 				var match = chartData.illegalfullstart[i][j];
 				if (firstMatch) {
-					text += '<li><h3>Details Matches</h3></li>';
+					text += '<li class="resultheader"><h3>Details Matches</h3></li>';
 				}
 				text += self.row(match.thing, '', match, firstMatch && noNameMatch, null, gen);
 				firstMatch = false;
@@ -500,7 +500,7 @@ function BattleChart() {
 				for (var j = 0; j < chartData.other[ib].length; j++) {
 					var match = chartData.other[ib][j];
 					if (firstMatch) {
-						text += '<li><h3>' + buckets[i] + '</h3></li>';
+						text += '<li class="resultheader"><h3>' + buckets[i] + '</h3></li>';
 						firstMatch = false;
 					}
 					text += self.row(match.thing, '', match, null, null, gen);

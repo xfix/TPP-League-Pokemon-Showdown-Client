@@ -17,12 +17,12 @@ module.exports = {
 		// Battle stuff
 		"Battle": true, "Pokemon": true, "BattleSound": true,
 		"BattleAbilities": false, "BattleAliases": false, "BattleBackdrops": false, "BattleBackdropsFour": false, "BattleBackdropsThree": false, "BattleEffects": false,
-		"BattleFormats": false, "BattleFormatsData": false, "BattleItems": false, "BattleMoveAnims": false, "BattleMovedex": false, "BattleNatures": false, 
+		"BattleFormats": false, "BattleFormatsData": false, "BattleLearnsets": false, "BattleItems": false, "BattleMoveAnims": false, "BattleMovedex": false, "BattleNatures": false, 
 		"BattleOtherAnims": false,  "BattlePokedex": false,"BattlePokemonSprites": false, "BattlePokemonSpritesBW": false, "BattleSearchCountIndex": false, "BattleSearchIndex": false,
-		"BattleSearchIndexOffset": false, "BattleSearchIndexType": false, "BattleStatIDs": false, "BattleStatNames": false, "BattleStats": false, "BattleStatusAnims": false, "BattleStatuses": false,
+		"BattleSearchIndexOffset": false, "BattleSearchIndexType": false, "BattleStatIDs": false, "BattleStatNames": false, "BattleStats": false, "BattleStatusAnims": false, "BattleStatuses": false, "BattleTeambuilderTable": false,
 
 		// Generic global variables
-		"Config": false, "Chart": false, "soundManager": false, "Storage": false, "Tools": false,
+		"Config": false, "BattleSearch": false, "soundManager": false, "Storage": false, "Tools": false,
 		"app": false, "toId": false, "toRoomid": false, "toUserid": false, "toName": false, "hashColor": false, "MD5": false,
 		"ChatHistory": false, "Topbar": false, "UserList": false,
 
@@ -33,7 +33,8 @@ module.exports = {
 		"Popup": false, "ForfeitPopup": false, "BracketPopup": false, "LoginPasswordPopup": false, "UserPopup": false, "TeamPopup": false,
 		"AvatarsPopup": false, "BattleListPopup": false, "CreditsPopup": false, "FormatPopup": false, "FormattingPopup": false, "LoginPopup": false,
 		"MovePopup": false, "SoundsPopup": false, "OptionsPopup": false, "PromptPopup": false, "ProxyPopup": false, "ReconnectPopup": false,
-		"RegisterPopup": false, "ReplayUploadedPopup": false, "RulesPopup": false, "TabListPopup": false, "TournamentBox": false
+		"RegisterPopup": false, "ReplayUploadedPopup": false, "RulesPopup": false, "TabListPopup": false, "TournamentBox": false,
+		"CustomBackgroundPopup": false
 	},
 	"rules": {
 		"comma-dangle": [2, "never"],

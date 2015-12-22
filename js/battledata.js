@@ -334,6 +334,10 @@ var Tools = {
 				tracker.callbacks[i][0].call(tracker.callbacks[i][1], value);
 			}
 		};
+		tracker.unload = function () {
+			if (!tracker.isLoaded) return;
+			tracker.isLoaded = false;
+		};
 		return tracker;
 	},
 
@@ -405,16 +409,16 @@ var Tools = {
 			return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <span class="message-announce">' + Tools.parseMessage(target) + '</span></div>';
 		case 'data-pokemon':
 			if (!window.Chart) return '';
-			return '<div class="message"><ul class="utilichart">' + Chart.pokemonRow(Tools.getTemplate(target), '', {}, false, true) + '<li style=\"clear:both\"></li></ul></div>';
+			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderPokemonRow(Tools.getTemplate(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
 		case 'data-item':
 			if (!window.Chart) return '';
-			return '<div class="message"><ul class="utilichart">' + Chart.itemRow(Tools.getItem(target), '', {}, false, true) + '<li style=\"clear:both\"></li></ul></div>';
+			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderItemRow(Tools.getItem(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
 		case 'data-ability':
 			if (!window.Chart) return '';
-			return '<div class="message"><ul class="utilichart">' + Chart.abilityRow(Tools.getAbility(target), '', {}, false, true) + '<li style=\"clear:both\"></li></ul></div>';
+			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderAbilityRow(Tools.getAbility(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
 		case 'data-move':
 			if (!window.Chart) return '';
-			return '<div class="message"><ul class="utilichart">' + Chart.moveRow(Tools.getMove(target), '', {}, false, true) + '<li style=\"clear:both\"></li></ul></div>';
+			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderMoveRow(Tools.getMove(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
 		case 'text':
 			return '<div class="chat">' + Tools.escapeHTML(target) + '</div>';
 		case 'error':
@@ -891,11 +895,6 @@ var Tools = {
 			template = window.BattlePokedex[id];
 			if (template.species) name = template.species;
 			if (template.exists === undefined) template.exists = true;
-			if (window.BattleFormatsData && window.BattleFormatsData[id]) {
-				template.tier = window.BattleFormatsData[id].tier;
-				template.isNonstandard = window.BattleFormatsData[id].isNonstandard;
-				template.unreleasedHidden = window.BattleFormatsData[id].unreleasedHidden;
-			}
 			if (window.BattleLearnsets && window.BattleLearnsets[id]) {
 				template.learnset = window.BattleLearnsets[id].learnset;
 			}
@@ -1080,7 +1079,10 @@ var Tools = {
 		return spriteData;
 	},
 
-	getIcon: function (pokemon) {
+	getPokemonIcon: function (pokemon) {
+		return this.getIcon(pokemon, true);
+	},
+	getIcon: function (pokemon, newSize) {
 		var num = 0;
 		if (pokemon === 'pokeball') {
 			return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/bwicons-pokeball-sheet.png) no-repeat scroll -0px -8px';
@@ -1208,10 +1210,10 @@ var Tools = {
 			else if (id === 'meowstic') num = 809;
 		}
 
-		var top = 8 + Math.floor(num / 16) * 32;
-		var left = (num % 16) * 32;
+		var top = 8 + Math.floor(num / 16) * (newSize ? 30 : 32);
+		var left = (num % 16) * (newSize ? 40 : 32);
 		var fainted = (pokemon && pokemon.fainted ? ';opacity:.4' : '');
-		return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/bwicons-sheet.png?g6) no-repeat scroll -' + left + 'px -' + top + 'px' + fainted;
+		return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/' + (newSize ? 'xyicons-sheet.png?a1' : 'bwicons-sheet.png?g6') + ') no-repeat scroll -' + left + 'px -' + top + 'px' + fainted;
 	},
 
 	getTeambuilderSprite: function (pokemon) {

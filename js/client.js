@@ -998,7 +998,7 @@
 						}
 					}
 					var id = toId(name);
-					var isTeambuilderFormat = searchShow && !team;
+					var isTeambuilderFormat = !team && name.slice(-11) !== 'Custom Game';
 					var teambuilderFormat = '';
 					if (isTeambuilderFormat) {
 						var parenPos = name.indexOf('(');
@@ -1328,7 +1328,6 @@
 		},
 		updateLayout: function () {
 			if (!this.curRoom) return; // can happen during initialization
-			this.dismissPopups();
 			if (!this.sideRoom) {
 				this.curRoom.show('full');
 				if (this.curRoom.id === '') {
@@ -2211,14 +2210,13 @@
 	});
 
 	var PromptPopup = this.PromptPopup = Popup.extend({
-		type: 'semimodal',
 		initialize: function (data) {
 			if (!data || !data.message || typeof data.callback !== "function") return;
 			this.callback = data.callback;
 
 			var buf = '<form>';
 			buf += '<p><label class="label">' + data.message;
-			buf += '<input class="textbox autofocus" type="text" name="data" /></label></p>';
+			buf += '<input class="textbox autofocus" type="text" name="data" value="' + Tools.escapeHTML(data.value || '') + '" /></label></p>';
 			buf += '<p class="buttonbar"><button type="submit"><strong>' + data.button + '</strong></button> <button name="close">Cancel</button></p>';
 			buf += '</form>';
 
