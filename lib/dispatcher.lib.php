@@ -77,7 +77,7 @@ class ActionDispatcher {
 			if (!$server) return null;
 		} else {
 			$server =& $PokemonServers[$serverid];
-			if (empty($server['skipipcheck'])) {
+			if (empty($server['skipipcheck']) && empty($server['token']) && $serverid !== 'showdown') {
 				if (!isset($server['ipcache'])) {
 					$server['ipcache'] = gethostbyname($server['server']);
 				}
@@ -97,7 +97,7 @@ class ActionDispatcher {
 		foreach ($this->reqs as $this->reqData) {
 			$this->reqData = array_merge($_REQUEST, $this->reqData);
 			$action = @$this->reqData['act'];
-			if (!ctype_alnum($action)) die;
+			if (!ctype_alnum($action)) die("invalid action");
 			$out = array();
 
 			foreach ($this->handlers as &$i) {
@@ -200,6 +200,22 @@ class DefaultActionHandler {
 			$out['actionerror'] = 'Your new password must be at least 5 characters long.';
 		} else if (!$users->modifyUser($curuser['userid'], array(
 				'password' => $reqData['password']))) {
+			$out['actionerror'] = 'A database error occurred. Please try again.';
+		} else {
+			$out['actionsuccess'] = true;
+		}
+	}
+
+	public function changeusername($dispatcher, &$reqData, &$out) {
+		global $users, $curuser;
+
+		if (!$_POST ||
+				!isset($reqData['username'])) {
+			$out['actionerror'] = 'Invalid request.';
+		} else if (!$curuser['loggedin']) {
+			$out['actionerror'] = 'Your session has expired. Please log in again.';
+		} else if (!$users->modifyUser($curuser['userid'], array(
+				'username' => $reqData['username']))) {
 			$out['actionerror'] = 'A database error occurred. Please try again.';
 		} else {
 			$out['actionsuccess'] = true;
@@ -503,7 +519,7 @@ class LadderActionHandler {
 			return;
 		}
 
-		$ladder = new NTBBLadder($server['id'], @$reqData['format']);
+		$ladder = new NTBBLadder(@$reqData['format']);
 		$p1 = $this->getUserData(@$reqData['p1']);
 		$p2 = $this->getUserData(@$reqData['p2']);
 		if (!$p1 || !$p2) {
@@ -530,7 +546,7 @@ class LadderActionHandler {
 			die;
 		}
 
-		$ladder = new NTBBLadder($server['id'], @$reqData['format']);
+		$ladder = new NTBBLadder(@$reqData['format']);
 		$user = $this->getUserData(@$reqData['user']);
 		if (!$user) die;
 		$ladder->getAllRatings($user);
@@ -547,7 +563,7 @@ class LadderActionHandler {
 			return;
 		}
 
-		$ladder = new NTBBLadder($server['id'], @$reqData['format']);
+		$ladder = new NTBBLadder(@$reqData['format']);
 		$user = $this->getUserData(@$reqData['user']);
 		$out = 1000;
 		if ($user) {

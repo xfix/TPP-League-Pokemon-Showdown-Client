@@ -5,7 +5,8 @@
 		tinyWidth: 340,
 		bestWidth: 628,
 		events: {
-			'keydown textarea': 'keyPress',
+			'keydown textarea': 'keyDown',
+			'keyup textarea': 'keyUp',
 			'click .username': 'clickUsername',
 			'click .closebutton': 'closePM',
 			'click .minimizebutton': 'minimizePM',
@@ -44,7 +45,7 @@
 			buf += '<div class="menugroup"><p><button class="button mainmenu2" name="joinRoom" value="teambuilder">Teambuilder</button></p>';
 			buf += '<p><button class="button mainmenu3" name="joinRoom" value="ladder">Ladder</button></p></div>';
 
-			buf += '<div class="menugroup"><p><button class="button mainmenu4 onlineonly disabled" name="roomlist">Watch a battle</button></p>';
+			buf += '<div class="menugroup"><p><button class="button mainmenu4 onlineonly disabled" name="joinRoom" value="battles">Watch a battle</button></p>';
 			buf += '<p><button class="button mainmenu5 onlineonly disabled" name="finduser">Find a user</button></p></div>';
 
 			this.$('.mainmenu').html(buf);
@@ -129,7 +130,7 @@
 
 		addPM: function (name, message, target) {
 			var userid = toUserid(name);
-			if (app.ignore[userid] && name.substr(0, 1) in {' ': 1, '!': 1, '‽': 1}) return;
+			if (app.ignore[userid] && name.substr(0, 1) in {' ': 1, '!': 1, '✖': 1, '‽': 1}) return;
 
 			var isSelf = (toId(name) === app.user.get('userid'));
 			var oName = isSelf ? target : name;
@@ -288,39 +289,53 @@
 		onBlurPM: function (e) {
 			$(e.currentTarget).closest('.pm-window').removeClass('focused');
 		},
-		keyPress: function (e) {
+		keyUp: function (e) {
+			var $target = $(e.currentTarget);
+			// Android Chrome compose keycode
+			// Android Chrome no longer sends keyCode 13 when Enter is pressed on
+			// the soft keyboard, resulting in this annoying hack.
+			// https://bugs.chromium.org/p/chromium/issues/detail?id=118639#c232
+			if (!e.shiftKey && e.keyCode === 229 && $target.val().slice(-1) === '\n') {
+				this.submitPM(e);
+			}
+		},
+		submitPM: function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			var $target = $(e.currentTarget);
+
+			var text = $.trim($target.val());
+			if (!text) return;
+			var $pmWindow = $target.closest('.pm-window');
+			var userid = $pmWindow.data('userid');
+			var $chat = $pmWindow.find('.inner');
+			// this.tabComplete.reset();
+			this.chatHistories[userid].push(text);
+			if (text.toLowerCase() === '/ignore') {
+				if (app.ignore[userid]) {
+					$chat.append('<div class="chat">User ' + userid + ' is already on your ignore list. (Moderator messages will not be ignored.)</div>');
+				} else {
+					app.ignore[userid] = 1;
+					$chat.append('<div class="chat">User ' + userid + ' ignored. (Moderator messages will not be ignored.)</div>');
+				}
+			} else if (text.toLowerCase() === '/unignore') {
+				if (!app.ignore[userid]) {
+					$chat.append('<div class="chat">User ' + userid + ' isn\'t on your ignore list.</div>');
+				} else {
+					delete app.ignore[userid];
+					$chat.append('<div class="chat">User ' + userid + ' no longer ignored.</div>');
+				}
+			} else {
+				text = ('\n' + text).replace(/\n/g, '\n/pm ' + userid + ', ').substr(1);
+				this.send(text);
+			}
+			$target.val('');
+			$target.trigger('keyup'); // force a resize
+		},
+		keyDown: function (e) {
 			var cmdKey = (((e.cmdKey || e.metaKey) ? 1 : 0) + (e.ctrlKey ? 1 : 0) === 1) && !e.altKey && !e.shiftKey;
 			if (e.keyCode === 13 && !e.shiftKey) { // Enter
-				var $target = $(e.currentTarget);
-				e.preventDefault();
-				e.stopPropagation();
-				var text;
-				if ((text = $.trim($target.val()))) {
-					var $pmWindow = $target.closest('.pm-window');
-					var userid = $pmWindow.data('userid');
-					var $chat = $pmWindow.find('.inner');
-					// this.tabComplete.reset();
-					this.chatHistories[userid].push(text);
-					if (text.toLowerCase() === '/ignore') {
-						if (app.ignore[userid]) {
-							$chat.append('<div class="chat">User ' + userid + ' is already on your ignore list. (Moderator messages will not be ignored.)</div>');
-						} else {
-							app.ignore[userid] = 1;
-							$chat.append('<div class="chat">User ' + userid + ' ignored. (Moderator messages will not be ignored.)</div>');
-						}
-					} else if (text.toLowerCase() === '/unignore') {
-						if (!app.ignore[userid]) {
-							$chat.append('<div class="chat">User ' + userid + ' isn\'t on your ignore list.</div>');
-						} else {
-							delete app.ignore[userid];
-							$chat.append('<div class="chat">User ' + userid + ' no longer ignored.</div>');
-						}
-					} else {
-						text = ('\n' + text).replace(/\n/g, '\n/pm ' + userid + ', ').substr(1);
-						this.send(text);
-					}
-					$(e.currentTarget).val('');
-				}
+				this.submitPM(e);
 			} else if (e.keyCode === 27) { // Esc
 				this.closePM(e);
 			} else if (e.keyCode === 73 && cmdKey) { // Ctrl + I key
@@ -463,7 +478,10 @@
 		},
 		searching: false,
 		updateSearch: function (data) {
-			if (data) this.searching = data.searching;
+			if (data) {
+				this.searching = data.searching;
+				this.games = data.games;
+			}
 			var $searchForm = $('.mainmenu button.big').closest('form');
 			var $formatButton = $searchForm.find('button[name=format]');
 			var $teamButton = $searchForm.find('button[name=team]');
@@ -488,6 +506,41 @@
 					}
 				}
 			}
+
+			var $searchGroup = $searchForm.closest('.menugroup');
+			if (this.games) {
+				var newlyCreated = false;
+				if (!this.$gamesGroup) {
+					this.$gamesGroup = $('<div class="menugroup"></div>');
+					$searchGroup.before(this.$gamesGroup);
+					newlyCreated = true;
+				}
+				if (!this.$gamesGroup.is(':visible') || newlyCreated) {
+					$searchGroup.hide();
+					this.$gamesGroup.show();
+				}
+				var buf = '<form class="battleform"><p><label class="label">Games:</label></p>';
+				buf += '<div class="roomlist">';
+				for (var roomid in this.games) {
+					var name = this.games[roomid];
+					if (name.slice(-1) === '*') name = name.slice(0, -1);
+					buf += '<div><a href="/' + toRoomid(roomid) + '" class="ilink" style="text-align: center">' + Tools.escapeHTML(name) + '</a></div>';
+				}
+				buf += '</div>';
+				if (!$searchGroup.is(':visible')) buf += '<p class="buttonbar"><button name="showSearchGroup">Add game</button></p>';
+				buf += '</form>';
+				this.$gamesGroup.html(buf);
+			} else {
+				if (this.$gamesGroup) {
+					this.$gamesGroup.hide();
+					$searchGroup.show();
+				}
+			}
+		},
+		showSearchGroup: function (v, el) {
+			var $searchGroup = $('.mainmenu button.big').closest('.menugroup');
+			$searchGroup.show();
+			$(el).closest('p').hide();
 		},
 		updateChallenges: function (data) {
 			this.challengesFrom = data.challengesFrom;
@@ -499,8 +552,25 @@
 				}
 				this.openPM(' ' + i, true);
 			}
-			var self = this;
 			var atLeastOneGen5 = false;
+
+			var challengeToUserid = '';
+			if (data.challengeTo) {
+				var challenge = data.challengeTo;
+				var name = challenge.to;
+				var userid = toId(name);
+				var $challenge = this.openChallenge(name);
+
+				var buf = '<form class="battleform"><p>Waiting for ' + Tools.escapeHTML(name) + '...</p>';
+				buf += '<p><label class="label">Format:</label>' + this.renderFormats(challenge.format, true) + '</p>';
+				buf += '<p class="buttonbar"><button name="cancelChallenge">Cancel</button></p></form>';
+
+				$challenge.html(buf);
+				if (challenge.format.substr(0, 4) === 'gen5') atLeastOneGen5 = true;
+				challengeToUserid = userid;
+			}
+
+			var self = this;
 			this.$('.pm-window').each(function (i, el) {
 				var $pmWindow = $(el);
 				var userid = $pmWindow.data('userid');
@@ -529,7 +599,7 @@
 								// Someone was challenging you, but cancelled their challenge
 								$challenge.html('<form class="battleform"><p>The challenge was cancelled.</p><p class="buttonbar"><button name="dismissChallenge">OK</button></p></form>');
 							}
-						} else if ($challenge.find('button[name=cancelChallenge]').length) {
+						} else if ($challenge.find('button[name=cancelChallenge]').length && challengeToUserid !== userid) {
 							// You were challenging someone else, and they either accepted
 							// or rejected it
 							$challenge.remove();
@@ -539,19 +609,6 @@
 				}
 			});
 
-			if (data.challengeTo) {
-				var challenge = data.challengeTo;
-				var name = challenge.to;
-				var userid = toId(name);
-				var $challenge = this.openChallenge(name);
-
-				var buf = '<form class="battleform"><p>Waiting for ' + Tools.escapeHTML(name) + '...</p>';
-				buf += '<p><label class="label">Format:</label>' + this.renderFormats(challenge.format, true) + '</p>';
-				buf += '<p class="buttonbar"><button name="cancelChallenge">Cancel</button></p></form>';
-
-				$challenge.html(buf);
-				if (challenge.format.substr(0, 4) === 'gen5') atLeastOneGen5 = true;
-			}
 			if (atLeastOneGen5 && !Tools.loadedSpriteData['bw']) Tools.loadSpriteData('bw');
 		},
 		openChallenge: function (name, $pmWindow) {
@@ -743,7 +800,8 @@
 			if (!teams.length) {
 				return '<button class="select teamselect" name="team" disabled>You have no teams</button>';
 			}
-			if (teamIndex === undefined) {
+			if (teamIndex === undefined) teamIndex = -1;
+			if (teamIndex < 0) {
 				if (this.curTeamIndex >= 0) {
 					teamIndex = this.curTeamIndex;
 				}
@@ -758,7 +816,7 @@
 			} else {
 				teamIndex = +teamIndex;
 			}
-			return '<button class="select teamselect" name="team" value="' + (teamIndex === undefined ? '' : teamIndex) + '">' + TeamPopup.renderTeam(teamIndex) + '</button>';
+			return '<button class="select teamselect" name="team" value="' + (teamIndex < 0 ? '' : teamIndex) + '">' + TeamPopup.renderTeam(teamIndex) + '</button>';
 		},
 
 		// buttons
@@ -807,10 +865,11 @@
 		credits: function () {
 			app.addPopup(CreditsPopup);
 		},
-		roomlist: function () {
-			app.addPopup(BattleListPopup);
-		},
 		finduser: function () {
+			if (app.isDisconnected) {
+				app.addPopupMessage("You are offline.");
+				return;
+			}
 			app.addPopupPrompt("Username", "Open", function (target) {
 				if (!target) return;
 				if (toId(target) === 'zarel') {
@@ -830,6 +889,9 @@
 			if (!selectType) selectType = (this.sourceEl.closest('form').data('search') ? 'search' : 'challenge');
 			var bufs = [];
 			var curBuf = 0;
+			if (selectType === 'watch') {
+				bufs[1] = '<li><button name="selectFormat" value=""' + (curFormat === '' ? ' class="sel"' : '') + '>(All formats)</button></li>';
+			}
 			var curSection = '';
 			for (var i in BattleFormats) {
 				var format = BattleFormats[i];
@@ -838,7 +900,7 @@
 					if (!format.isTeambuilderFormat) continue;
 				} else {
 					if (format.effectType !== 'Format') continue;
-					if (selectType && !format[selectType + 'Show']) continue;
+					if (selectType != 'watch' && !format[selectType + 'Show']) continue;
 				}
 
 				if (format.section && format.section !== curSection) {
@@ -880,7 +942,7 @@
 				var $teamButton = this.sourceEl.closest('form').find('button[name=team]');
 				if ($teamButton.length) $teamButton.replaceWith(app.rooms[''].renderTeams(format));
 			}
-			this.sourceEl.val(format).html(Tools.escapeFormat(format));
+			this.sourceEl.val(format).html(Tools.escapeFormat(format) || '(Select a format)');
 
 			this.close();
 		}
@@ -993,115 +1055,18 @@
 				return '<em>Select a team</em>';
 			}
 			if (i === 'random') {
-				var buf = 'Random team<br />';
+				var buf = '<strong>Random team</strong><small>';
 				for (var i = 0; i < 6; i++) {
-					buf += '<span class="pokemonicon" style="float:left;' + Tools.getIcon() + '"></span>';
+					buf += '<span class="picon" style="float:left;' + Tools.getPokemonIcon() + '"></span>';
 				}
+				buf += '</small>';
 				return buf;
 			}
 			var team = Storage.teams[i];
 			if (!team) return 'Error: Corrupted team';
-			var buf = '' + Tools.escapeHTML(team.name) + '<br />';
-			buf += Storage.getTeamIcons(team);
+			var buf = '<strong>' + Tools.escapeHTML(team.name) + '</strong><small>';
+			buf += Storage.getTeamIcons(team) + '</small>';
 			return buf;
-		}
-	});
-
-	var BattleListPopup = this.BattleListPopup = Popup.extend({
-		type: 'modal',
-		initialize: function () {
-			var buf = '<div class="roomlist"><p><button name="refresh"><i class="fa fa-refresh"></i> Refresh</button> <button name="close" style="float:right"><i class="fa fa-times"></i> Close</button></p>';
-
-			buf += '<p><label>Format:</label><select name="format"><option value="">(All formats)</option>';
-			if (window.BattleFormats) {
-				var curSection = '';
-				for (var i in BattleFormats) {
-					var format = BattleFormats[i];
-					if (format.searchShow) {
-						if (format.section !== curSection) {
-							if (curSection) buf += '</optgroup>';
-							curSection = format.section;
-							if (curSection) buf += '<optgroup label="' + Tools.escapeHTML(curSection) + '">';
-						}
-						var activeFormat = (this.format === i ? ' selected=' : '');
-						buf += '<option value="' + i + '"' + activeFormat + '>' + Tools.escapeFormat(format.id) + '</option>';
-					}
-				}
-				if (curSection) buf += '</optgroup>';
-			}
-			buf += '</select></p>';
-			buf += '<div class="list"><p>Loading...</p></div>';
-			buf += '</div>';
-			this.$el.html(buf);
-			this.$list = this.$('.list');
-
-			app.on('init:formats', this.initialize, this);
-			app.on('response:roomlist', this.update, this);
-			app.send('/cmd roomlist');
-			this.update();
-		},
-		events: {
-			'click .ilink': 'clickLink',
-			'change select': 'changeFormat'
-		},
-		format: '',
-		changeFormat: function (e) {
-			this.format = e.currentTarget.value;
-			this.update();
-		},
-		update: function (data) {
-			if (!data && !this.data) {
-				this.$list.html('<p>Loading...</p>');
-				return;
-			}
-			this.$('button[name=refresh]')[0].disabled = false;
-			if (!data) {
-				data = this.data;
-			} else {
-				this.data = data;
-			}
-			var buf = '';
-
-			var i = 0;
-			for (var id in data.rooms) {
-				var roomData = data.rooms[id];
-				var matches = ChatRoom.parseBattleID(id);
-				if (!matches) {
-					continue; // bogus room ID could be used to inject JavaScript
-				}
-				var format = (matches[1] || '');
-				if (this.format && format !== this.format) continue;
-				var formatBuf = (format ? '<small>[' + Tools.escapeFormat(format) + ']</small><br />' : '');
-				var roomDesc = formatBuf + '<em class="p1">' + Tools.escapeHTML(roomData.p1) + '</em> <small class="vs">vs.</small> <em class="p2">' + Tools.escapeHTML(roomData.p2) + '</em>';
-				if (!roomData.p1) {
-					matches = id.match(/[^0-9]([0-9]*)$/);
-					roomDesc = formatBuf + 'empty room ' + matches[1];
-				} else if (!roomData.p2) {
-					roomDesc = formatBuf + '<em class="p1">' + Tools.escapeHTML(roomData.p1) + '</em>';
-				}
-				buf += '<div><a href="' + app.root + id + '" class="ilink">' + roomDesc + '</a></div>';
-				i++;
-			}
-
-			if (!i) {
-				buf = '<p>No ' + Tools.escapeFormat(this.format) + ' battles are going on right now.</p>';
-			} else {
-				buf = '<p>' + i + ' ' + Tools.escapeFormat(this.format) + ' ' + (i === 1 ? 'battle' : 'battles') + '</p>' + buf;
-			}
-
-			this.$list.html(buf);
-		},
-		clickLink: function (e) {
-			if (e.cmdKey || e.metaKey || e.ctrlKey) return;
-			e.preventDefault();
-			e.stopPropagation();
-			this.close();
-			var roomid = $(e.currentTarget).attr('href').substr(app.root.length);
-			app.tryJoinRoom(roomid);
-		},
-		refresh: function (i, button) {
-			button.disabled = true;
-			app.send('/cmd roomlist');
 		}
 	});
 

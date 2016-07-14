@@ -16,7 +16,7 @@
 	}
 
 	$(document).on('keydown', function (e) {
-		if (e.keyCode == 27) {
+		if (e.keyCode == 27) { // Esc
 			e.preventDefault();
 			e.stopPropagation();
 			e.stopImmediatePropagation();
@@ -34,16 +34,20 @@
 		e.preventDefault();
 
 		if (!app.dragging && app.curRoom.id === 'teambuilder') {
-			if (e.originalEvent.dataTransfer.files && e.originalEvent.dataTransfer.files[0]) {
-				var file = e.originalEvent.dataTransfer.files[0];
+			var dataTransfer = e.originalEvent.dataTransfer;
+			if (dataTransfer.files && dataTransfer.files[0]) {
+				var file = dataTransfer.files[0];
 				if (file.name.slice(-4) === '.txt') {
 					// Someone dragged in a .txt file, hand it to the teambuilder
 					app.curRoom.defaultDragEnterTeam(e);
 				}
-			} else {
-				// security doesn't let us read the filename :(
-				// we'll just have to assume it's a team
-				app.curRoom.defaultDragEnterTeam(e);
+			} else if (dataTransfer.items && dataTransfer.items[0]) {
+				// no files or no permission to access files
+				var item = dataTransfer.items[0];
+				if (item.kind === 'file' && item.type === 'text/plain') {
+					// Someone dragged in a .txt file, hand it to the teambuilder
+					app.curRoom.defaultDragEnterTeam(e);
+				}
 			}
 		}
 
@@ -59,7 +63,7 @@
 		// The default file drop action for most browsers is to open the file
 		// in the tab, which is generally undesirable anyway.
 		e.preventDefault();
-		if (app.dragging) {
+		if (app.dragging && app.draggingRoom) {
 			app.rooms[app.draggingRoom].defaultDropTeam(e);
 		} else if (e.originalEvent.dataTransfer.files && e.originalEvent.dataTransfer.files[0]) {
 			var file = e.originalEvent.dataTransfer.files[0];
@@ -132,14 +136,6 @@
 	window.selectTab = function (tab) {
 		app.tryJoinRoom(tab);
 		return false;
-	};
-
-	// placeholder until the real chart loads
-	window.Chart = {
-		pokemonRow: function () {},
-		itemRow: function () {},
-		abilityRow: function () {},
-		moveRow: function () {}
 	};
 
 	var User = this.User = Backbone.Model.extend({
@@ -302,7 +298,11 @@
 					act: 'upkeep',
 					challstr: this.challstr
 				}, Tools.safeJSON(function (data) {
-					if (!data.username) return;
+					self.loaded = true;
+					if (!data.username) {
+						app.topbar.updateUserbar();
+						return;
+					}
 
 					// | , ; are not valid characters in names
 					data.username = data.username.replace(/[\|,;]+/g, '');
@@ -360,7 +360,7 @@
 			if (this.down) {
 				this.isDisconnected = true;
 			} else if ($(window).width() >= 916) {
-				if (document.location.hostname === 'play.pokemonshowdown.com') {
+				if (document.location.hostname === 'play.pokemonshowdown.com' || Config.testclient) {
 					this.addRoom('rooms', null, true);
 					Storage.whenPrefsLoaded(function () {
 						var autojoin = (Tools.prefs('autojoin') || '');
@@ -389,6 +389,8 @@
 
 				var muted = Tools.prefs('mute');
 				BattleSound.setMute(muted);
+
+				$('html').toggleClass('dark', !!Tools.prefs('dark'));
 
 				var effectVolume = Tools.prefs('effectvolume');
 				if (effectVolume !== undefined) BattleSound.setEffectVolume(effectVolume);
@@ -485,6 +487,7 @@
 
 			$(window).on('beforeunload', function (e) {
 				if (Config.server && Config.server.host === 'localhost') return;
+				if (app.isDisconnected) return;
 				for (var id in self.rooms) {
 					var room = self.rooms[id];
 					if (room && room.requestLeave && !room.requestLeave()) return "You have active battles.";
@@ -753,7 +756,7 @@
 			} else if ((data + '|').substr(0, 8) === '|expire|') {
 				var room = this.rooms[roomid];
 				if (room) {
-					room.expired = true;
+					room.expired = (data.substr(8) || true);
 					if (room.updateUser) room.updateUser();
 				}
 				return;
@@ -793,10 +796,21 @@
 						if (roomid === 'lobby') this.joinRoom('rooms');
 					}
 					if (errormessage) {
+						if (Config.server.id && roomid.slice(0, 7) === 'battle-') {
+							var replayid = roomid.slice(7);
+							if (Config.server.id !== 'showdown') replayid = Config.server.id + '-' + replayid;
+							var replayLink = 'http://replay.pokemonshowdown.com/' + replayid;
+							errormessage += '\n\nYou might want to try the replay: ' + replayLink;
+						}
 						this.addPopupMessage(errormessage);
 					}
 				}
 				return;
+			} else if (data.substr(0, 3) === '|N|') {
+				var names = data.substr(1).split('|');
+				if (app.ignore[toUserid(names[2])]) {
+					app.ignore[toUserid(names[1])] = 1;
+				}
 			}
 			if (roomid) {
 				if (this.rooms[roomid]) {
@@ -842,15 +856,27 @@
 				}
 				var name = parts[1];
 				var named = !!+parts[2];
+
+				var userid = toUserid(name);
+				if (userid === this.user.get('userid') && name !== this.user.get('name')) {
+					$.post(app.user.getActionPHP(), {
+						act: 'changeusername',
+						username: name
+					}, function () {}, 'text');
+				}
+
 				this.user.set({
 					name: name,
-					userid: toUserid(name),
+					userid: userid,
 					named: named,
 					avatar: parts[3]
 				});
 				this.user.setPersistentName(named ? name : null);
 				if (named) {
 					this.trigger('init:choosename');
+				}
+				if (app.ignore[toUserid(name)]) {
+					delete app.ignore[toUserid(name)];
 				}
 				break;
 
@@ -876,7 +902,7 @@
 				break;
 
 			case 'popup':
-				var maxWidth = undefined;
+				var maxWidth;
 				var type = 'semimodal';
 				data = data.substr(7);
 				if (data.substr(0, 6) === '|wide|') {
@@ -1140,6 +1166,7 @@
 		joinRoom: function (id, type, nojoin) {
 			if (this.rooms[id]) {
 				this.focusRoom(id);
+				if (this.rooms[id].rejoin) this.rooms[id].rejoin();
 				return this.rooms[id];
 			}
 			if (id.substr(0, 11) === 'battle-gen5' && !Tools.loadedSpriteData['bw']) Tools.loadSpriteData('bw');
@@ -1151,18 +1178,7 @@
 		/**
 		 * We tried to join a room but it didn't exist
 		 */
-		unjoinRoom: function (id) {
-			if (Config.server.id && this.rooms[id] && this.rooms[id].type === 'battle') {
-				if (id === this.initialFragment) {
-					// you were direct-linked to this nonexistent room
-					var replayid = id.substr(7);
-					if (Config.server.id !== 'showdown') replayid = Config.server.id + '-' + replayid;
-					// document.location.replace('http://replay.pokemonshowdown.com/' + replayid);
-					var replayLink = 'http://replay.pokemonshowdown.com/' + replayid;
-					app.addPopupMessage('This room does not exist. You might want to try the replay: <a href="' + replayLink + '">' + replayLink + '</a>');
-					return;
-				}
-			}
+		unjoinRoom: function (id, reason) {
 			this.removeRoom(id, true);
 			if (this.curRoom) this.navigate(this.curRoom.id, {replace: true});
 		},
@@ -1207,6 +1223,7 @@
 				'': MainMenuRoom,
 				'teambuilder': TeambuilderRoom,
 				'rooms': RoomsRoom,
+				'battles': BattlesRoom,
 				'ladder': LadderRoom,
 				'lobby': ChatRoom,
 				'staff': ChatRoom,
@@ -1244,12 +1261,13 @@
 				if (this.sideRoom === oldRoom) this.sideRoom = room;
 			}
 			if (type === BattleRoom) this.roomList.push(room);
-			if (type === ChatRoom) this.sideRoomList.push(room);
+			if (type === ChatRoom || type === BattlesRoom) this.sideRoomList.push(room);
 			return room;
 		},
 		focusRoom: function (id) {
 			var room = this.rooms[id];
 			if (!room) return false;
+			BattleTooltips.hideTooltip();
 			if (this.curRoom === room || this.curSideRoom === room) {
 				room.focus();
 				return true;
@@ -1326,8 +1344,15 @@
 			room.focus();
 			return;
 		},
+		/**
+		 * This is the function for handling the two-panel layout
+		 */
 		updateLayout: function () {
 			if (!this.curRoom) return; // can happen during initialization
+
+			// If we don't have any right rooms at all, just show the left
+			// room in full. Home is a left room, so we'll always have a
+			// left room.
 			if (!this.sideRoom) {
 				this.curRoom.show('full');
 				if (this.curRoom.id === '') {
@@ -1340,9 +1365,13 @@
 				this.topbar.updateTabbar();
 				return;
 			}
+
+			// The rest of this code assumes we have a right room (sideRoom)
+
 			var leftMin = (this.curRoom.minWidth || this.curRoom.bestWidth);
 			var leftMinMain = (this.curRoom.minMainWidth || leftMin);
 			var rightMin = (this.sideRoom.minWidth || this.sideRoom.bestWidth);
+			var rightMinMain = (this.sideRoom.minMainWidth || leftMin);
 			var available = $(window).width();
 			if (this.curRoom.isSideRoom) {
 				// we're trying to focus a side room
@@ -1353,7 +1382,8 @@
 					leftMin = this.curRoom.tinyWidth;
 					rightMin = (this.sideRoom.minWidth || this.sideRoom.bestWidth);
 				} else if (this.sideRoom) {
-					// nooo
+					// nooo, doesn't fit
+					// show the side room in full
 					if (this.curSideRoom) {
 						this.curSideRoom.hide();
 						this.curSideRoom = null;
@@ -1364,8 +1394,15 @@
 				}
 			} else if (this.curRoom.id === '') {
 				leftMin = this.curRoom.tinyWidth;
+				leftMinMain = leftMin;
 			}
-			if (available < leftMin + rightMin) {
+
+			// curRoom and sideRoom are now set so that curRoom is the left
+			// room and sideRoom is the intended right room
+
+			if (available < leftMinMain + rightMin) {
+				// curRoom and sideRoom don't fit next to each other, so show
+				// only curRoom
 				if (this.curSideRoom) {
 					this.curSideRoom.hide();
 					this.curSideRoom = null;
@@ -1394,6 +1431,15 @@
 				this.curRoom.$el.removeClass('tiny-layout');
 			}
 
+			// Formula for calculating exactly how much width the left and
+			// right rooms should get. We start by giving each room their
+			// minimum, and then increasing the left room's width
+			// proportionally to how much they want to increase.
+
+			// The left room's width is capped by its maxWidth, but the right
+			// room's isn't. All rooms need to handle any width at all;
+			// maxWidth applies only to left rooms.
+
 			var leftMax = (this.curRoom.maxWidth || this.curRoom.bestWidth);
 			var rightMax = (this.sideRoom.maxWidth || this.sideRoom.bestWidth);
 			var leftWidth = leftMin;
@@ -1402,7 +1448,16 @@
 			} else {
 				var bufAvailable = available - leftMin - rightMin;
 				var wanted = leftMax - leftMin + rightMax - rightMin;
-				if (wanted) leftWidth = Math.floor(leftMin + (leftMax - leftMin) * bufAvailable / wanted);
+				if (wanted > 0) leftWidth = Math.floor(leftMin + (leftMax - leftMin) * bufAvailable / wanted);
+			}
+			if (leftWidth < leftMinMain) {
+				leftWidth = leftMinMain;
+			}
+			if (this.curRoom.type === 'battle' && this.sideRoom.type !== 'battle') {
+				// I give up; hardcoding
+				var offset = Math.floor((available - leftMinMain - rightMin) / 2);
+				if (offset > 0) leftWidth += offset;
+				if (leftWidth > leftMax) leftWidth = leftMax;
 			}
 			this.curRoom.show('left', leftWidth);
 			this.curSideRoom.show('right', leftWidth);
@@ -1534,11 +1589,11 @@
 			var rooms = this.roomList.concat(this.sideRoomList);
 			for (var i = 0; i < rooms.length; i++) {
 				var room = rooms[i];
-				if (room.type !== 'chat' || room.id === 'lobby') continue;
+				if (room.type !== 'chat') continue;
 				autojoins.push(room.id.indexOf('-') >= 0 ? room.id : (room.title || room.id));
 				if (room.id === 'staff' || room.id === 'upperstaff') continue;
 				autojoinCount++;
-				if (autojoinCount >= 8) break;
+				if (autojoinCount >= 10) break;
 			}
 			Tools.prefs('autojoin', autojoins.join(','));
 		},
@@ -1629,193 +1684,6 @@
 
 	});
 
-	var Topbar = this.Topbar = Backbone.View.extend({
-		events: {
-			'click a': 'click',
-			'click .username': 'clickUsername',
-			'click button': 'dispatchClickButton'
-		},
-		initialize: function () {
-			this.$el.html('<img class="logo" src="tppleague.png" alt="TPP League" /><div class="maintabbarbottom"></div><div class="tabbar maintabbar"><div class="inner"></div></div><div class="userbar"></div>');
-			this.$tabbar = this.$('.maintabbar .inner');
-			// this.$sidetabbar = this.$('.sidetabbar');
-			this.$userbar = this.$('.userbar');
-			this.updateTabbar();
-
-			app.user.on('change', this.updateUserbar, this);
-			this.updateUserbar();
-		},
-
-		// userbar
-		updateUserbar: function () {
-			var buf = '';
-			var name = ' ' + app.user.get('name');
-			var color = hashColor(app.user.get('userid'));
-			if (app.user.get('named')) {
-				buf = '<span class="username" data-name="' + Tools.escapeHTML(name) + '" style="' + color + '"><i class="fa fa-user" style="color:#779EC5"></i> ' + Tools.escapeHTML(name) + '</span> <button class="icon" name="openSounds"><i class="' + (Tools.prefs('mute') ? 'fa fa-volume-off' : 'fa fa-volume-up') + '"></i></button> <button class="icon" name="openOptions"><i class="fa fa-cog"></i></button>';
-			} else {
-				buf = '<button name="login">Choose name</button> <button class="icon" name="openSounds"><i class="' + (Tools.prefs('mute') ? 'fa fa-volume-off' : 'fa fa-volume-up') + '"></i></button> <button class="icon" name="openOptions"><i class="fa fa-cog"></i></button>';
-			}
-			this.$userbar.html(buf);
-		},
-		login: function () {
-			app.addPopup(LoginPopup);
-		},
-		openSounds: function () {
-			app.addPopup(SoundsPopup);
-		},
-		openOptions: function () {
-			app.addPopup(OptionsPopup);
-		},
-		clickUsername: function (e) {
-			e.preventDefault();
-			e.stopPropagation();
-			var name = $(e.currentTarget).data('name');
-			app.addPopup(UserPopup, {name: name, sourceEl: e.currentTarget});
-		},
-
-		// tabbar
-		renderRoomTab: function (room) {
-			if (!room) return '';
-			var id = room.id;
-			var buf = '<li><a class="button' + (app.curRoom === room || app.curSideRoom === room ? ' cur' : '') + (room.notificationClass || '') + (id === '' || id === 'rooms' ? '' : ' closable') + '" href="' + app.root + id + '">';
-			switch (id) {
-			case '':
-				return buf + '<i class="fa fa-home"></i> <span>Home</span></a></li>';
-			case 'teambuilder':
-				return buf + '<i class="fa fa-pencil-square-o"></i> <span>Teambuilder</span></a><a class="closebutton" href="' + app.root + 'teambuilder"><i class="fa fa-times-circle"></i></a></li>';
-			case 'ladder':
-				return buf + '<i class="fa fa-list-ol"></i> <span>Ladder</span></a><a class="closebutton" href="' + app.root + 'ladder"><i class="fa fa-times-circle"></i></a></li>';
-			case 'rooms':
-				return buf + '<i class="fa fa-plus" style="margin:7px auto -6px auto"></i> <span>&nbsp;</span></a></li>';
-			default:
-				if (id.substr(0, 7) === 'battle-') {
-					var name = Tools.escapeHTML(room.title);
-					var formatid = id.substr(7).split('-')[0];
-					if (!name) {
-						var p1 = (room.battle && room.battle.p1 && room.battle.p1.name) || '';
-						var p2 = (room.battle && room.battle.p2 && room.battle.p2.name) || '';
-						if (p1 && p2) {
-							name = '' + Tools.escapeHTML(p1) + ' v. ' + Tools.escapeHTML(p2);
-						} else if (p1 || p2) {
-							name = '' + Tools.escapeHTML(p1) + Tools.escapeHTML(p2);
-						} else {
-							name = '(empty room)';
-						}
-					}
-					return buf + '<i class="text">' + Tools.escapeFormat(formatid) + '</i><span>' + name + '</span></a><a class="closebutton" href="' + app.root + id + '"><i class="fa fa-times-circle"></i></a></li>';
-				} else {
-					return buf + '<i class="fa fa-comment-o"></i> <span>' + (Tools.escapeHTML(room.title) || (id === 'lobby' ? 'Lobby' : id)) + '</span></a><a class="closebutton" href="' + app.root + id + '"><i class="fa fa-times-circle"></i></a></li>';
-				}
-			}
-		},
-		updateTabbar: function () {
-			if ($(window).width() < 420) return this.updateTabbarMini();
-			this.$('.logo').show();
-			this.$('.maintabbar').removeClass('minitabbar');
-
-			var curId = (app.curRoom ? app.curRoom.id : '');
-			var curSideId = (app.curSideRoom ? app.curSideRoom.id : '');
-
-			var buf = '<ul>' + this.renderRoomTab(app.rooms['']) + this.renderRoomTab(app.rooms['teambuilder']) + this.renderRoomTab(app.rooms['ladder']) + '</ul>';
-			var sideBuf = '';
-
-			var notificationCount = app.rooms[''].notifications ? 1 : 0;
-			if (app.roomList.length) buf += '<ul>';
-			for (var i = 0; i < app.roomList.length; i++) {
-				var room = app.roomList[i];
-				if (room.notifications) notificationCount++;
-				buf += this.renderRoomTab(room);
-			}
-			if (app.roomList.length) buf += '</ul>';
-
-			for (var i = 0; i < app.sideRoomList.length; i++) {
-				var room = app.sideRoomList[i];
-				if (room.notifications) notificationCount++;
-				sideBuf += this.renderRoomTab(room);
-			}
-			if (window.nodewebkit) {
-				if (nwWindow.setBadgeLabel) nwWindow.setBadgeLabel(notificationCount || '');
-			}
-			sideBuf += '<li><a class="button' + (curId === 'rooms' || curSideId === 'rooms' ? ' cur' : '') + '" href="' + app.root + 'rooms"><i class="fa fa-plus" style="margin:7px auto -6px auto"></i> <span>&nbsp;</span></a></li>';
-			var margin = 0;
-			if (sideBuf) {
-				if (app.curSideRoom) {
-					margin = app.curSideRoom.leftWidth - 190;
-					buf += '<ul class="siderooms" style="float:none;margin-left:' + margin + 'px">' + sideBuf + '</ul>';
-				} else {
-					buf += '<ul>' + sideBuf + '</ul>';
-				}
-			}
-			this.$tabbar.html(buf);
-			var $lastUl = this.$tabbar.children().last();
-			var $lastLi = $lastUl.children().last();
-			var offset = $lastLi.offset();
-			var width = $lastLi.outerWidth();
-			// 166 here is the difference between the .maintabbar's right margin and the a.button's right margin.
-			var overflow = offset.left + width + 166 - $(window).width();
-			if (app.curSideRoom && overflow > 0) {
-				margin -= overflow;
-				$lastUl.css('margin-left', margin + 'px');
-				offset = $lastLi.offset();
-				overflow = offset.left + width + 166 - $(window).width();
-			}
-			if (offset.top >= 37 || overflow > 0) {
-				this.$tabbar.append('<div class="overflow"><button name="tablist" class="button"><i class="fa fa-caret-down"></i></button></div>');
-			}
-
-			if (app.rooms['']) app.rooms[''].updateRightMenu();
-		},
-		updateTabbarMini: function () {
-			this.$('.logo').hide();
-			this.$('.maintabbar').addClass('minitabbar');
-			var notificationClass = '';
-			for (var i in app.rooms) {
-				if (app.rooms[i] !== app.curRoom && app.rooms[i].notificationClass === ' notifying') notificationClass = ' notifying';
-			}
-			var buf = '<ul><li><a class="button minilogo' + notificationClass + '" href="' + app.root + '"><img src="' + Tools.resourcePrefix + 'favicon-128.png" width="32" height="32" alt="PS!" /><i class="fa fa-caret-down" style="display:inline-block"></i></a></li></ul>';
-
-			buf += '<ul>' + this.renderRoomTab(app.curRoom) + '</ul>';
-
-			this.$tabbar.html(buf);
-
-			if (app.rooms['']) app.rooms[''].updateRightMenu();
-		},
-		dispatchClickButton: function (e) {
-			var target = e.currentTarget;
-			if (target.name) {
-				app.dismissingSource = app.dismissPopups();
-				app.dispatchingButton = target;
-				e.preventDefault();
-				e.stopImmediatePropagation();
-				this[target.name](target.value, target);
-				delete app.dismissingSource;
-				delete app.dispatchingButton;
-			}
-		},
-		click: function (e) {
-			if (e.cmdKey || e.metaKey || e.ctrlKey) return;
-			e.preventDefault();
-			var $target = $(e.currentTarget);
-			if ($target.hasClass('minilogo')) {
-				app.addPopup(TabListPopup, {sourceEl: e.currentTarget});
-				return;
-			}
-			var id = $target.attr('href');
-			if (id.substr(0, app.root.length) === app.root) {
-				id = id.substr(app.root.length);
-			}
-			if ($target.hasClass('closebutton')) {
-				app.leaveRoom(id, e);
-			} else {
-				app.joinRoom(id);
-			}
-		},
-		tablist: function () {
-			app.addPopup(TabListPopup);
-		}
-	});
-
 	var Room = this.Room = Backbone.View.extend({
 		className: 'ps-room',
 		constructor: function (options) {
@@ -1845,7 +1713,7 @@
 			if (e.shiftKey || (window.getSelection && !window.getSelection().isCollapsed)) {
 				return;
 			}
-			this.focus();
+			this.focus(e);
 		},
 
 		// communication
@@ -1949,6 +1817,7 @@
 					}
 				}
 				if (once) notification.psAutoclose = true;
+				needsTabbarUpdate = true;
 			} else if (window.macgap) {
 				macgap.growl.notify({
 					title: title,
@@ -2048,8 +1917,7 @@
 			}
 			if (!this.notifications) {
 				this.notificationClass = '';
-				if (skipUpdate) return;
-				app.topbar.updateTabbar();
+				if (!skipUpdate) app.topbar.updateTabbar();
 			}
 
 			if (this.lastMessageDate) {
@@ -2099,6 +1967,8 @@
 			}
 			if (data.type) this.type = data.type;
 			if (data.position) this.position = data.position;
+			if (data.buttons) this.buttons = data.buttons;
+			if (data.submit) this.submit = data.submit;
 
 			Backbone.View.apply(this, arguments);
 
@@ -2163,7 +2033,7 @@
 		},
 		initialize: function (data) {
 			if (!this.type) this.type = 'semimodal';
-			this.$el.html('<p style="white-space:pre-wrap;word-wrap:break-word">' + (data.htmlMessage || Tools.parseMessage(data.message)) + '</p><p class="buttonbar"><button name="close" class="autofocus"><strong>OK</strong></button></p>').css('max-width', data.maxWidth || 480);
+			this.$el.html('<form><p style="white-space:pre-wrap;word-wrap:break-word">' + (data.htmlMessage || Tools.parseMessage(data.message)) + '</p><p class="buttonbar">' + (data.buttons || '<button name="close" class="autofocus"><strong>OK</strong></button>') + '</p></form>').css('max-width', data.maxWidth || 480);
 		},
 
 		dispatchClickButton: function (e) {
@@ -2259,12 +2129,23 @@
 				'&': "Leader (&amp;)",
 				'@': "Moderator (@)",
 				'%': "Driver (%)",
+				'*': "Bot (*)",
 				'\u2605': "Player (\u2605)",
-				'+': "Voiced (+)",
+				'+': "Voice (+)",
 				'‽': "<span style='color:#777777'>Locked (‽)</span>",
+				'✖': "<span style='color:#777777'>Namelocked (✖)</span>",
 				'!': "<span style='color:#777777'>Muted (!)</span>"
 			};
 			var group = (groupDetails[name.substr(0, 1)] || '');
+			var globalgroup = (groupDetails[(data.group || '').charAt(0)] || '');
+			if (globalgroup) {
+				if (!group || group === globalgroup) {
+					group = "Global " + globalgroup;
+					globalgroup = '';
+				} else {
+					globalgroup = "Global " + globalgroup;
+				}
+			}
 			if (group || name.charAt(0) === ' ') name = name.substr(1);
 			var ownUserid = app.user.get('userid');
 
@@ -2272,26 +2153,42 @@
 			if (avatar) buf += '<img class="trainersprite' + (userid === ownUserid ? ' yours' : '') + '" src="' + Tools.resolveAvatar(avatar) + '" />';
 			buf += '<strong><a href="//pokemonshowdown.com/users/' + userid + '" target="_blank">' + Tools.escapeHTML(name) + '</a></strong><br />';
 			buf += '<small>' + (group || '&nbsp;') + '</small>';
+			if (globalgroup) buf += '<br /><small>' + globalgroup + '</small>';
 			if (data.rooms) {
 				var battlebuf = '';
 				var chatbuf = '';
+				var privatebuf = '';
 				for (var i in data.rooms) {
 					if (i === 'global') continue;
 					var roomid = toRoomid(i);
 					if (roomid.substr(0, 7) === 'battle-') {
 						var p1 = data.rooms[i].p1.substr(1);
 						var p2 = data.rooms[i].p2.substr(1);
-						if (!battlebuf) battlebuf = '<br /><em>Battles:</em> ';
-						else battlebuf += ', ';
 						var ownBattle = (ownUserid === toUserid(p1) || ownUserid === toUserid(p2));
-						battlebuf += '<span title="' + (Tools.escapeHTML(p1) || '?') + ' v. ' + (Tools.escapeHTML(p2) || '?') + '"><a href="' + app.root + roomid + '" class="ilink' + ((ownBattle || app.rooms[i]) ? ' yours' : '') + '">' + roomid.substr(7) + '</a></span>';
+						var room = '<span title="' + (Tools.escapeHTML(p1) || '?') + ' v. ' + (Tools.escapeHTML(p2) || '?') + '"><a href="' + app.root + roomid + '" class="ilink' + ((ownBattle || app.rooms[i]) ? ' yours' : '') + '">' + roomid.substr(7) + '</a></span>';
+						if (data.rooms[i].isPrivate) {
+							if (!privatebuf) privatebuf = '<br /><em>Private rooms:</em> ';
+							else privatebuf += ', ';
+							privatebuf += room;
+						} else {
+							if (!battlebuf) battlebuf = '<br /><em>Battles:</em> ';
+							else battlebuf += ', ';
+							battlebuf += room;
+						}
 					} else {
-						if (!chatbuf) chatbuf = '<br /><em>Chatrooms:</em> ';
-						else chatbuf += ', ';
-						chatbuf += '<a href="' + app.root + roomid + '" class="ilink' + (app.rooms[i] ? ' yours' : '') + '">' + roomid + '</a>';
+						var room = '<a href="' + app.root + roomid + '" class="ilink' + (app.rooms[i] ? ' yours' : '') + '">' + roomid + '</a>';
+						if (data.rooms[i].isPrivate) {
+							if (!privatebuf) privatebuf = '<br /><em>Private rooms:</em> ';
+							else privatebuf += ', ';
+							privatebuf += room;
+						} else {
+							if (!chatbuf) chatbuf = '<br /><em>Chatrooms:</em> ';
+							else chatbuf += ', ';
+							chatbuf += room;
+						}
 					}
 				}
-				buf += '<small class="rooms">' + battlebuf + chatbuf + '</small>';
+				buf += '<small class="rooms">' + battlebuf + chatbuf + privatebuf + '</small>';
 			} else if (data.rooms === false) {
 				buf += '<strong class="offline">OFFLINE</strong>';
 			}
@@ -2406,174 +2303,6 @@
 		}
 	});
 
-	var LoginPopup = this.LoginPopup = Popup.extend({
-		type: 'semimodal',
-		initialize: function (data) {
-			var buf = '<form>';
-
-			if (data.error) {
-				buf += '<p class="error">' + Tools.escapeHTML(data.error) + '</p>';
-				if (data.error.indexOf('inappropriate') >= 0) {
-					buf += '<p>Keep in mind these rules:</p>';
-					buf += '<ol>';
-					buf += '<li>Usernames may not impersonate a recognized user (a user with %, @, &, or ~ next to their name).</li>';
-					buf += '<li>Usernames may not be derogatory or insulting in nature, to an individual or group (insulting yourself is okay as long as it\'s not too serious).</li>';
-					buf += '<li>Usernames may not directly reference sexual activity, or be excessively disgusting.</li>';
-					buf += '</ol>';
-				}
-			} else if (data.reason) {
-				buf += '<p>' + Tools.parseMessage(data.reason) + '</p>';
-			}
-
-			var name = (data.name || '');
-			if (!name && app.user.get('named')) name = app.user.get('name');
-			buf += '<p><label class="label">Username: <small class="preview" style="' + hashColor(toUserid(name)) + '">(color)</small><input class="textbox autofocus" type="text" name="username" value="' + Tools.escapeHTML(name) + '"></label></p>';
-			buf += '<p class="buttonbar"><button type="submit"><strong>Choose name</strong></button> <button name="close">Cancel</button></p>';
-
-			buf += '</form>';
-			this.$el.html(buf);
-		},
-		events: {
-			'input .textbox': 'updateColor'
-		},
-		updateColor: function (e) {
-			var name = e.currentTarget.value;
-			var preview = this.$('.preview');
-			var css = hashColor(toUserid(name)).slice(6, -1);
-			preview.css('color', css);
-		},
-		submit: function (data) {
-			this.close();
-			if (!$.trim(data.username)) return;
-			app.user.rename(data.username);
-		}
-	});
-
-	var ChangePasswordPopup = this.ChangePasswordPopup = Popup.extend({
-		type: 'semimodal',
-		initialize: function (data) {
-			var buf = '<form>';
-			if (data.error) {
-				buf += '<p class="error">' + data.error + '</p>';
-			} else {
-				buf += '<p>Change your password:</p>';
-			}
-			buf += '<p><label class="label">Username: <strong>' + app.user.get('name') + '</strong></label></p>';
-			buf += '<p><label class="label">Old password: <input class="textbox autofocus" type="password" name="oldpassword" /></label></p>';
-			buf += '<p><label class="label">New password: <input class="textbox" type="password" name="password" /></label></p>';
-			buf += '<p><label class="label">New password (confirm): <input class="textbox" type="password" name="cpassword" /></label></p>';
-			buf += '<p class="buttonbar"><button type="submit"><strong>Change password</strong></button> <button name="close">Cancel</button></p></form>';
-			this.$el.html(buf);
-		},
-		submit: function (data) {
-			$.post(app.user.getActionPHP(), {
-				act: 'changepassword',
-				oldpassword: data.oldpassword,
-				password: data.password,
-				cpassword: data.cpassword
-			}, Tools.safeJSON(function (data) {
-				if (!data) data = {};
-				if (data.actionsuccess) {
-					app.addPopupMessage("Your password was successfully changed.");
-				} else {
-					app.addPopup(ChangePasswordPopup, {
-						error: data.actionerror
-					});
-				}
-			}), 'text');
-		}
-	});
-
-	var RegisterPopup = this.RegisterPopup = Popup.extend({
-		type: 'semimodal',
-		initialize: function (data) {
-			var buf = '<form>';
-			if (data.error) {
-				buf += '<p class="error">' + data.error + '</p>';
-			} else if (data.reason) {
-				buf += '<p>' + data.reason + '</p>';
-			} else {
-				buf += '<p>Register your account:</p>';
-			}
-			buf += '<p><label class="label">Username: <strong>' + Tools.escapeHTML(data.name || app.user.get('name')) + '</strong><input type="hidden" name="name" value="' + Tools.escapeHTML(data.name || app.user.get('name')) + '" /></label></p>';
-			buf += '<p><label class="label">Password: <input class="textbox autofocus" type="password" name="password" /></label></p>';
-			buf += '<p><label class="label">Password (confirm): <input class="textbox" type="password" name="cpassword" /></label></p>';
-			buf += '<p><label class="label"><img src="' + Tools.resourcePrefix + 'sprites/bwani/pikachu.gif" /></label></p>';
-			buf += '<p><label class="label">What is this pokemon? <input class="textbox" type="text" name="captcha" value="' + Tools.escapeHTML(data.captcha) + '" /></label></p>';
-			buf += '<p class="buttonbar"><button type="submit"><strong>Register</strong></button> <button name="close">Cancel</button></p></form>';
-			this.$el.html(buf);
-		},
-		submit: function (data) {
-			var name = data.name;
-			var captcha = data.captcha;
-			$.post(app.user.getActionPHP(), {
-				act: 'register',
-				username: name,
-				password: data.password,
-				cpassword: data.cpassword,
-				captcha: captcha,
-				challstr: app.user.challstr
-			}, Tools.safeJSON(function (data) {
-				if (!data) data = {};
-				var token = data.assertion;
-				if (data.curuser && data.curuser.loggedin) {
-					app.user.set('registered', data.curuser);
-					var name = data.curuser.username;
-					app.send('/trn ' + name + ',1,' + token);
-					app.addPopupMessage("You have been successfully registered.");
-				} else {
-					app.addPopup(RegisterPopup, {
-						name: name,
-						captcha: captcha,
-						error: data.actionerror
-					});
-				}
-			}), 'text');
-		}
-	});
-
-	var LoginPasswordPopup = this.LoginPasswordPopup = Popup.extend({
-		type: 'semimodal',
-		initialize: function (data) {
-			var buf = '<form>';
-
-			if (data.error) {
-				buf += '<p class="error">' + Tools.escapeHTML(data.error) + '</p>';
-				if (data.error.indexOf(' forced you to change ') >= 0) {
-					buf += '<p>Keep in mind these rules:</p>';
-					buf += '<ol>';
-					buf += '<li>Usernames may not be derogatory or insulting in nature, to an individual or group (insulting yourself is okay as long as it\'s not too serious).</li>';
-					buf += '<li>Usernames may not reference sexual activity, directly or indirectly.</li>';
-					buf += '<li>Usernames may not impersonate a recognized user (a user with %, @, &, or ~ next to their name).</li>';
-					buf += '</ol>';
-				}
-			} else if (data.reason) {
-				buf += '<p>' + Tools.escapeHTML(data.reason) + '</p>';
-			} else {
-				buf += '<p class="error">The name you chose is registered.</p>';
-			}
-
-			buf += '<p>Log in:</p>';
-			buf += '<p><label class="label">Username: <strong>' + Tools.escapeHTML(data.username) + '<input type="hidden" name="username" value="' + Tools.escapeHTML(data.username) + '" /></strong></label></p>';
-			buf += '<p><label class="label">Password: <input class="textbox autofocus" type="password" name="password"></label></p>';
-			buf += '<p class="buttonbar"><button type="submit"><strong>Log in</strong></button> <button name="close">Cancel</button></p>';
-
-			buf += '<p class="or">or</p>';
-			buf += '<p class="buttonbar"><button name="login">Choose another name</button></p>';
-
-			buf += '</form>';
-			this.$el.html(buf);
-		},
-		login: function () {
-			this.close();
-			app.addPopup(LoginPopup);
-		},
-		submit: function (data) {
-			this.close();
-			app.user.passwordRename(data.username, data.password);
-		}
-	});
-
 	var ProxyPopup = this.ProxyPopup = Popup.extend({
 		type: 'modal',
 		initialize: function (data) {
@@ -2591,260 +2320,6 @@
 		submit: function (data) {
 			this.close();
 			this.callback(data.result);
-		}
-	});
-
-	var SoundsPopup = this.SoundsPopup = Popup.extend({
-		initialize: function (data) {
-			var buf = '';
-			var muted = !!Tools.prefs('mute');
-			buf += '<p class="effect-volume"><label class="optlabel">Effect volume:</label>' + (muted ? '<em>(muted)</em>' : '<input type="slider" name="effectvolume" value="' + (Tools.prefs('effectvolume') || 50) + '" />') + '</p>';
-			buf += '<p class="music-volume"><label class="optlabel">Music volume:</label>' + (muted ? '<em>(muted)</em>' : '<input type="slider" name="musicvolume" value="' + (Tools.prefs('musicvolume') || 50) + '" />') + '</p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="muted"' + (muted ? ' checked' : '') + ' /> Mute sounds</label></p>';
-			this.$el.html(buf).css('min-width', 160);
-		},
-		events: {
-			'change input[name=muted]': 'setMute'
-		},
-		domInitialize: function () {
-			var self = this;
-			this.$('.effect-volume input').slider({
-				from: 0,
-				to: 100,
-				step: 1,
-				dimension: '%',
-				skin: 'round_plastic',
-				onstatechange: function (val) {
-					self.setEffectVolume(val);
-				}
-			});
-			this.$('.music-volume input').slider({
-				from: 0,
-				to: 100,
-				step: 1,
-				dimension: '%',
-				skin: 'round_plastic',
-				onstatechange: function (val) {
-					self.setMusicVolume(val);
-				}
-			});
-		},
-		setMute: function (e) {
-			var muted = !!e.currentTarget.checked;
-			Tools.prefs('mute', muted);
-			BattleSound.setMute(muted);
-
-			if (!muted) {
-				this.$('.effect-volume').html('<label class="optlabel">Effect volume:</label><input type="slider" name="effectvolume" value="' + (Tools.prefs('effectvolume') || 50) + '" />');
-				this.$('.music-volume').html('<label class="optlabel">Music volume:</label><input type="slider" name="musicvolume" value="' + (Tools.prefs('musicvolume') || 50) + '" />');
-				this.domInitialize();
-			} else {
-				this.$('.effect-volume').html('<label class="optlabel">Effect volume:</label><em>(muted)</em>');
-				this.$('.music-volume').html('<label class="optlabel">Music volume:</label><em>(muted)</em>');
-			}
-
-			app.topbar.$('button[name=openSounds]').html('<i class="' + (muted ? 'fa fa-volume-off' : 'fa fa-volume-up') + '"></i>');
-		},
-		setEffectVolume: function (volume) {
-			BattleSound.setEffectVolume(volume);
-			Tools.prefs('effectvolume', volume);
-		},
-		setMusicVolume: function (volume) {
-			BattleSound.setBgmVolume(volume);
-			Tools.prefs('musicvolume', volume);
-		}
-	});
-
-	var OptionsPopup = this.OptionsPopup = Popup.extend({
-		initialize: function (data) {
-			app.user.on('change', this.update, this);
-			app.send('/cmd userdetails ' + app.user.get('userid'));
-			this.update();
-		},
-		events: {
-			'change input[name=noanim]': 'setNoanim',
-			'change input[name=bwgfx]': 'setBwgfx',
-			'change input[name=nopastgens]': 'setNopastgens',
-			'change input[name=notournaments]': 'setNotournaments',
-			'change input[name=inchatpm]': 'setInchatpm',
-			'change input[name=temporarynotifications]': 'setTemporaryNotifications',
-			'change select[name=bg]': 'setBg',
-			'change select[name=timestamps-lobby]': 'setTimestampsLobby',
-			'change select[name=timestamps-pms]': 'setTimestampsPMs',
-			'change input[name=logchat]': 'setLogChat',
-			'change input[name=selfhighlight]': 'setSelfHighlight',
-			'click img': 'avatars'
-		},
-		update: function () {
-			var name = app.user.get('name');
-			var avatar = app.user.get('avatar');
-
-			var buf = '';
-			buf += '<p>' + (avatar ? '<img class="trainersprite" src="' + Tools.resolveAvatar(avatar) + '" width="40" height="40" style="vertical-align:middle;cursor:pointer" />' : '') + '<strong>' + Tools.escapeHTML(name) + '</strong></p>';
-			buf += '<p><button name="avatars">Change avatar</button></p>';
-			if (app.user.get('named')) {
-				var registered = app.user.get('registered');
-				if (registered && (registered.userid === app.user.get('userid'))) {
-					buf += '<p><button name="changepassword">Password change</button></p>';
-				} else {
-					buf += '<p><button name="register">Register</button></p>';
-				}
-			}
-
-			buf += '<hr />';
-			buf += '<p><label class="optlabel">Background: <button name="background">Change background</button></label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="noanim"' + (Tools.prefs('noanim') ? ' checked' : '') + ' /> Disable animations</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="bwgfx"' + (Tools.prefs('bwgfx') ? ' checked' : '') + ' /> Enable BW sprites for XY</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="nopastgens"' + (Tools.prefs('nopastgens') ? ' checked' : '') + ' /> Use modern sprites for past generations</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="notournaments"' + (Tools.prefs('notournaments') ? ' checked' : '') + ' /> Ignore tournaments</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="inchatpm"' + (Tools.prefs('inchatpm') ? ' checked' : '') + ' /> Show PMs in chat rooms</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="selfhighlight"' + (!Tools.prefs('noselfhighlight') ? ' checked' : '') + '> Highlight when your name is said in chat</label></p>';
-
-			if (window.Notification) {
-				buf += '<p><label class="optlabel"><input type="checkbox" name="temporarynotifications"' + (Tools.prefs('temporarynotifications') ? ' checked' : '') + ' /> Temporary notifications</label></p>';
-			}
-
-			var timestamps = this.timestamps = (Tools.prefs('timestamps') || {});
-			buf += '<p><label class="optlabel">Timestamps in chat rooms: <select name="timestamps-lobby"><option value="off">Off</option><option value="minutes"' + (timestamps.lobby === 'minutes' ? ' selected="selected"' : '') + '>[HH:MM]</option><option value="seconds"' + (timestamps.lobby === 'seconds' ? ' selected="selected"' : '') + '>[HH:MM:SS]</option></select></label></p>';
-			buf += '<p><label class="optlabel">Timestamps in PMs: <select name="timestamps-pms"><option value="off">Off</option><option value="minutes"' + (timestamps.pms === 'minutes' ? ' selected="selected"' : '') + '>[HH:MM]</option><option value="seconds"' + (timestamps.pms === 'seconds' ? ' selected="selected"' : '') + '>[HH:MM:SS]</option></select></label></p>';
-			buf += '<p><label class="optlabel">Chat preferences: <button name="formatting">Edit formatting</button></label></p>';
-
-			if (window.nodewebkit) {
-				buf += '<hr />';
-				buf += '<h3>Desktop app</h3>';
-				buf += '<p><label class="optlabel"><input type="checkbox" name="logchat"' + (Tools.prefs('logchat') ? ' checked' : '') + '> Log chat</label></p>';
-				buf += '<p id="openLogFolderButton"' + (Storage.dir ? '' : ' style="display:none"') + '><button name="openLogFolder">Open log folder</button></p>';
-			}
-
-			buf += '<hr />';
-			if (app.user.get('named')) {
-				buf += '<p class="buttonbar" style="text-align:right"><button name="login"><i class="fa fa-pencil"></i> Change name</button> <button name="logout"><i class="fa fa-power-off"></i> Log out</button></p>';
-			} else {
-				buf += '<p class="buttonbar" style="text-align:right"><button name="login">Choose name</button></p>';
-			}
-			this.$el.html(buf).css('min-width', 160);
-		},
-		openLogFolder: function () {
-			Storage.revealFolder();
-		},
-		setLogChat: function (e) {
-			var logchat = !!e.currentTarget.checked;
-			if (logchat) {
-				Storage.startLoggingChat();
-				$('#openLogFolderButton').show();
-			} else {
-				Storage.stopLoggingChat();
-			}
-			Tools.prefs('logchat', logchat);
-		},
-		setNoanim: function (e) {
-			var noanim = !!e.currentTarget.checked;
-			Tools.prefs('noanim', noanim);
-			Tools.loadSpriteData(noanim || Tools.prefs('bwgfx') ? 'bw' : 'xy');
-		},
-		setBwgfx: function (e) {
-			var bwgfx = !!e.currentTarget.checked;
-			Tools.prefs('bwgfx', bwgfx);
-			Tools.loadSpriteData(bwgfx || Tools.prefs('noanim') ? 'bw' : 'xy');
-		},
-		setNopastgens: function (e) {
-			var nopastgens = !!e.currentTarget.checked;
-			Tools.prefs('nopastgens', nopastgens);
-		},
-		setNotournaments: function (e) {
-			var notournaments = !!e.currentTarget.checked;
-			Tools.prefs('notournaments', notournaments);
-		},
-		setSelfHighlight: function (e) {
-			var noselfhighlight = !e.currentTarget.checked;
-			Tools.prefs('noselfhighlight', noselfhighlight);
-		},
-		setInchatpm: function (e) {
-			var inchatpm = !!e.currentTarget.checked;
-			Tools.prefs('inchatpm', inchatpm);
-		},
-		setTemporaryNotifications: function (e) {
-			var temporarynotifications = !!e.currentTarget.checked;
-			Tools.prefs('temporarynotifications', temporarynotifications);
-		},
-		background: function (e) {
-			app.addPopup(CustomBackgroundPopup);
-		},
-		setTimestampsLobby: function (e) {
-			this.timestamps.lobby = e.currentTarget.value;
-			Tools.prefs('timestamps', this.timestamps);
-		},
-		setTimestampsPMs: function (e) {
-			this.timestamps.pms = e.currentTarget.value;
-			Tools.prefs('timestamps', this.timestamps);
-		},
-		avatars: function () {
-			app.addPopup(AvatarsPopup);
-		},
-		formatting: function () {
-			app.addPopup(FormattingPopup);
-		},
-		login: function () {
-			app.addPopup(LoginPopup);
-		},
-		register: function () {
-			app.addPopup(RegisterPopup);
-		},
-		changepassword: function () {
-			app.addPopup(ChangePasswordPopup);
-		},
-		logout: function () {
-			app.user.logout();
-			this.close();
-		}
-	});
-
-	var FormattingPopup = this.FormattingPopup = Popup.extend({
-		events: {
-			'change input': 'setOption'
-		},
-		initialize: function () {
-			var cur = this.chatformatting = Tools.prefs('chatformatting') || {};
-			var buf = '<p class="optlabel">You can choose to display formatted text as normal text.</p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="bold" ' + (cur.hidebold ? 'checked' : '') + ' /> Suppress **<strong>bold</strong>**</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="italics" ' + (cur.hideitalics ? 'checked' : '') + ' /> Suppress __<em>italics</em>__</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="monospace" ' + (cur.hidemonospace ? 'checked' : '') + ' /> Suppress ``<code>monospace</code>``</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="strikethrough" ' + (cur.hidestrikethrough ? 'checked' : '') + ' /> Suppress ~~<s>strikethrough</s>~~</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="me" ' + (cur.hideme ? 'checked' : '') + ' /> Suppress <code>/me</code> <em>action formatting</em></label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="spoiler" ' + (cur.hidespoiler ? 'checked' : '') + ' /> Suppress spoiler hiding</label></p>';
-			buf += '<p><label class="optlabel"><input type="checkbox" name="links" ' + (cur.hidelinks ? 'checked' : '') + ' /> Suppress clickable links</label></p>';
-			buf += '<p><button name="close">Close</button></p>';
-			this.$el.html(buf);
-		},
-		setOption: function (e) {
-			var name = $(e.currentTarget).prop('name');
-			this.chatformatting['hide' + name] = !!e.currentTarget.checked;
-			Tools.prefs('chatformatting', this.chatformatting);
-		}
-	});
-
-	var AvatarsPopup = this.AvatarsPopup = Popup.extend({
-		type: 'semimodal',
-		initialize: function () {
-			var cur = +app.user.get('avatar');
-			var buf = '';
-			buf += '<p>Choose an avatar or <button name="close">Cancel</button></p>';
-
-			buf += '<div class="avatarlist">';
-			for (var i = 1; i <= 293; i++) {
-				var offset = '-' + (((i - 1) % 16) * 80) + 'px -' + (Math.floor((i - 1) / 16) * 80) + 'px';
-				buf += '<button name="setAvatar" value="' + i + '" style="background-position:' + offset + '"' + (i === cur ? ' class="cur"' : '') + '></button>';
-			}
-			buf += '</div><div style="clear:left"></div>';
-
-			buf += '<p><button name="close">Cancel</button></p>';
-			this.$el.html(buf).css('max-width', 780);
-		},
-		setAvatar: function (i) {
-			app.send('/avatar ' + i);
-			app.send('/cmd userdetails ' + app.user.get('userid'));
-			Tools.prefs('avatar', i);
-			this.close();
 		}
 	});
 
@@ -2897,113 +2372,4 @@
 			this.$('.overlay-warn').remove();
 		}
 	});
-
-	var TabListPopup = this.TabListPopup = Popup.extend({
-		type: 'semimodal',
-		renderRooms: function (rooms) {
-			var buf = '';
-			for (var i = 0; i < rooms.length; i++) buf += app.topbar.renderRoomTab(rooms[i]);
-			return buf;
-		},
-		initialize: function () {
-			var curId = (app.curRoom ? app.curRoom.id : '');
-			var curSideId = (app.curSideRoom ? app.curSideRoom.id : '');
-
-			var buf = '<ul>' + this.renderRooms([app.rooms[''], app.rooms['teambuilder'], app.rooms['ladder']]) + '</ul>';
-			if (app.roomList.length) buf += this.renderRooms(app.roomList);
-			var sideBuf = this.renderRooms(app.sideRoomList);
-			sideBuf += '<li><a class="button' + (curId === 'rooms' || curSideId === 'rooms' ? ' cur' : '') + '" href="' + app.root + 'rooms"><i class="fa fa-plus"></i> <span>&nbsp;</span></a></li>';
-			if (sideBuf) {
-				buf += '<ul>' + sideBuf + '</ul>';
-			}
-			this.$el.addClass('tablist').html(buf);
-		},
-		events: {
-			'click a': 'click'
-		},
-		click: function (e) {
-			if (e.cmdKey || e.metaKey || e.ctrlKey) return;
-			e.preventDefault();
-			var $target = $(e.currentTarget);
-			var id = $target.attr('href');
-			if (id.substr(0, app.root.length) === app.root) {
-				id = id.substr(app.root.length);
-			}
-			if ($target.hasClass('closebutton')) {
-				app.leaveRoom(id);
-				this.initialize();
-			} else {
-				this.close();
-				app.focusRoom(id);
-			}
-		}
-	});
-
-	var CustomBackgroundPopup = this.CustomBackgroundPopup = Popup.extend({
-		events: {
-			'change input[name=bgfile]': 'setBgFile'
-		},
-		initialize: function () {
-			var buf = '';
-			var cur = Storage.bg.id;
-			buf += '<p><strong>Default</strong></p>';
-			buf += '<div class="bglist">';
-
-			buf += '<button name="setBg" value=""' + (!cur ? ' class="cur"' : '') + '><strong style="background:#888888;color:white;padding:16px 18px;display:block;font-size:12pt">' + (location.host === 'play.pokemonshowdown.com' ? 'Random' : 'Default') + '</strong></button>';
-
-			buf += '</div><div style="clear:left"></div>';
-			buf += '<p><strong>Official</strong></p>';
-			buf += '<div class="bglist">';
-			var bgs = ['lotid', 'charizards', 'horizon', 'waterfall', 'ocean', 'shaymin'];
-
-			buf += '<button name="setBg" value="lotid"' + (cur === 'lotid' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 5) + 'px"></span>Lotid</button>';
-			buf += '<button name="setBg" value="charizards"' + (cur === 'charizards' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 0) + 'px"></span>Charizards</button>';
-			buf += '<button name="setBg" value="horizon"' + (cur === 'horizon' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 1) + 'px"></span>Horizon</button>';
-			buf += '<button name="setBg" value="waterfall"' + (cur === 'waterfall' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 2) + 'px"></span>Waterfall</button>';
-			buf += '<button name="setBg" value="ocean"' + (cur === 'ocean' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 3) + 'px"></span>Ocean</button>';
-			buf += '<button name="setBg" value="shaymin"' + (cur === 'shaymin' ? ' class="cur"' : '') + '><span class="bg" style="background-position:0 -' + (90 * 4) + 'px"></span>Shaymin</button>';
-			buf += '<button name="setBg" value="solidblue"' + (cur === 'solidblue' ? ' class="cur"' : '') + '><span class="bg" style="background: #344b6c"></span>Solid blue</button>';
-
-			buf += '</div><div style="clear:left"></div>';
-			buf += '<p><strong>Custom</strong></p>';
-			buf += '<p>Drag and drop an image to PS (the background settings don\'t need to be open), or upload:</p>';
-			buf += '<p><input type="file" accept="image/*" name="bgfile"></p>';
-			buf += '<p class="bgstatus"></p>';
-
-			buf += '<p><button name="close"><strong>Done</strong></button></p>';
-			this.$el.css('max-width', 448).html(buf);
-			this.$el.html(buf);
-		},
-		setBg: function (bgid) {
-			var bgUrl = (bgid === 'solidblue' ? '#344b6c' : '/fx/client-bg-' + bgid + '.jpg');
-			Storage.bg.set(bgUrl, bgid);
-			this.$('.cur').removeClass('cur');
-			this.$('button[value="' + bgid + '"]').addClass('cur');
-		},
-		setBgFile: function (e) {
-			$('.bgstatus').text('Changing background image...');
-			var file = e.currentTarget.files[0];
-			CustomBackgroundPopup.readFile(file, this);
-		}
-	});
-	CustomBackgroundPopup.readFile = function (file, popup) {
-		var reader = new FileReader();
-		reader.onload = function (e) {
-			var noSave = false;
-			if (String(e.target.result).length > 4200000) {
-				if (popup) {
-					$('.bgstatus').html('<strong style="background:red;color:white;padding:1px 4px;border-radius:4px;display:block">Image is too large and can\'t be saved. It should be under 3.5MB or so.</strong>');
-				} else {
-					app.addPopupMessage("Image is too large and can't be saved. It should be under 3.5MB or so.");
-				}
-				noSave = true;
-			} else if (popup) {
-				$('.bgstatus').html('Saved');
-				popup.$('.cur').removeClass('cur');
-			}
-			Storage.bg.set(e.target.result, 'custom', noSave);
-		};
-		reader.readAsDataURL(file);
-	};
-
 }).call(this, jQuery);

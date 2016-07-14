@@ -13,7 +13,6 @@ body {
 	font-size: 11pt;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 
-	/* license: CC-BY source: http://commons.wikimedia.org/wiki/File:%22La_piedra%22_(2809466426).jpg */
 	background: #344b6c url(../fx/client-bg-lotid.jpg) no-repeat left center fixed;
   -webkit-background-size: cover;
   -moz-background-size: cover;
@@ -60,19 +59,14 @@ body {
 	box-shadow: inset 0px 1px 2px #D2D2D2, 1px 1px 0 rgba(255,255,255,.6);
 	background: #FFFFFF;
 }
-.textbox:focus {
+.textbox:focus,
+.button:focus {
 	outline: 0 none;
-	border: 1px solid #004488;
+	border-color: #004488;
 	box-shadow: inset 0px 1px 2px #D2D2D2, 0px 0px 5px #2266AA;
+}
+.textbox:focus {
 	background: #FFFFFF;
-}
-a.subtle {
-	text-decoration: none;
-	color: black;
-}
-a.subtle:hover {
-	text-decoration: underline;
-	color: #6688CC;
 }
 .buttonbar {
 	margin-top: 1em;
@@ -85,6 +79,73 @@ hr {
 	border-left: 0;
 	border-right: 0;
 }
+
+button {
+	cursor: pointer;
+}
+button:disabled {
+	cursor: default;
+}
+
+.dark a {
+	color: #4488EE;
+}
+.dark a:visited {
+	color: #AA81F2;
+}
+.dark a.button {
+	color: #222222;
+}
+.dark a.button.subtle-notifying {
+	color: #AA6600;
+}
+
+.dark .textbox {
+	border-color: #888888;
+
+	box-shadow: none;
+	background: #282B2D;
+	color: #DDD;
+}
+.dark .textbox:hover {
+	border-color: #BBBBBB;
+	box-shadow: none;
+	background: #222222;
+}
+.dark .textbox:focus,
+.dark .button:focus {
+	outline: 0 none;
+	border-color: #BBBBBB;
+	box-shadow: 0px 0px 4px #88CCFF, 0px 0px 4px #88CCFF;
+}
+.dark .textbox:focus {
+	background: #111111;
+}
+
+/* .dark button {
+	background: #777777;
+	box-shadow: none;
+	border: 1px solid #EEEEEE;
+	color: #EEEEEE;
+	border-radius: 5px;
+}
+.dark .button {
+	background: #777777;
+	box-shadow: none;
+	border-color: 1px solid #EEEEEE;
+	text-shadow: none;
+	color: #EEEEEE;
+}
+.dark .button:hover {
+	background: #555555;
+}
+
+.dark .closebutton,
+.dark .minimizebutton,
+.dark button.subtle {
+	background: none;
+	border: none;
+} */
 
 /*********************************************************
  * Header
@@ -106,8 +167,8 @@ hr {
 
 .userbar {
 	position: absolute;
-	top: 14px;
-	right: 14px;
+	top: 12px;
+	right: 12px;
 	font-weight: bold;
 }
 .userbar .username {
@@ -117,13 +178,10 @@ hr {
 .username {
 	cursor: pointer;
 }
-.userbar button {
-	cursor: pointer;
-}
 .userbar button.icon {
-	height: 21px;
-	width: 23px;
-	font-size: 14px;
+	height: 25px;
+	width: 27px;
+	font-size: 16px;
 	text-align: center;
 	padding: 0;
 }
@@ -197,7 +255,6 @@ hr {
 	cursor: pointer;
 	text-align: center;
 	text-decoration: none;
-	text-shadow: 0 1px 0 rgba(255,255,255,.4);
 	border-radius: 5px;
 	-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2), inset 0 -1px 2px rgba(255,255,255,1);
 	-moz-box-shadow: 0 1px 2px rgba(0,0,0,.2), inset 0 -1px 2px rgba(255,255,255,1);
@@ -235,6 +292,23 @@ hr {
 .popupmenu button.button:active {
 	background: linear-gradient(to bottom,  #cfcfcf,  #f2f2f2);
 }
+
+.button.disabled,
+.button.disabled:hover,
+.button.disabled:active,
+.mainmenuwrapper .menugroup .button.disabled,
+.mainmenuwrapper .menugroup .button.disabled:hover,
+.mainmenuwrapper .menugroup .button.disabled:active {
+	cursor: default;
+	background: #EEEEEE;
+	border-color: #CCCCCC;
+	border-style: solid;
+	border-size: 1px;
+	color: #999999;
+	text-shadow: none;
+	box-shadow: 0 1px 2px rgba(0,0,0,.1);
+}
+
 .button.notifying {
 	border-color: #AA8866;
 	background: #e3c3a3;
@@ -327,15 +401,16 @@ hr {
 }
 .tabbar .closebutton {
 	display: inline-block;
-	margin: 0 0 0 -18px;
-	width: 18px;
-	top: 5px;
+	margin: 0 0 0 -17px;
+	width: 17px;
+	text-align: left;
+	top: 3px;
 	vertical-align: top;
 	position: relative;
 	z-index: 11;
 }
 .tabbar a.cur + .closebutton {
-	top: 4px;
+	top: 2px;
 }
 .closebutton,
 .minimizebutton {
@@ -537,12 +612,11 @@ p.or:after {
 }
 .popupmenu button {
 	display: block;
-	cursor: pointer;
 	font-size: 8pt;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
 	margin: 0 0 0 6px;
-	padding: 3px 4px;
-	border: 0;
+	padding: 2px 3px;
+	border: 1px solid transparent;
 	border-radius: 2px;
 	background: transparent;
 	color: black;
@@ -566,33 +640,28 @@ p.or:after {
 }
 
 .popupmenu button.sel {
-	padding: 2px 3px;
-	border: 1px solid #AAAAAA;
+	border-color: #AAAAAA;
 	white-space: nowrap;
 	overflow: hidden;
 }
 .popupmenu button:hover,
 .popupmenu button.sel:hover {
-	padding: 2px 3px;
-	border: 1px solid #888888;
+	border-color: #888888;
 	background: #D5D5D5;
+	color: black;
 }
 .popupmenu button.button {
 	margin: 2px auto 5px;
 	width: 184px;
 }
-.popupmenu button.button:hover,
-.popupmenu button.button.sel:hover {
-	padding: 3px 4px;
-}
 .select, .team {
-	cursor: pointer;
 	width: 230px;
 	height: 32px;
 	padding: 0 5px;
 	font-size: 9pt;
 	text-align: left;
 	font-family: Verdana, Helvetica, Arial, sans-serif;
+	cursor: pointer;
 
 	border-radius: 4px;
 	border: 1px solid #888888;
@@ -608,9 +677,25 @@ p.or:after {
 	box-shadow: inset 0px 1px 2px #D2D2D2, 0px 0px 5px #2266AA;
 }
 .select.teamselect {
-	height: 43px;
+	height: 50px;
 	white-space: nowrap;
 	overflow: hidden;
+}
+.teamselect strong {
+	display: block;
+	font-size: 8pt;
+	margin-right: 15px;
+	text-align: center;
+}
+.teamselect:disabled strong {
+	color: #777777;
+}
+.teamselect small {
+	margin: -1px 0 0 -3px;
+	display: block;
+}
+.teamselect small .picon {
+	margin: 0 -3px;
 }
 .select:hover, .team.team-hover {
 	border-color: #555555;
@@ -638,7 +723,10 @@ p.or:after {
 	box-shadow: none;
 }
 .select:disabled:after {
-	content: "";
+	color: #AAAAAA;
+}
+.select:disabled small {
+	opacity: 0.7;
 }
 .select.preselected,
 .select:disabled.preselected {
@@ -709,7 +797,10 @@ p.or:after {
 	min-height: 2px;
 }
 .pm-window {
-	margin-bottom: 12px;
+	margin: 0 -12px 12px -10px;
+}
+.tiny-layout .pm-window {
+	margin: 0 0 12px 0;
 }
 .pm-window h3 {
 	background: rgba(248,248,248,.8);
@@ -918,20 +1009,6 @@ p.or:after {
 .button.mainmenu6:hover { background: linear-gradient(to bottom,  hsl(270,40%,62%),  hsl(270,40%,42%)); }
 .button.mainmenu6:active { background: linear-gradient(to bottom,  hsl(270,40%,42%),  hsl(300,40%,58%)); }
 
-.mainmenuwrapper .menugroup .button.disabled,
-.mainmenuwrapper .menugroup .button.disabled:hover,
-.mainmenuwrapper .menugroup .button.disabled:active,
-.mainmenuwrapper .menugroup .button.disabled,
-.mainmenuwrapper .menugroup .button.disabled:hover,
-.mainmenuwrapper .menugroup .button.disabled:active {
-	cursor: default;
-	background: #EEEEEE;
-	border: 1px solid #CCCCCC;
-	color: #999999;
-	text-shadow: none;
-	box-shadow: 0 1px 2px rgba(0,0,0,.1);
-}
-
 .rightmenu {
 	width: 294px;
 }
@@ -971,6 +1048,7 @@ p.or:after {
 	text-align: left;
 	font-size: 9pt;
 	background: #EEEEEE;
+	color: #111111;
 }
 .ladder span {
 	color: gray;
@@ -1008,7 +1086,19 @@ p.or:after {
 	font-size: 18pt;
 	font-weight: normal;
 }
+.roomcounters .icon-left {
+	display: inline-block;
+	vertical-align: middle;
+	transform:scaleX(-1);
+	webkit-transform:scaleX(-1);
+}
+.roomcounters .icon-right {
+	display: inline-block;
+	vertical-align: middle;
+}
+
 .roomlist {
+	max-width: 480px;
 	text-align: left;
 }
 .roomlist a.ilink {
@@ -1016,13 +1106,12 @@ p.or:after {
 	margin: 2px 7px 4px 7px;
 	padding: 1px 4px 2px 4px;
 	border: 1px solid #BBCCDD;
-	background: #F8FBFD;
+	background: rgba(248, 251, 253, 0.5);
 
 	border-radius: 4px;
 	text-decoration: none;
 	color: #336699;
 	text-shadow: #ffffff 0px -1px 0;
-	box-shadow: 1px 1px 1px #D5D5D5;
 	cursor: pointer;
 	font-size: 10pt;
 
@@ -1033,8 +1122,8 @@ p.or:after {
 	font-size: 8pt;
 }
 .roomlist a.ilink:hover {
-	border-color: #8899AA;
-	background: #F1F4F9;
+	border-color: #778899;
+	background: #E5EAED;
 	color: #224466;
 	text-decoration: none;
 }
@@ -1307,13 +1396,16 @@ a.ilink.yours {
 	border-width: 0;
 }
 .tournament-bracket-table-cell-result-win {
-	background-color: rgba(0, 255, 0, 0.2)
+	background-color: rgba(128, 196, 128, 0.7);
+	color: black;
 }
 .tournament-bracket-table-cell-result-draw {
-	background-color: rgba(255, 255, 0, 0.2)
+	background-color: rgba(255, 196, 128, 0.7);
+	color: black;
 }
 .tournament-bracket-table-cell-result-loss {
-	background-color: rgba(255, 0, 0, 0.2)
+	background-color: rgba(255, 128, 128, 0.7);
+	color: black;
 }
 
 .tournament-bracket-tree-link {
@@ -1326,20 +1418,24 @@ a.ilink.yours {
 }
 .tournament-bracket-tree-node > rect {
 	/* Note: Due to SVG limitations, dimensions and border radii are in client-chat-tournament.js (nodeSize) */
-	fill: rgba(74, 77, 80, 0.2);
+	fill: rgba(178, 194, 210, 0.7);
 	stroke: rgba(74, 77, 80, 0.7);
+	color: black;
 }
 .tournament-bracket-tree-node-win > rect {
-	fill: rgba(0, 128, 0, 0.2);
+	fill: rgba(128, 196, 128, 0.7);
 	stroke: rgba(0, 128, 0, 0.7);
+	color: black;
 }
 .tournament-bracket-tree-node-draw > rect {
-	fill: rgba(255, 128, 0, 0.2);
+	fill: rgba(255, 196, 128, 0.7);
 	stroke: rgba(255, 128, 0, 0.7);
+	color: black;
 }
 .tournament-bracket-tree-node-loss > rect {
-	fill: rgba(255, 0, 0, 0.2);
+	fill: rgba(255, 128, 128, 0.7);
 	stroke: rgba(255, 0, 0, 0.7);
+	color: black;
 }
 .tournament-bracket-tree-node > text {
 	font-size: 0.8em;
@@ -1504,7 +1600,6 @@ a.ilink.yours {
 	white-space: nowrap;
 	font: 9pt Verdana, sans-serif;
 	text-align: left;
-	cursor: pointer;
 }
 /* Remove Firefox's magic padding */
 .userlist li button::-moz-focus-inner {
@@ -1580,16 +1675,14 @@ a.ilink.yours {
 .battle-chat-toggle {
 	display: none;
 }
-@media (max-width:639px) {
-	.ps-room .battle-controls {
-		left: 0;
-		right: 0;
-		width: auto;
-	}
-	.movecontrols, .switchcontrols {
-		max-width: 330px;
-		margin: 0 auto;
-	}
+.tiny-layout.ps-room .battle-controls {
+	left: 0;
+	right: 0;
+	width: auto;
+}
+.tiny-layout .movecontrols, .tiny-layout .switchcontrols {
+	max-width: 330px;
+	margin: 0 auto;
 }
 
 .battle-controls p {
@@ -1616,30 +1709,30 @@ a.ilink.yours {
 	color: #EE4433;
 	border-color: #EE4433;
 }
-@media (max-width:750px) {
-	.battle-log,
-	.battle-log-add {
-		display: none;
-	}
+.small-layout .battle-log,
+.small-layout .battle-log-add {
+	display: none;
 }
-@media (max-width:830px) {
-	.battle-chat-toggle {
-		display: block;
-		position: absolute;
-		top: 5px;
-		left: 6px;
-		font-size: 14px;
-		padding: 2px 5px;
-	}
-	.showing-chat .battle,
-	.showing-chat .battle-controls {
-		display: none;
-	}
-	.showing-chat .battle-log,
-	.showing-chat .battle-log-add {
-		left: 0;
-		display: block;
-	}
+.small-layout .battle-chat-toggle {
+	display: block;
+	position: absolute;
+	top: 4px;
+	left: 6px;
+	font-size: 14px;
+	padding: 3px 6px;
+}
+.small-layout .battle-chat-toggle[name=showChat] {
+	left: auto;
+	right: 6px;
+}
+.small-layout.showing-chat .battle,
+.small-layout.showing-chat .battle-controls {
+	display: none;
+}
+.small-layout.showing-chat .battle-log,
+.small-layout.showing-chat .battle-log-add {
+	left: 0;
+	display: block;
 }
 .shiftselect button,
 .moveselect button,
@@ -1652,11 +1745,10 @@ a.ilink.yours {
 	font-size: 12pt;
 	display: block;
 	margin: 0;
-	padding: 9px 7px 1px 7px;
+	padding: 9px 7px 0 7px;
 }
 .shiftselect button {
 	color: #445588;
-	cursor: pointer;
 }
 .moveselect button {
 	color: #884422;
@@ -1670,16 +1762,16 @@ a.ilink.yours {
 	position: relative;
 	display: block;
 	float: left;
-	width: 100px;
-	margin-right: 6px;
+	width: 102px;
+	margin-right: 4px;
 	font: 9pt Verdana, sans-serif;
 	padding: 5px 5px 5px 0;
 	white-space: pre;
 	overflow: hidden;
 }
-.switchmenu button .pokemonicon {
+.switchmenu button .picon {
 	float: left;
-	margin: -4px 0;
+	margin: -6px -3px -6px -4px;
 	opacity: 0.8;
 }
 .switchmenu button .hpbar {
@@ -1688,9 +1780,9 @@ a.ilink.yours {
 	border: 1px solid #AAA;
 	background: #EEE;
 	height: 2px;
-	bottom: 2px; left: 2px; right: 2px;
+	bottom: 2px; left: 4px; right: 2px;
 	border-radius: 2px;
-	opacity: .6;
+	opacity: .8;
 }
 
 /* The declaration order of these three hpbar* classes is significant. */
@@ -1749,8 +1841,8 @@ a.ilink.yours {
 .movemenu button {
 	float: left;
 	display: block;
-	width: 153px;
-	margin-right: 6px;
+	width: 155px;
+	margin-right: 4px;
 	height: 40px;
 	font: 10pt/100% Verdana, sans-serif;
 	position: relative;
@@ -1772,10 +1864,10 @@ a.ilink.yours {
 .megaevo {
     clear: both;
     display: block;
-    width: 220px;
-    margin: 0 auto 10px;
+    width: 180px;
+    margin: 0 auto 0;
     position: relative;
-    top: 7px;
+    top: 6px;
     left: -7px;
     padding: 2px;
     text-align: center;
@@ -1785,7 +1877,7 @@ a.ilink.yours {
     border-radius: 3px;
     color: #333;
     background: #EEF2F5;
-    font-size: 11pt;
+    font-size: 10pt;
     font-weight: bold;
 }
 .megaevo:hover {
@@ -1798,22 +1890,21 @@ a.ilink.yours {
 .movemenu {
 	display: block;
 	margin-right: -10px;
-	padding-left: 5px;
+	padding-left: 4px;
 }
 .switchmenu button,
 .movemenu button {
 	position: relative;
 	outline: none;
-	cursor: pointer;
 	text-align: center;
 	text-decoration: none;
 	text-shadow: 0 1px 0 rgba(255,255,255,.4);
 	border-radius: 5px;
-	margin-top: 2px;
+	margin-top: 4px;
 	box-shadow: 0 1px 2px rgba(0,0,0,.2), inset 0 -1px 2px rgba(255,255,255,1);
 
 	/* default colors */
-	color: #111111;
+	color: #000000;
 	border: solid 1px #AAAAAA;
 	background: #e3e3e3;
 	background: linear-gradient(to bottom,  #f6f6f6,  #e3e3e3);
@@ -1897,7 +1988,6 @@ a.ilink.yours {
 		bottom: 20px;
 	}
 	.moveselect button, .switchselect button, .shiftselect button {
-		cursor: pointer;
 		padding: 4px 8px;
 		border-radius: 6px;
 		background: #E5E5E5;
@@ -2067,6 +2157,7 @@ a.ilink.yours {
 	height: 17px;
 	font-size: 9pt;
 	background: #d7e3ec;
+	color: black;
 	border-right: 1px solid #888888;
 }
 .folder .selectFolder {
@@ -2162,20 +2253,16 @@ a.ilink.yours {
 	visibility: hidden;
 }
 .teamlist .dragging .team {
-	visibility: visible;
-	background: #b7c3cc;
-	border-color: #b7c3cc;
-	color: #b7c3cc;
-	box-shadow: none;
-}
-.teamlist .dragging .team small {
-	display: none;
+	opacity: 0.4;
 }
 .teamlist .team small {
 	display: block;
-	padding: 3px 69px 0 69px;
+	padding: 0 45px 0 55px;
 }
-.teamlist .team .pokemonicon span {
+.teamlist .team .picon {
+	margin: 0 -2px;
+}
+.teamlist .team .picon span {
 	font-size: 9px !important;
 	display: block;
 	overflow: visible;
@@ -2221,16 +2308,16 @@ a.ilink.yours {
 	border: 1px solid #AAAAAA;
 	padding: 0;
 	margin: -1px 2px 0 0;
-	height: 42px;
+	height: 44px;
 	float: left;
 	width: 88px;
-	cursor: pointer;
 	white-space: pre;
 	font-size: 8pt;
 	font-family: Verdana, Arial, sans-serif;
+	overflow: hidden;
 }
-.teambar button .pokemonicon {
-	margin: 0 auto;
+.teambar button span {
+	margin: -2px auto;
 }
 .teambar button:hover {
 	background: #DCDCDC;
@@ -2289,7 +2376,6 @@ a.ilink.yours {
 }
 .setmenu button,
 .teamlist button {
-	cursor: pointer;
 	background: transparent;
 	border: 1px solid transparent;
 	border-radius: 4px;
@@ -2327,18 +2413,12 @@ a.ilink.yours {
 }
 .setchart {
 	border: 1px solid #999999;
-	background: #DAE5F0;
+	background: #DAE5F0 no-repeat scroll 10px 5px none;
 	border-radius: 5px;
 	padding: 2px 0 0 3px;
 	height: 127px;
 	width: 626px;
 	margin-top: 8px;
-
-	background-image: linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
-	background-image: -o-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
-	background-image: -moz-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
-	background-image: -webkit-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
-	background-image: -ms-linear-gradient(top, rgb(218,229,240) 10%, rgb(203,214,225) 55%);
 
 	box-shadow: inset 1px 1px 0 rgba(255,255,255,.6);
 }
@@ -2370,6 +2450,8 @@ a.ilink.yours {
 	height: 24px;
 	background-image: transparent none no-repeat scroll center center;
 	opacity: 0.8;
+	position: relative;
+	left: 28px;
 }
 .setcell-pokemon {
 	margin-top: 0;
@@ -2387,8 +2469,9 @@ a.ilink.yours {
 	font-weight: bold;
 	color: #555555;
 	padding-left: 2px;
-
-	text-shadow: 1px 1px 0 rgba(255,255,255,.6);
+}
+.setcol-icon label {
+	text-shadow: #DAE5F0 1px 1px 0, #DAE5F0 1px -1px 0, #DAE5F0 -1px 1px 0, #DAE5F0 -1px -1px 0;
 }
 .setchart-nickname label {
 	font-size: 7pt;
@@ -2409,7 +2492,6 @@ a.ilink.yours {
 	padding: 1px;
 	margin: 2px 2px 1px 1px;
 	font-size: 7pt;
-	cursor: pointer;
 
 	box-shadow: inset 0px 1px 2px #CCCCCC, 1px 1px 0 rgba(255,255,255,.6);
 	background: #F8FBFD;
@@ -2423,7 +2505,8 @@ a.ilink.yours {
 	box-shadow: inset 0px 1px 2px #D2D2D2, 1px 1px 0 rgba(255,255,255,.6);
 	background: #FFFFFF;
 }
-.setdetails:focus, .setstats:focus {
+.setdetails:focus, .setstats:focus,
+.dark .setdetails:focus, .dark .setstats:focus {
 	border: 2px solid #004488;
 	margin: 1px 1px 0 0;
 	outline: 0 none;
@@ -2465,6 +2548,7 @@ a.ilink.yours {
 .setstats {
 	width: 138px;
 	height: 108px;
+	padding-right: 0;
 }
 .setstats:focus,.setstats:active {
 	width: 140px;
@@ -2528,35 +2612,10 @@ a.ilink.yours {
 .setchart-nickname input,
 .statform input.inputform {
 	display: block;
-	border: 1px solid #AAAAAA;
-	border-radius: 3px;
 	padding: 1px;
 	margin: 2px 3px 1px 1px;
-	font-family: Verdana, sans-serif;
-	font-size: 9pt;
 	width: 104px;
 	height: 20px;
-
-	box-shadow: inset 0px 1px 2px #CCCCCC, 1px 1px 0 rgba(255,255,255,.6);
-	background: #F8FBFD;
-	color: black;
-}
-.setchart input:hover,
-.setchart-nickname input:hover,
-.statform input.inputform:hover,
-.textbox:hover {
-	border-color: #474747;
-	box-shadow: inset 0px 1px 2px #D2D2D2, 1px 1px 0 rgba(255,255,255,.6);
-	background: #FFFFFF;
-}
-.setchart input:focus,
-.setchart-nickname input:focus,
-.statform input.inputform:focus,
-.textbox:focus {
-	outline: 0 none;
-	border: 1px solid #004488;
-	box-shadow: inset 0px 1px 2px #D2D2D2, 0px 0px 5px #2266AA;
-	background: #FFFFFF;
 }
 .setchart input.incomplete {
 	color: #CC3311;
@@ -2580,10 +2639,11 @@ a.ilink.yours {
 
 .teambuilder-clipboard-container {
 	height: 52px;
-	max-width: 560px;
+	max-width: 455px;
 	font-size: 8pt;
 	padding: 4px;
 	position: relative;
+	margin: auto;
 
 	border: 1px solid #FFAA00;
 	border-radius: 5px;
@@ -2594,7 +2654,7 @@ a.ilink.yours {
 	font-weight: bold;
 
 	position: absolute;
-	top: 4px;
+	bottom: 4px;
 	left: 8px;
 }
 .teambuilder-clipboard-data {
@@ -2659,7 +2719,7 @@ a.ilink.yours {
 }
 .teambuilder-clipboard-buttons {
 	display: block;
-	width: 520px;
+	width: 385px;
 
 	position: absolute;
 	top: 34px;
@@ -2690,6 +2750,11 @@ a.ilink.yours {
 		bottom: auto;
 		overflow-y: visible;
 		background: #EEF2F5;
+		color: black;
+	}
+	.dark .teambuilder-results {
+		background: #0E1215;
+		color: #DDD;
 	}
 }
 @media (max-width:639px) {
@@ -2697,12 +2762,17 @@ a.ilink.yours {
 		bottom: auto;
 		overflow-y: visible;
 		background: #EEF2F5;
+		color: black;
+	}
+	.dark .teambuilder-results {
+		background: #0E1215;
+		color: #DDD;
 	}
 }
 
 .teamchartbox {
 	position: absolute;
-	top: 40px;
+	top: 42px;
 	left: 0;
 	bottom: 0;
 	right: 0;
@@ -2722,9 +2792,16 @@ a.ilink.yours {
 .teamchartbox.individual {
 	overflow: visible;
 }
+.teamchartbox.individual .teamchart {
+	margin-top: -2px;
+}
 .teambuilder-results .result a {
 	border-radius: 4px;
 	cursor: pointer;
+}
+.teambuilder-results .result a.cur {
+	border-color: #555555;
+	background: rgba(248, 248, 248, 0.4);
 }
 .teambuilder-results .result a:hover,
 .teambuilder-results .result a.hover {
@@ -2733,8 +2810,8 @@ a.ilink.yours {
 }
 .teambuilder-results .result a.cur:hover,
 .teambuilder-results .result a.cur.hover {
-	border-color: #CCCCCC;
-	background: #F2F2F2;
+	border-color: #555555;
+	background: #F8F8F8;
 }
 
 .teambuilder-results .resultheader h3 {
@@ -2839,6 +2916,29 @@ a.ilink.yours {
 	width: 95px;
 	text-align: right;
 }
+.changeform {
+	cursor: pointer;
+}
+.changeform i{
+	cursor: pointer;
+	display: block;
+	margin: -12px 0 -6px 0;
+	padding-left: 4px;
+	padding-top: 2px;
+	width: 12px;
+	height: 14px;
+	position: relative;
+	left: 90px;
+	border: 1px solid #569;
+	border-radius: 2px;
+	color: #569;
+	box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.altform {
+	margin-left: 10px;
+	margin-top: 4px;
+}
+
 
 /*********************************************************
  * Popups
@@ -2879,16 +2979,16 @@ a.ilink.yours {
 	margin: 0 -7px;
 }
 .avatarlist button,
+.formlist button,
 .bglist button {
 	display: block;
 	float: left;
 	margin: 2px;
 	padding: 2px;
 
-	border: 1px solid #E1E8E8;
+	border: 1px solid transparent;
 	border-radius: 4px;
 	box-shadow: none;
-	cursor: pointer;
 	background: transparent;
 }
 .avatarlist button {
@@ -2903,11 +3003,14 @@ a.ilink.yours {
 	background: url(../fx/client-bgsheet.png) no-repeat scroll 0px 0px;
 }
 .avatarlist button.cur,
+.formlist button.cur,
 .bglist button.cur {
 	border-color: #999999;
 }
 .avatarlist button:hover,
 .avatarlist button.cur:hover,
+.formlist button:hover,
+.formlist button.cur:hover,
 .bglist button:hover,
 .bglist button.cur:hover {
 	border: 1px solid #8899AA;
@@ -2935,6 +3038,250 @@ a.ilink.yours {
 
 .preview {
 	float: right;
+}
+
+/*********************************************************
+ * Dark mode!
+ *********************************************************/
+
+.dark .header {
+	background: rgba(0,0,0,.30);
+}
+
+.dark .ps-room.ps-room-light,
+.dark .tournament-box,
+.dark .tournament-status,
+.dark .tournament-toggle,
+.dark .pm-log-add {
+	background: rgba(0,0,0,.70);
+	color: #DDD;
+}
+
+.dark .pm-log {
+	background: rgba(0,0,0,.85);
+	color: #DDD;
+}
+
+.dark .userlist-maximized {
+	background: #333333;
+	color: #DDD;
+}
+.dark .ps-room.ps-room-opaque,
+.dark .battle-log-add,
+.dark .battle-controls {
+	background: #444444;
+	color: #DDD;
+}
+.dark .userlist-minimized {
+	background: #444444;
+	color: #4488EE;
+}
+.dark .userlist-minimized .userlist-count:hover,
+.dark .userlist-maximized .userlist-count:hover {
+	background: #666666;
+}
+
+.dark .moveselect button {
+	color: #AA6644;
+}
+.dark .switchselect button {
+	color: #6677AA;
+}
+.dark .whatdo {
+	color: #999999;
+}
+
+.dark .chat-log {
+	background: rgba(0,0,0,.5);
+	color: #DDD;
+}
+
+.dark .userbar .username {
+	color: #DDD;
+	text-shadow: 1px 1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, -1px -1px 0 #000;
+}
+
+/* popups */
+
+.dark .ps-popup {
+	background: #0D151E;
+	color: #DDD;
+	border-color: #888;
+
+	box-shadow: 2px 2px 3px rgba(0,0,0,.2);
+}
+
+.dark .popupmenu button,
+.dark .bglist button,
+.dark .avatarlist button {
+	color: #AAA;
+	box-shadow: none;
+}
+.dark .popupmenu button:hover,
+.dark .popupmenu button.sel:hover,
+.dark .bglist button:hover,
+.dark .avatarlist button:hover {
+	border-color: #AAAAAA;
+	background-color: #AAAAAA;
+	color: black;
+}
+.dark .changeform i {
+	border: 1px solid #bbb;
+	color: #bbb;
+}
+
+.dark .ps-overlay {
+	background: rgba(40, 40, 40, .5);
+}
+
+/* semi-generic */
+
+.dark .select, .dark .team {
+	border-color: #888888;
+	box-shadow: inset 0 1px 0 #FFFFFF;
+	background: linear-gradient(to bottom,  #ccd4dc,  #96a3b0);
+	color: black;
+}
+.dark .select:hover, .dark .team.team-hover {
+	border-color: #555555;
+	background: #FFFFFF;
+	background: linear-gradient(to bottom,  #edf2f8,  #d7e3ec);
+}
+.dark .select:active, .dark .team:active {
+	border-color: #777777;
+	background: #DDDDDD;
+	box-shadow: none;
+	background: linear-gradient(to bottom,  #d1dce6,  #e7edf2);
+}
+.dark .select:disabled {
+	border-color: #999999;
+	background: rgba(200,200,200,.65);
+	color: #555555;
+	box-shadow: none;
+}
+
+/* main menu */
+
+.dark .menugroup {
+	background: rgba(0,0,0,.2);
+}
+.dark .pm-window.focused h3,
+.dark .pm-window.focused .pm-log,
+.dark .pm-window.focused .pm-log-add {
+	border-color: #CCC;
+}
+
+/* chat */
+
+.dark .userlist strong,
+.dark .userlist span {
+	text-shadow: 1px 1px 0 #222222;
+}
+.dark .userlist li {
+	border-bottom-color: #444;
+}
+.dark .userlist li button:hover {
+	background: #222222;
+}
+.dark .userlist li button:active {
+	background: black;
+}
+
+.dark .highlighted {
+	background: rgba(255,200,0,0.18);
+}
+.dark .revealed {
+	background: rgba(0,255,200,0.18);
+}
+.dark a.ilink {
+	color: #4488EE;
+}
+
+/* teambuilder */
+
+.dark .folderpane {
+	border-left-color: #77838c;
+}
+
+.dark .folderlist .foldersep:before,
+.dark .folderlistafter:before,
+.dark .folderlistbefore:before,
+.dark .folderpane h3,
+.dark .folder .selectFolder,
+.dark .folderhack1,
+.dark .folderhack2 {
+	background: #77838c;
+}
+
+.dark .folder .selectFolder:hover {
+	background: #67737c;
+}
+.dark .folder .selectFolder.active,
+.dark .folder .selectFolder:active {
+	background: #27333c;
+	color: white;
+}
+
+.dark .folder.cur .selectFolder {
+	background: transparent;
+}
+
+/* teambuilder set */
+
+.dark .setmenu button,
+.dark .teamlist button,
+.dark .folder.cur .selectFolder,
+.dark .utilichart .namecol,
+.dark .utilichart .pokemonnamecol,
+.dark .utilichart .movenamecol {
+	color: #DDD;
+}
+.dark .utilichart .col {
+	color: #999;
+}
+.dark .setmenu button:hover,
+.dark .teamlist button:hover,
+.dark .utilichart a:hover .namecol,
+.dark .utilichart a:hover .pokemonnamecol,
+.dark .utilichart a:hover .movenamecol {
+	color: #555;
+}
+
+.dark .setchart,
+.dark .setchart-nickname {
+	background-color: #5A6570;
+	box-shadow: none;
+}
+.dark .setcol-icon label {
+	text-shadow: #5A6570 1px 1px 0,#5A6570 1px -1px 0,#5A6570 -1px 1px 0,#5A6570 -1px -1px 0;
+}
+.dark .setchart label,
+.dark .setchart-nickname label {
+	color: #BBB;
+}
+
+/* rooms */
+.dark .roomlist a.ilink {
+	box-shadow: none;
+	text-shadow: none;
+}
+
+.dark .roomlist a.ilink {
+	border-color: #7799BB;
+	background: rgba(30, 40, 50, .5);
+	color: #7799BB;
+}
+.dark .roomlist a.ilink:hover {
+	border-color: #AACCEE;
+	background: rgba(30, 40, 50, 1);
+	color: #AACCEE;
+}
+
+/* misc */
+.dark iframe.textbox,
+.dark iframe.textbox:hover,
+.dark iframe.textbox:focus {
+	background: #DDDDDD;
 }
 
 /*********************************************************

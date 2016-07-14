@@ -208,7 +208,13 @@
 				return;
 			}
 
-			this.$teamSelect.html(app.rooms[''].renderTeams.call(this, this.info.format));
+			var teamIndex = -1;
+			if (!forceFormatChange && this.$teamSelect.children().val()) {
+				teamIndex = parseInt(this.$teamSelect.children().val(), 10);
+				if (isNaN(teamIndex)) teamIndex = -1;
+			}
+
+			this.$teamSelect.html(app.rooms[''].renderTeams.call(this, this.info.format, teamIndex));
 			this.$teamSelect.children().data('type', 'teamSelect');
 			this.$teamSelect.children().attr('name', 'tournamentButton');
 			this.$teamSelect.show();
@@ -292,10 +298,10 @@
 					if (joins.length > 0) message.push(arrayToPhrase(joins) + " joined the tournament");
 					if (leaves.length > 0) message.push(arrayToPhrase(leaves) + " left the tournament");
 					this.$lastJoinLeaveMessage.text(message.join("; ") + ".");
-					this.updateTeams();
 					break;
 
 				case 'start':
+					this.room.closeNotification('tournament-create');
 					if (!this.info.isJoined) {
 						this.toggleBoxVisibility(false);
 					} else if (this.info.format.substr(0, 4) === 'gen5' && !Tools.loadedSpriteData['bw']) {
@@ -312,7 +318,8 @@
 					if (data[0] === 'off') {
 						this.room.$chat.append("<div class=\"notice tournament-message-autodq-off\">The tournament's automatic disqualify timer has been turned off.</div>");
 					} else if (data[0] === 'on') {
-						this.room.$chat.append("<div class=\"notice tournament-message-autodq-off\">The tournament's automatic disqualify timer has been set to " + (data[1] / 1000 / 60) + " minutes.</div>");
+						var minutes = (data[1] / 1000 / 60);
+						this.room.$chat.append("<div class=\"notice tournament-message-autodq-off\">The tournament's automatic disqualify timer has been set to " + minutes + " minute" + (minutes === 1 ? "" : "s") + ".</div>");
 					} else {
 						var seconds = Math.floor(data[1] / 1000);
 						app.addPopupMessage("Please respond to the tournament within " + seconds + " seconds or you may be automatically disqualified.");
@@ -324,7 +331,8 @@
 					if (data[0] === 'off') {
 						this.room.$chat.append("<div class=\"notice tournament-message-autostart\">The tournament's automatic start is now off.</div>");
 					} else if (data[0] === 'on') {
-						this.room.$chat.append("<div class=\"notice tournament-message-autostart\">The tournament will automatically start in " + (data[1] / 1000 / 60) + " minutes.</div>");
+						var minutes = (data[1] / 1000 / 60);
+						this.room.$chat.append("<div class=\"notice tournament-message-autostart\">The tournament will automatically start in " + minutes + " minute" + (minutes === 1 ? "" : "s") + ".</div>");
 					}
 					break;
 
@@ -349,7 +357,7 @@
 						this.info.isActive = true;
 					}
 
-					if ('format' in this.updates) {
+					if ('format' in this.updates || 'isJoined' in this.updates) {
 						this.$format.text(window.BattleFormats && BattleFormats[this.info.format] ? BattleFormats[this.info.format].name : this.info.format);
 						this.updateTeams();
 					}
@@ -357,8 +365,6 @@
 						this.$generator.text(this.info.generator);
 					if ('isStarted' in this.updates) {
 						this.$status.text(this.info.isStarted ? "In Progress" : "Signups");
-						if (this.info.isStarted)
-							this.updateTeams();
 					}
 
 					// Update the toolbox
@@ -468,6 +474,7 @@
 					// Fallthrough
 
 				case 'forceend':
+					this.room.closeNotification('tournament-create');
 					this.info = {};
 					this.updates = {};
 					this.savedBracketPosition = {};
@@ -532,6 +539,10 @@
 
 					case 'Full':
 						appendError("The tournament is already at maximum capacity for users.");
+						break;
+
+					case 'AlreadyDisqualified':
+						appendError("This user has already been disqualified.");
 						break;
 
 					default:

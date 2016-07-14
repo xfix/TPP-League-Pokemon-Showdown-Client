@@ -7,7 +7,8 @@
 			if (!this.events) this.events = {};
 			if (!this.events['click .username']) this.events['click .username'] = 'clickUsername';
 			if (!this.events['submit form']) this.events['submit form'] = 'submit';
-			if (!this.events['keydown textarea']) this.events['keydown textarea'] = 'keyPress';
+			if (!this.events['keydown textarea']) this.events['keydown textarea'] = 'keyDown';
+			if (!this.events['keyup textarea']) this.events['keyup textarea'] = 'keyUp';
 			if (!this.events['focus textarea']) this.events['focus textarea'] = 'focusText';
 			if (!this.events['blur textarea']) this.events['blur textarea'] = 'blurText';
 			if (!this.events['click .spoiler']) this.events['click .spoiler'] = 'clickSpoiler';
@@ -27,7 +28,7 @@
 			var name = app.user.get('name');
 			var userid = app.user.get('userid');
 			if (this.expired) {
-				this.$chatAdd.html('This room is expired');
+				this.$chatAdd.text(this.expired === true ? 'This room is expired' : this.expired);
 				this.$chatbox = null;
 			} else if (!name) {
 				this.$chatAdd.html('Connecting...');
@@ -84,22 +85,33 @@
 		submit: function (e) {
 			e.preventDefault();
 			e.stopPropagation();
-			var text;
-			if ((text = this.$chatbox.val())) {
-				if (!$.trim(text)) {
-					this.$chatbox.val('');
-					return;
-				}
-				this.tabComplete.reset();
-				this.chatHistory.push(text);
-				text = this.parseCommand(text);
-				if (text) {
-					this.send(text);
-				}
+			var text = this.$chatbox.val();
+			if (!text) return;
+			if (!$.trim(text)) {
 				this.$chatbox.val('');
+				return;
+			}
+			this.tabComplete.reset();
+			this.chatHistory.push(text);
+			text = this.parseCommand(text);
+			if (this.battle && this.battle.ignoreSpects && app.user.get('userid') !== this.battle.p1.id && app.user.get('userid') !== this.battle.p2.id) {
+				this.add("You can't chat in this battle as you're currently ignoring spectators");
+			} else if (text) {
+				this.send(text);
+			}
+			this.$chatbox.val('');
+			this.$chatbox.trigger('keyup'); // force a resize
+		},
+		keyUp: function (e) {
+			// Android Chrome compose keycode
+			// Android Chrome no longer sends keyCode 13 when Enter is pressed on
+			// the soft keyboard, resulting in this annoying hack.
+			// https://bugs.chromium.org/p/chromium/issues/detail?id=118639#c232
+			if (!e.shiftKey && e.keyCode === 229 && this.$chatbox.val().slice(-1) === '\n') {
+				this.submit(e);
 			}
 		},
-		keyPress: function (e) {
+		keyDown: function (e) {
 			var cmdKey = (((e.cmdKey || e.metaKey) ? 1 : 0) + (e.ctrlKey ? 1 : 0) === 1) && !e.altKey && !e.shiftKey;
 			var textbox = e.currentTarget;
 			if (e.keyCode === 13 && !e.shiftKey) { // Enter key
@@ -315,7 +327,7 @@
 			var substituteUserId = candidate[0];
 			if (!users[substituteUserId]) return true;
 			var name = users[substituteUserId].substr(1);
-			name = name.replace(/[^A-Za-z0-9]+$/, '');
+			name = Tools.getShortName(name);
 			var fullPrefix = this.tabComplete.prefix.substr(0, candidate[1]) + name;
 			$textbox.val(fullPrefix + text.substr(idx));
 			var pos = fullPrefix.length;
@@ -451,7 +463,9 @@
 					this.parseCommand('/help ignore');
 					return false;
 				}
-				if (app.ignore[toUserid(target)]) {
+				if (toUserid(target) === app.user.get('userid')) {
+					this.add("You are not able to ignore yourself.");
+				} else if (app.ignore[toUserid(target)]) {
 					this.add("User '" + toName(target) + "' is already on your ignore list. (Moderator messages will not be ignored.)");
 				} else {
 					app.ignore[toUserid(target)] = 1;
@@ -469,6 +483,15 @@
 				} else {
 					delete app.ignore[toUserid(target)];
 					this.add("User '" + toName(target) + "' no longer ignored.");
+				}
+				return false;
+
+			case 'ignorelist':
+				var ignoreList = Object.keys(app.ignore);
+				if (ignoreList.length === 0) {
+					this.add('You are currently not ignoring anyone.');
+				} else {
+					this.add("You are currently ignoring: " + ignoreList.join(', '));
 				}
 				return false;
 
@@ -538,12 +561,40 @@
 				return false;
 
 			case 'showjoins':
-				this.add('Join/leave messages: ON');
-				Tools.prefs('showjoins', true);
+				var showjoins = Tools.prefs('showjoins') || {};
+				var serverShowjoins = showjoins[Config.server.id] || {};
+				if (target) {
+					var room = toId(target);
+					if (serverShowjoins['global']) {
+						delete serverShowjoins[room];
+					} else {
+						serverShowjoins[room] = 1;
+					}
+					this.add('Join/leave messages on room ' + room + ': ON');
+				} else {
+					serverShowjoins = {global: 1};
+					this.add('Join/leave messages: ON');
+				}
+				showjoins[Config.server.id] = serverShowjoins;
+				Tools.prefs('showjoins', showjoins);
 				return false;
 			case 'hidejoins':
-				this.add('Join/leave messages: HIDDEN');
-				Tools.prefs('showjoins', false);
+				var showjoins = Tools.prefs('showjoins') || {};
+				var serverShowjoins = showjoins[Config.server.id] || {};
+				if (target) {
+					var room = toId(target);
+					if (!serverShowjoins['global']) {
+						delete serverShowjoins[room];
+					} else {
+						serverShowjoins[room] = 0;
+					}
+					this.add('Join/leave messages on room ' + room + ': HIDDEN');
+				} else {
+					serverShowjoins = {global: 0};
+					this.add('Join/leave messages: HIDDEN');
+				}
+				showjoins[Config.server.id] = serverShowjoins;
+				Tools.prefs('showjoins', showjoins);
 				return false;
 
 			case 'showbattles':
@@ -599,7 +650,7 @@
 			case 'highlight':
 				var highlights = Tools.prefs('highlights') || [];
 				if (target.indexOf(',') > -1) {
-					var targets = target.match(/[^,]+(,\d*}[^,]*)?/g);
+					var targets = target.match(/([^,]+?({\d*,\d*})?)+/g);
 					// trim the targets to be safe
 					for (var i = 0, len = targets.length; i < len; i++) {
 						targets[i] = targets[i].replace(/\n/g, '').trim();
@@ -607,6 +658,7 @@
 					switch (targets[0]) {
 					case 'add':
 						for (var i = 1, len = targets.length; i < len; i++) {
+							if (!targets[i]) continue;
 							if (/[\\^$*+?()|{}[\]]/.test(targets[i])) {
 								// Catch any errors thrown by newly added regular expressions so they don't break the entire highlight list
 								try {
@@ -683,66 +735,65 @@
 					act: 'ladderget',
 					user: targets[0]
 				}, Tools.safeJSON(function (data) {
-					try {
-						var buffer = '<div class="ladder"><table>';
-						buffer += '<tr><td colspan="8">User: <strong>' + toName(targets[0]) + '</strong></td></tr>';
-						if (!data.length) {
-							buffer += '<tr><td colspan="8"><em>This user has not played any ladder games yet.</em></td></tr>';
-						} else {
-							buffer += '<tr><th>Format</th><th><abbr title="Elo rating">Elo</abbr></th><th><abbr title="user\'s percentage chance of winning a random battle (aka GLIXARE)">GXE</abbr></th><th><abbr title="Glicko-1 rating: rating±deviation">Glicko-1</abbr></th><th>COIL</th><th>W</th><th>L</th><th>T</th></tr>';
-							var hiddenFormats = [];
-							var formatLength = data.length;
-							for (var i = 0; i < formatLength; i++) {
-								var row = data[i];
-								if (!formatTargeting || formats[row.formatid]) {
-									buffer += '<tr>';
-								} else {
-									buffer += '<tr class="hidden">';
-									hiddenFormats.push(row.formatid);
-								}
-								buffer += '<td>' + row.formatid + '</td><td><strong>' + Math.round(row.elo) + '</strong></td><td>' + Math.round(row.gxe, 1) + '</td><td>';
-								if (row.rprd > 100) {
-									buffer += '<span><em>' + Math.round(row.rpr) + '<small> &#177; ' + Math.round(row.rprd) + '</small></em> <small>(provisional)</small></span>';
-								} else {
-									buffer += '<em>' + Math.round(row.rpr) + '<small> &#177; ' + Math.round(row.rprd) + '</small></em>';
-								}
-								var N = parseInt(row.w, 10) + parseInt(row.l, 10) + parseInt(row.t, 10);
-								if (row.formatid === 'oususpecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -17.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'uberssuspecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -29.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'uususpecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -20.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'rususpecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -9.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'nususpecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -20.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'pususpecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -9.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'lcsuspecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -9.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'doublesoucurrent' || row.formatid === 'doublesoususpecttest') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -12.0 / N), 0) + '</td>';
-								} else if (row.formatid === 'monotype') {
-									buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -16.0 / N), 0) + '</td>';
-								} else {
-									buffer += '<td>--</td>';
-								}
-								buffer += '</td><td>' + row.w + '</td><td>' + row.l + '</td><td>' + row.t + '</td></tr>';
-							}
-							if (hiddenFormats.length) {
-								if (hiddenFormats.length === formatLength) {
-									buffer += '<tr class="no-matches"><td colspan="8"><em>This user has not played any ladder games that match the format targeting.</em></td></tr>';
-								}
-
-								buffer += '<tr><td colspan="8"><button name="showOtherFormats">' + hiddenFormats.slice(0, 3).join(', ') + (hiddenFormats.length > 3 ? ' and ' + (hiddenFormats.length - 3) + ' other formats' : '') + ' not shown</button></td></tr>';
-							}
-						}
+					if (!data || !$.isArray(data)) return self.add('|raw|Error: corrupted ranking data');
+					var buffer = '<div class="ladder"><table><tr><td colspan="8">User: <strong>' + toName(targets[0]) + '</strong></td></tr>';
+					if (!data.length) {
+						buffer += '<tr><td colspan="8"><em>This user has not played any ladder games yet.</em></td></tr>';
 						buffer += '</table></div>';
-						self.add('|raw|' + buffer);
-					} catch (e) {
-						self.add('|raw|Error: corrupted ranking data');
+						return self.add('|raw|' + buffer);
 					}
+					buffer += '<tr><th>Format</th><th><abbr title="Elo rating">Elo</abbr></th><th><abbr title="user\'s percentage chance of winning a random battle (aka GLIXARE)">GXE</abbr></th><th><abbr title="Glicko-1 rating: rating±deviation">Glicko-1</abbr></th><th>COIL</th><th>W</th><th>L</th><th>Total</th></tr>';
+
+					var hiddenFormats = [];
+					for (var i = 0; i < data.length; i++) {
+						var row = data[i];
+						if (!row) return self.add('|raw|Error: corrupted ranking data');
+						var formatId = toId(row.formatid);
+						if (!formatTargeting || formats[formatId]) {
+							buffer += '<tr>';
+						} else {
+							buffer += '<tr class="hidden">';
+							hiddenFormats.push(Tools.escapeFormat(formatId));
+						}
+
+						// Validate all the numerical data
+						var values = [row.elo, row.rpr, row.rprd, row.gxe, row.w, row.l, row.t];
+						for (var j = 0; j < values.length; j++) {
+							if (typeof values[j] !== 'number' && typeof values[j] !== 'string' || isNaN(values[j])) return self.add('|raw|Error: corrupted ranking data');
+						}
+
+						buffer += '<td>' + Tools.escapeFormat(formatId) + '</td><td><strong>' + Math.round(row.elo) + '</strong></td>';
+						if (row.rprd > 100) {
+							// High rating deviation. Provisional rating.
+							buffer += '<td>&ndash;</td>';
+							buffer += '<td><span><em>' + Math.round(row.rpr) + '<small> &#177; ' + Math.round(row.rprd) + '</small></em> <small>(provisional)</small></span></td>';
+						} else {
+							var gxe = Math.round(row.gxe * 10);
+							buffer += '<td>' + Math.floor(gxe / 10) + '<small>.' + (gxe % 10) + '%</small></td>';
+							buffer += '<td><em>' + Math.round(row.rpr) + '<small> &#177; ' + Math.round(row.rprd) + '</small></em></td>';
+						}
+						var N = parseInt(row.w, 10) + parseInt(row.l, 10) + parseInt(row.t, 10);
+						var COIL_B = LadderRoom.COIL_B[formatId];
+						if (COIL_B) {
+							buffer += '<td>' + Math.round(40.0 * parseFloat(row.gxe) * Math.pow(2.0, -COIL_B / N), 0) + '</td>';
+						} else {
+							buffer += '<td>--</td>';
+						}
+						buffer += '<td>' + row.w + '</td><td>' + row.l + '</td><td>' + N + '</td></tr>';
+					}
+					if (hiddenFormats.length) {
+						if (hiddenFormats.length === data.length) {
+							buffer += '<tr class="no-matches"><td colspan="6"><em>This user has not played any ladder games that match the format targeting.</em></td></tr>';
+						}
+						buffer += '<tr><td colspan="8"><button name="showOtherFormats">' + hiddenFormats.slice(0, 3).join(', ') + (hiddenFormats.length > 3 ? ' and ' + (hiddenFormats.length - 3) + ' other formats' : '') + ' not shown</button></td></tr>';
+					}
+					var userid = toId(targets[0]);
+					var registered = app.user.get('registered');
+					if (registered && registered.userid === userid) {
+						buffer += '<tr><td colspan="8" style="text-align:right"><a href="//pokemonshowdown.com/users/' + userid + '">Reset W/L</a></tr></td>';
+					}
+					buffer += '</table></div>';
+					self.add('|raw|' + buffer);
 				}), 'text');
 				return false;
 
@@ -822,6 +873,7 @@
 				case 'unignore':
 					this.add('/ignore [user] - Ignore all messages from the user [user].');
 					this.add('/unignore [user] - Remove the user [user] from your ignore list.');
+					this.add('/ignorelist - List all the users that you currently ignore.');
 					this.add('Note that staff messages cannot be ignored.');
 					return false;
 				case 'nick':
@@ -837,8 +889,8 @@
 					return false;
 				case 'showjoins':
 				case 'hidejoins':
-					this.add('/showjoins - Receive users\' join/leave messages.');
-					this.add('/hidejoins - Ignore users\' join/leave messages.');
+					this.add('/showjoins [room] - Receive users\' join/leave messages. Optionally for only specified room.');
+					this.add('/hidejoins [room] - Ignore users\' join/leave messages. Optionally for only specified room.');
 					return false;
 				case 'showbattles':
 				case 'hidebattles':
@@ -1173,12 +1225,13 @@
 					if (!$messages.length) break;
 					$messages.find('a').contents().unwrap();
 					if (row[2]) {
-						if (row[1] === 'roomhide') {
-							$messages = this.$chat.find('.chatmessage-' + user);
-							if (!$messages.length) break;
-						}
-						$messages.hide().find('button').parent().remove();
-						this.$chat.append('<div class="chatmessage-' + user + '"><button name="toggleMessages" value="' + user + '"><small>View ' + $messages.length + ' hidden message' + ($messages.length > 1 ? 's' : '') + ' (' + user + ')</small></button></div>');
+						// there used to be a condition for
+						// row[1] === 'roomhide'
+						// but it's now always applied
+						$messages = this.$chat.find('.chatmessage-' + user);
+						if (!$messages.length) break;
+						$messages.hide().addClass('revealed').find('button').parent().remove();
+						this.$chat.children().last().append(' <button name="toggleMessages" value="' + user + '" class="subtle"><small>(' + $messages.length + ' line' + ($messages.length > 1 ? 's' : '') + ' from ' + user + ' hidden)</small></button>');
 					}
 					break;
 
@@ -1199,17 +1252,14 @@
 				}
 			}
 		},
-		toggleMessages: function (user) {
-			var $messages = $('.chatmessage-' + user);
-			var $button = $messages.find('button');
-			if ($messages.hasClass('revealed')) {
-				$messages.removeClass('revealed').hide();
-				$button.html('<small>View ' + ($messages.length - 1) + ' hidden message' + ($messages.length > 1 ? 's' : '') + ' (' + user + ')</small>');
-				$button.parent().show();
+		toggleMessages: function (user, button) {
+			var $messages = this.$('.chatmessage-' + user + '.revealed');
+			var $button = $(button);
+			if (!$messages.is(':hidden')) {
+				$messages.hide();
+				$button.html('<small>(' + ($messages.length) + ' line' + ($messages.length !== 1 ? 's' : '') + ' from ' + user + ' hidden)</small>');
 			} else {
-				$messages.addClass('revealed');
-				$button.html('<small>Hide ' + ($messages.length - 1) + ' revealed message' + ($messages.length > 1 ? 's' : '') + ' (' + user + ')</small>');
-				$button.parent().removeClass('revealed');
+				$button.html('<small>(Hide ' + ($messages.length) + ' line' + ($messages.length !== 1 ? 's' : '') + ' from ' + user + ')</small>');
 				$messages.show();
 			}
 		},
@@ -1261,7 +1311,11 @@
 				this.userList.add(userid);
 				return;
 			}
-			if (silent && !Tools.prefs('showjoins')) return;
+			var allShowjoins = Tools.prefs('showjoins') || {};
+			var showjoins = allShowjoins[Config.server.id];
+			if (silent && (!showjoins || (!showjoins['global'] && !showjoins[this.id]) || showjoins[this.id] === 0)) {
+				return;
+			}
 			if (!this.$joinLeave) {
 				this.$chat.append('<div class="message"><small>Loading...</small></div>');
 				this.$joinLeave = this.$chat.children().last();
@@ -1449,10 +1503,12 @@
 			'&': 2,
 			'@': 1,
 			'%': 1,
+			'*': 1,
 			'\u2605': 1,
 			'+': 1,
 			' ': 0,
 			'!': 0,
+			'✖': 0,
 			'‽': 0
 		},
 		rankOrder: {
@@ -1461,11 +1517,13 @@
 			'&': 3,
 			'@': 4,
 			'%': 5,
-			'\u2605': 6,
-			'+': 7,
-			' ': 8,
-			'!': 9,
-			'‽': 10
+			'*': 6,
+			'\u2605': 7,
+			'+': 8,
+			' ': 9,
+			'!': 10,
+			'✖': 11,
+			'‽': 12
 		},
 		toggleUserlist: function (e) {
 			e.preventDefault();

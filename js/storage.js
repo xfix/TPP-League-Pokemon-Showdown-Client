@@ -55,6 +55,11 @@ Storage.bg = {
 			bgid = 'lotid';
 			bgUrl = 'fx/client-bg-' + bgid + '.jpg';
 		}
+
+		// April Fool's 2016 - Digimon theme
+		// bgid = 'digimon';
+		// bgUrl = Tools.resourcePrefix + 'sprites/afd/digimonbg.jpg';
+
 		var background;
 		if (bgUrl.charAt(0) === '#') {
 			background = bgUrl;
@@ -215,7 +220,6 @@ try {
 } catch (e) {}
 
 Storage.prefs.save = function () {
-	if (!window.localStorage) return;
 	try {
 		localStorage.setItem('showdown_prefs', $.toJSON(this.data));
 	} catch (e) {}
@@ -225,12 +229,29 @@ Storage.whenPrefsLoaded = Tools.makeLoadTracker();
 Storage.whenTeamsLoaded = Tools.makeLoadTracker();
 Storage.whenAppLoaded = Tools.makeLoadTracker();
 
+var convertShowjoins = function () {
+	var oldShowjoins = Storage.prefs('showjoins');
+	if (typeof oldShowjoins === 'undefined') return;
+	if (typeof oldShowjoins !== 'object') {
+		var showjoins = {};
+		var serverShowjoins = {global: (oldShowjoins ? 1 : 0)};
+		var showroomjoins = Storage.prefs('showroomjoins');
+		for (var roomid in showroomjoins) {
+			serverShowjoins[roomid] = (showroomjoins[roomid] ? 1 : 0);
+		}
+		Storage.prefs('showroomjoins', null);
+		showjoins[Config.server.id] = serverShowjoins;
+		Storage.prefs('showjoins', showjoins, true);
+	}
+};
+Storage.whenPrefsLoaded(convertShowjoins);
+
 Storage.initPrefs = function () {
 	Storage.loadTeams();
 	// Same origin, everything can be kept as default
 	Config.server = Config.server || Config.defaultserver;
 	this.whenPrefsLoaded.load();
-	if (!window.nodewebkit) this.whenTeamsLoaded.load();
+	this.whenTeamsLoaded.load();
 };
 
 Storage.crossOriginFrame = null;
@@ -379,9 +400,11 @@ Storage.loadTeams = function () {
 		return;
 	}
 	this.teams = [];
-	if (window.localStorage) {
-		Storage.loadPackedTeams(localStorage.getItem('showdown_teams'));
-	}
+	try {
+		if (window.localStorage) {
+			Storage.loadPackedTeams(localStorage.getItem('showdown_teams'));
+		}
+	} catch (e) {}
 };
 
 Storage.loadPackedTeams = function (buffer) {
@@ -398,16 +421,16 @@ Storage.loadPackedTeams = function (buffer) {
 };
 
 Storage.saveTeams = function () {
-	if (window.localStorage) {
-		Storage.cantSave = false;
-		try {
+	try {
+		if (window.localStorage) {
 			localStorage.setItem('showdown_teams', Storage.packAllTeams(this.teams));
-		} catch (e) {
-			if (e.code === DOMException.QUOTA_EXCEEDED_ERR) {
-				Storage.cantSave = true;
-			} else {
-				throw e;
-			}
+			Storage.cantSave = false;
+		}
+	} catch (e) {
+		if (e.code === DOMException.QUOTA_EXCEEDED_ERR) {
+			Storage.cantSave = true;
+		} else {
+			throw e;
 		}
 	}
 };
@@ -457,7 +480,7 @@ Storage.unpackAllTeams = function (buffer) {
 
 	return buffer.split('\n').map(function (line) {
 		var pipeIndex = line.indexOf('|');
-		if (pipeIndex < 0) return;
+		if (pipeIndex < 0) return '';
 		var bracketIndex = line.indexOf(']');
 		if (bracketIndex > pipeIndex) bracketIndex = -1;
 		var slashIndex = line.lastIndexOf('/', pipeIndex);
@@ -487,11 +510,11 @@ Storage.packTeam = function (team) {
 		if (buf) buf += ']';
 
 		// name
-		buf += (set.name || set.species);
+		buf += set.name;
 
 		// species
-		var id = toId(set.species || set.name);
-		buf += '|' + (toId(set.name || set.species) === id ? '' : id);
+		var id = toId(set.species);
+		buf += '|' + (toId(set.name) === id ? '' : id);
 
 		// item
 		buf += '|' + toId(set.item);
@@ -531,6 +554,8 @@ Storage.packTeam = function (team) {
 		}
 		if (evs === '|,,,,,') {
 			buf += '|';
+			// doing it this way means packTeam doesn't need to be past-gen aware
+			if (set.evs['hp'] === 0) buf += '0';
 		} else {
 			buf += evs;
 		}
@@ -624,15 +649,20 @@ Storage.fastUnpackTeam = function (buf) {
 		// evs
 		j = buf.indexOf('|', i);
 		if (j !== i) {
-			var evs = buf.substring(i, j).split(',');
-			set.evs = {
-				hp: Number(evs[0]) || 0,
-				atk: Number(evs[1]) || 0,
-				def: Number(evs[2]) || 0,
-				spa: Number(evs[3]) || 0,
-				spd: Number(evs[4]) || 0,
-				spe: Number(evs[5]) || 0
-			};
+			var evstring = buf.substring(i, j);
+			if (evstring.length > 5) {
+				var evs = evstring.split(',');
+				set.evs = {
+					hp: Number(evs[0]) || 0,
+					atk: Number(evs[1]) || 0,
+					def: Number(evs[2]) || 0,
+					spa: Number(evs[3]) || 0,
+					spd: Number(evs[4]) || 0,
+					spe: Number(evs[5]) || 0
+				};
+			} else if (evstring === '0') {
+				set.evs = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
+			}
 		}
 		i = j + 1;
 
@@ -698,7 +728,7 @@ Storage.unpackTeam = function (buf) {
 
 		// species
 		j = buf.indexOf('|', i);
-		set.species = Tools.getTemplate(buf.substring(i, j)).name || set.name;
+		set.species = Tools.getTemplate(buf.substring(i, j)).species || set.name;
 		i = j + 1;
 
 		// item
@@ -729,15 +759,20 @@ Storage.unpackTeam = function (buf) {
 		// evs
 		j = buf.indexOf('|', i);
 		if (j !== i) {
-			var evs = buf.substring(i, j).split(',');
-			set.evs = {
-				hp: Number(evs[0]) || 0,
-				atk: Number(evs[1]) || 0,
-				def: Number(evs[2]) || 0,
-				spa: Number(evs[3]) || 0,
-				spd: Number(evs[4]) || 0,
-				spe: Number(evs[5]) || 0
-			};
+			var evstring = buf.substring(i, j);
+			if (evstring.length > 5) {
+				var evs = evstring.split(',');
+				set.evs = {
+					hp: Number(evs[0]) || 0,
+					atk: Number(evs[1]) || 0,
+					def: Number(evs[2]) || 0,
+					spa: Number(evs[3]) || 0,
+					spd: Number(evs[4]) || 0,
+					spe: Number(evs[5]) || 0
+				};
+			} else if (evstring === '0') {
+				set.evs = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
+			}
 		}
 		i = j + 1;
 
@@ -814,7 +849,7 @@ Storage.packedTeamIcons = function (buf) {
 	if (!buf) return '<em>(empty team)</em>';
 
 	return this.packedTeamNames(buf).map(function (species) {
-		return '<span class="pokemonicon" style="' + Tools.getIcon(species) + ';float:left;overflow:visible"><span style="font-size:0px">' + toId(species) + '</span></span>';
+		return '<span class="picon" style="' + Tools.getPokemonIcon(species) + ';float:left;overflow:visible"><span style="font-size:0px">' + toId(species) + '</span></span>';
 	}).join('');
 };
 
@@ -916,12 +951,12 @@ Storage.importTeam = function (text, teams) {
 			var parenIndex = line.lastIndexOf(' (');
 			if (line.substr(line.length - 1) === ')' && parenIndex !== -1) {
 				line = line.substr(0, line.length - 1);
-				curSet.species = Tools.getTemplate(line.substr(parenIndex + 2)).name;
+				curSet.species = Tools.getTemplate(line.substr(parenIndex + 2)).species;
 				line = line.substr(0, parenIndex);
 				curSet.name = line;
 			} else {
-				curSet.species = Tools.getTemplate(line).name;
-				curSet.name = curSet.species;
+				curSet.species = Tools.getTemplate(line).species;
+				curSet.name = '';
 			}
 		} else if (line.substr(0, 7) === 'Trait: ') {
 			line = line.substr(7);
@@ -1017,7 +1052,7 @@ Storage.exportTeam = function (team) {
 	var text = '';
 	for (var i = 0; i < team.length; i++) {
 		var curSet = team[i];
-		if (curSet.name !== curSet.species) {
+		if (curSet.name && curSet.name !== curSet.species) {
 			text += '' + curSet.name + ' (' + curSet.species + ')';
 		} else {
 			text += '' + curSet.species;
@@ -1116,67 +1151,6 @@ Storage.exportTeam = function (team) {
 };
 
 /*********************************************************
- * Replay files
- *********************************************************/
-
-// Replay files are .html files that display a replay for a battle.
-
-// The .html files mainly contain replay log data; the actual replay
-// player is downloaded online. Also included is a textual log and
-// some minimal CSS to make it look pretty, for offline viewing.
-
-// This strategy helps keep the replay file reasonably small; of
-// the 30 KB or so for a 50-turn battle, around 10 KB is the log
-// data, and around 20 KB is the textual log.
-
-// The actual replay player is downloaded from replay-embed.js,
-// which handles loading all the necessary resources for turning the log
-// data into a playable replay.
-
-// Battle log data is stored in and loaded from a
-// <script type="text/plain" class="battle-log-data"> tag.
-
-// replay-embed.js is loaded through a cache-buster that rotates daily.
-// This allows pretty much anything about the replay viewer to be
-// updated as desired.
-
-Storage.createReplayFile = function (room) {
-	var battle = room.battle;
-	var replayid = room.id.slice(7);
-	if (Config.server.id !== 'showdown') {
-		if (!Config.server.registered) {
-			replayid = 'unregisteredserver-' + replayid;
-		} else {
-			replayid = Config.server.id + '-' + replayid;
-		}
-	}
-	battle.fastForwardTo(-1);
-	var buf = '<!DOCTYPE html>\n';
-	buf += '<meta charset="utf-8" />\n';
-	buf += '<!-- version 1 -->\n';
-	buf += '<title>' + Tools.escapeHTML(battle.tier) + ' replay: ' + Tools.escapeHTML(battle.p1.name) + ' vs. ' + Tools.escapeHTML(battle.p2.name) + '</title>\n';
-	buf += '<style>\n';
-	buf += 'html,body {font-family:Verdana, sans-serif;font-size:10pt;margin:0;padding:0;}body{padding:12px 0;} .battle-log {font-family:Verdana, sans-serif;font-size:10pt;} .battle-log-inline {border:1px solid #AAAAAA;background:#EEF2F5;color:black;max-width:640px;margin:0 auto 80px;padding-bottom:5px;} .battle-log .inner {padding:4px 8px 0px 8px;} .battle-log .inner-preempt {padding:0 8px 4px 8px;} .battle-log .inner-after {margin-top:0.5em;} .battle-log h2 {margin:0.5em -8px;padding:4px 8px;border:1px solid #AAAAAA;background:#E0E7EA;border-left:0;border-right:0;font-family:Verdana, sans-serif;font-size:13pt;} .battle-log .chat {vertical-align:middle;padding:3px 0 3px 0;font-size:8pt;} .battle-log .chat strong {color:#40576A;} .battle-log .chat em {padding:1px 4px 1px 3px;color:#000000;font-style:normal;} .chat.mine {background:rgba(0,0,0,0.05);margin-left:-8px;margin-right:-8px;padding-left:8px;padding-right:8px;} .spoiler {color:#BBBBBB;background:#BBBBBB;padding:0px 3px;} .spoiler:hover, .spoiler:active, .spoiler-shown {color:#000000;background:#E2E2E2;padding:0px 3px;} .spoiler a {color:#BBBBBB;} .spoiler:hover a, .spoiler:active a, .spoiler-shown a {color:#2288CC;} .chat code, .chat .spoiler:hover code, .chat .spoiler:active code, .chat .spoiler-shown code {border:1px solid #C0C0C0;background:#EEEEEE;color:black;padding:0 2px;} .chat .spoiler code {border:1px solid #CCCCCC;background:#CCCCCC;color:#CCCCCC;} .battle-log .rated {padding:3px 4px;} .battle-log .rated strong {color:white;background:#89A;padding:1px 4px;border-radius:4px;} .spacer {margin-top:0.5em;} .message-announce {background:#6688AA;color:white;padding:1px 4px 2px;} .message-announce a, .broadcast-green a, .broadcast-blue a, .broadcast-red a {color:#DDEEFF;} .broadcast-green {background-color:#559955;color:white;padding:2px 4px;} .broadcast-blue {background-color:#6688AA;color:white;padding:2px 4px;} .infobox {border:1px solid #6688AA;padding:2px 4px;} .infobox-limited {max-height:200px;overflow:auto;overflow-x:hidden;} .broadcast-red {background-color:#AA5544;color:white;padding:2px 4px;} .message-learn-canlearn {font-weight:bold;color:#228822;text-decoration:underline;} .message-learn-cannotlearn {font-weight:bold;color:#CC2222;text-decoration:underline;} .message-effect-weak {font-weight:bold;color:#CC2222;} .message-effect-resist {font-weight:bold;color:#6688AA;} .message-effect-immune {font-weight:bold;color:#666666;} .message-learn-list {margin-top:0;margin-bottom:0;} .message-throttle-notice, .message-error {color:#992222;} .message-overflow, .chat small.message-overflow {font-size:0pt;} .message-overflow::before {font-size:9pt;content:\'...\';} .subtle {color:#3A4A66;}\n';
-	buf += '</style>\n';
-	buf += '<div class="wrapper replay-wrapper" style="max-width:1180px;margin:0 auto">\n';
-	buf += '<input type="hidden" name="replayid" value="' + replayid + '" />\n';
-	buf += '<div class="battle"></div><div class="battle-log"></div><div class="replay-controls"></div><div class="replay-controls-2"></div>\n';
-	buf += '<h1 style="font-weight:normal;text-align:center"><strong>' + Tools.escapeHTML(battle.tier) + '</strong><br /><a href="http://pokemonshowdown.com/users/' + toId(battle.p1.name) + '" class="subtle" target="_blank">' + Tools.escapeHTML(battle.p1.name) + '</a> vs. <a href="http://pokemonshowdown.com/users/' + toId(battle.p2.name) + '" class="subtle" target="_blank">' + Tools.escapeHTML(battle.p2.name) + '</a></h1>\n';
-	buf += '<script type="text/plain" class="battle-log-data">' + battle.activityQueue.join('\n').replace(/\//g, '\\/') + '</script>\n';
-	buf += '</div>\n';
-	buf += '<div class="battle-log battle-log-inline"><div class="inner">' + battle.logElem.html() + '</div></div>\n';
-	buf += '</div>\n';
-	buf += '<script>\n';
-	buf += 'var daily = Math.floor(Date.now()/1000/60/60/24);document.write(\'<script src="https://play.pokemonshowdown.com/js/replay-embed.js?version\'+daily+\'"></\'+\'script>\');\n';
-	buf += '</script>\n';
-	return buf;
-};
-
-Storage.createReplayFileHref = function (room) {
-	return 'data:text/plain;base64,' + encodeURIComponent(window.btoa(unescape(encodeURIComponent(Storage.createReplayFile(room)))));
-};
-
-/*********************************************************
  * Node-webkit
  *********************************************************/
 
@@ -1218,6 +1192,7 @@ Storage.initDirectory2 = function () {
 					self.saveAllTeams = self.nwSaveAllTeams;
 					self.deleteAllTeams = self.nwDeleteAllTeams;
 					self.saveTeam = self.nwSaveTeam;
+					self.saveTeams = self.nwSaveTeams;
 					self.deleteTeam = self.nwDeleteTeam;
 
 					// logging
@@ -1405,6 +1380,13 @@ Storage.nwSaveTeam = function (team) {
 	}
 	team.filename = filename;
 	fs.writeFile(this.dir + 'Teams/' + filename, Storage.exportTeam(team.team).replace(/\n/g, '\r\n'));
+};
+
+Storage.nwSaveTeams = function () {
+	// should never happen
+	try {
+		console.log("nwSaveTeams called: " + new Error().stack);
+	} catch (e) {}
 };
 
 Storage.nwDeleteTeam = function (team) {

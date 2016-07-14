@@ -3,8 +3,16 @@
 /js/config.js
 /index.php
 /data/Pokemon-Showdown/
+/data/*
+!/data/tpp.js
+!/data/emoteregex.js
+!/data/graphics.js
+!/data/pokedex-mini.js
+!/data/pokedex-mini-bw.js
+!/data/learnsets-g6.js
 node_modules/
 eslint-cache/
 .DS_Store
 Thumbs.db
 /lib/ntbb-config.lib.php
+npm-debug.log

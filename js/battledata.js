@@ -73,32 +73,68 @@ function hashColor(name) {
 	} else {
 		hash = MD5(name);
 	}
-	var H = parseInt(hash.substr(4, 4), 16) % 360;
-	var S = parseInt(hash.substr(0, 4), 16) % 50 + 50;
-	var L = Math.floor(parseInt(hash.substr(8, 4), 16) % 20 / 2 + 30);
+	var H = parseInt(hash.substr(4, 4), 16) % 360; // 0 to 360
+	var S = parseInt(hash.substr(0, 4), 16) % 50 + 40; // 40 to 89
+	var L = Math.floor(parseInt(hash.substr(8, 4), 16) % 20 + 30); // 30 to 49
+
+	var C = (100 - Math.abs(2 * L - 100)) * S / 100 / 100;
+	var X = C * (1 - Math.abs((H / 60) % 2 - 1));
+	var m = L / 100 - C / 2;
+
+	var R1, G1, B1;
+	switch (Math.floor(H / 60)) {
+	case 1: R1 = X; G1 = C; B1 = 0; break;
+	case 2: R1 = 0; G1 = C; B1 = X; break;
+	case 3: R1 = 0; G1 = X; B1 = C; break;
+	case 4: R1 = X; G1 = 0; B1 = C; break;
+	case 5: R1 = C; G1 = 0; B1 = X; break;
+	case 0: default: R1 = C; G1 = X; B1 = 0; break;
+	}
+	var lum = (R1 + m) * 0.2126 + (G1 + m) * 0.7152 + (B1 + m) * 0.0722; // 0.05 (dark blue) to 0.93 (yellow)
+
+	var HLmod = (lum - 0.5) * -100; // -43 (yellow) to 45 (dark blue)
+	if (HLmod > 12) HLmod -= 12;
+	else if (HLmod < -10) HLmod = (HLmod + 10) * 2 / 3;
+	else HLmod = 0;
+
+	L += HLmod;
+
+	var Smod = 10 - Math.abs(50 - L);
+	if (HLmod > 15) Smod += (HLmod - 15) / 2;
+	S -= Smod;
+
 	colorCache[name] = "color:hsl(" + H + "," + S + "%," + L + "%);";
 	return colorCache[name];
 }
 
+function getString(str) {
+	if (typeof str === 'string' || typeof str === 'number') return '' + str;
+	return '';
+}
+
 function toId(text) {
-	text = text || '';
-	if (typeof text === 'number') text = '' + text;
-	if (typeof text !== 'string') return toId(text && text.id);
-	return text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+	if (text && text.id) {
+		text = text.id;
+	} else if (text && text.userid) {
+		text = text.userid;
+	}
+	if (typeof text !== 'string' && typeof text !== 'number') return '';
+	return ('' + text).toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
 function toUserid(text) {
-	text = text || '';
-	if (typeof text === 'number') text = '' + text;
-	if (typeof text !== 'string') return ''; //???
-	return text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+	return toId(text);
 }
 
 function toName(name) {
-	if (typeof name === 'number') return '' + name;
-	if (typeof name !== 'string') return '';
-	name = name.replace(/[\|\s\[\]\,]+/g, ' ').trim();
+	if (typeof name !== 'string' && typeof name !== 'number') return '';
+	name = ('' + name).replace(/[\|\s\[\]\,\u202e]+/g, ' ').trim();
 	if (name.length > 18) name = name.substr(0, 18).trim();
+
+	// remove zalgo
+	name = name.replace(/[\u0300-\u036f\u0483-\u0489\u0610-\u0615\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06ED\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]{3,}/g, '');
+	name = name.replace(/[\u239b-\u23b9]/g, '');
+
 	return name;
 }
 
@@ -227,6 +263,8 @@ var BattleStatNames = { // proper style
 };
 
 var baseSpeciesChart = {
+	'pikachu': 1,
+	'pichu': 1,
 	'unown': 1,
 	'castform': 1,
 	'deoxys': 1,
@@ -237,22 +275,27 @@ var baseSpeciesChart = {
 	'gastrodon': 1,
 	'rotom': 1,
 	'giratina': 1,
-	'arceus': 1,
 	'shaymin': 1,
+	'arceus': 1,
 	'basculin': 1,
 	'darmanitan': 1,
 	'deerling': 1,
 	'sawsbuck': 1,
-	'meloetta': 1,
-	'genesect': 1,
 	'tornadus': 1,
 	'thundurus': 1,
 	'landorus': 1,
 	'kyurem': 1,
 	'keldeo': 1,
+	'meloetta': 1,
+	'genesect': 1,
+	'vivillon': 1,
+	'flabebe': 1,
+	'floette': 1,
+	'florges': 1,
+	'furfrou': 1,
 	'aegislash': 1,
-	'gourgeist': 1,
 	'pumpkaboo': 1,
+	'gourgeist': 1,
 	'meowstic': 1,
 	'hoopa': 1,
 
@@ -301,10 +344,17 @@ var Tools = {
 
 	resourcePrefix: (function () {
 		var prefix = '';
-		if (document.location.protocol === 'file:') prefix = 'http:';
+		if (document.location.protocol === 'file:') prefix = 'https:';
 		return prefix + '//play.pokemonshowdown.com/';
 	})(),
 
+	fxPrefix: (function () {
+		if (document.location.protocol === 'file:') {
+			if (window.Replays) return 'https://play.pokemonshowdown.com/fx/';
+			return 'fx/';
+		}
+		return '//play.pokemonshowdown.com/fx/';
+	})(),
 
 	/*
 	 * Load trackers are loosely based on Promises, but very simplified.
@@ -354,7 +404,7 @@ var Tools = {
 			// custom avatar served by the server
 			var protocol = (Config.server.port === 443) ? 'https' : 'http';
 			return protocol + '://' + Config.server.host + ':' + Config.server.port +
-				'/avatars/' + encodeURIComponent(avatar);
+				'/avatars/' + _.map(avatar.split('?', 2), encodeURIComponent).join('?');
 		}
 		// just pick a random avatar
 		var sprites = [1, 2, 101, 102, 169, 170];
@@ -394,11 +444,11 @@ var Tools = {
 
 		switch (cmd) {
 		case 'me':
-			if (!showMe) return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <em>' + Tools.parseMessage(target) + '</em></div>';
-			return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">&bull;</strong> <em>' + clickableName + ' <i>' + Tools.parseMessage(target) + '</i></em></div>';
+			if (!showMe) return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <em>' + Tools.parseMessage(' ' + target).slice(1) + '</em></div>';
+			return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">&bull;</strong> <em>' + clickableName + ' <i>' + Tools.parseMessage(' ' + target).slice(1) + '</i></em></div>';
 		case 'mee':
-			if (!showMe) return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <em>' + Tools.parseMessage(target) + '</em></div>';
-			return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">&bull;</strong> <em>' + clickableName + '<i>' + Tools.parseMessage(target) + '</i></em></div>';
+			if (!showMe) return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <em>' + Tools.parseMessage(' ' + target).slice(1) + '</em></div>';
+			return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">&bull;</strong> <em>' + clickableName + '<i>' + Tools.parseMessage(' ' + target).slice(1) + '</i></em></div>';
 		case 'invite':
 			var roomid = toRoomid(target);
 			return [
@@ -408,22 +458,65 @@ var Tools = {
 		case 'announce':
 			return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <span class="message-announce">' + Tools.parseMessage(target) + '</span></div>';
 		case 'data-pokemon':
-			if (!window.Chart) return '';
-			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderPokemonRow(Tools.getTemplate(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
+			var buf = '<li class="result">';
+			var template = Tools.getTemplate(target);
+			if (!template.abilities || !template.baseStats) return '[not supported in replays]';
+			buf += '<span class="col numcol">' + (template.tier || Tools.getTemplate(template.baseSpecies).tier) + '</span> ';
+			buf += '<span class="col iconcol"><span style="' + Tools.getPokemonIcon(template) + '"></span></span> ';
+			buf += '<span class="col pokemonnamecol" style="white-space:nowrap"><a href="https://pokemonshowdown.com/dex/pokemon/' + template.id + '" target="_blank">' + template.species + '</a></span> ';
+			buf += '<span class="col typecol">';
+			if (template.types) for (var i = 0; i < template.types.length; i++) {
+				buf += Tools.getTypeIcon(template.types[i]);
+			}
+			buf += '</span> ';
+			buf += '<span style="float:left;min-height:26px">';
+			if (template.abilities['1']) {
+				buf += '<span class="col twoabilitycol">';
+			} else {
+				buf += '<span class="col abilitycol">';
+			}
+			for (var i in template.abilities) {
+				var ability = template.abilities[i];
+				if (!ability) continue;
+
+				if (i === '1') buf += '<br />';
+				if (i == 'H') {
+					ability = '</span><span class="col abilitycol"><em>' + (template.unreleasedHidden ? '<s>' + ability + '</s>' : ability) + '</em>';
+				}
+				buf += ability;
+			}
+			if (!template.abilities['H']) buf += '</span><span class="col abilitycol">';
+			buf += '</span>';
+			buf += '</span>';
+			buf += '<span style="float:left;min-height:26px">';
+			buf += '<span class="col statcol"><em>HP</em><br />' + template.baseStats.hp + '</span> ';
+			buf += '<span class="col statcol"><em>Atk</em><br />' + template.baseStats.atk + '</span> ';
+			buf += '<span class="col statcol"><em>Def</em><br />' + template.baseStats.def + '</span> ';
+			buf += '<span class="col statcol"><em>SpA</em><br />' + template.baseStats.spa + '</span> ';
+			buf += '<span class="col statcol"><em>SpD</em><br />' + template.baseStats.spd + '</span> ';
+			buf += '<span class="col statcol"><em>Spe</em><br />' + template.baseStats.spe + '</span> ';
+			var bst = 0;
+			for (i in template.baseStats) bst += template.baseStats[i];
+			buf += '<span class="col bstcol"><em>BST<br />' + bst + '</em></span> ';
+			buf += '</span>';
+			buf += '</li>';
+			return '<div class="message"><ul class="utilichart">' + buf + '<li style=\"clear:both\"></li></ul></div>';
 		case 'data-item':
-			if (!window.Chart) return '';
+			if (!window.BattleSearch) return '[not supported in replays]';
 			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderItemRow(Tools.getItem(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
 		case 'data-ability':
-			if (!window.Chart) return '';
+			if (!window.BattleSearch) return '[not supported in replays]';
 			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderAbilityRow(Tools.getAbility(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
 		case 'data-move':
-			if (!window.Chart) return '';
+			if (!window.BattleSearch) return '[not supported in replays]';
 			return '<div class="message"><ul class="utilichart">' + BattleSearch.renderMoveRow(Tools.getMove(target), 0, 0) + '<li style=\"clear:both\"></li></ul></div>';
 		case 'text':
 			return '<div class="chat">' + Tools.escapeHTML(target) + '</div>';
 		case 'error':
 			return '<div class="chat message-error">' + Tools.escapeHTML(target) + '</div>';
 		case 'html':
+			return '<div class="chat chatmessage-' + toId(name) + hlClass + mineClass + '">' + timestamp + '<strong style="' + color + '">' + clickableName + ':</strong> <em>' + Tools.sanitizeHTML(target) + '</em></div>';
+		case 'raw':
 			return '<div class="chat">' + Tools.sanitizeHTML(target) + '</div>';
 		default:
 			// Not a command or unsupported. Parsed as a normal chat message.
@@ -437,7 +530,7 @@ var Tools = {
 	parseMessage: function (str) {
 		str = Tools.escapeHTML(str);
 		// Don't format console commands (>>).
-		if (str.substr(0, 8) === '&gt;&gt;') return str;
+		if (str.substr(0, 9) === '&gt;&gt; ' || str.substr(0, 13) === '&gt;&gt;&gt; ') return str;
 		// Don't format console results (<<).
 		if (str.substr(0, 9) === '&lt;&lt; ') return str;
 
@@ -451,6 +544,15 @@ var Tools = {
 		// ~~strikethrough~~
 		str = str.replace(/\~\~([^< ](?:[^<]*?[^< ])??)\~\~/g,
 			options.hidestrikethrough ? '$1' : '<s>$1</s>');
+		// __italics__
+		str = str.replace(/\_\_([^< ](?:[^<]*?[^< ])??)\_\_/g,
+			options.hideitalics ? '$1' : '<i>$1</i>');
+		// **bold**
+		str = str.replace(/\*\*([^< ](?:[^<]*?[^< ])??)\*\*/g,
+			options.hidebold ? '$1' : '<b>$1</b>');
+		// ^^superscript^^
+		str = str.replace(/\^\^([^< ](?:[^<]*?[^< ])??)\^\^/g,
+			options.hidesuperscript ? '$1' : '<sup>$1</sup>');
 		// <<roomid>>
 		str = str.replace(/&lt;&lt;([a-z0-9-]+)&gt;&gt;/g,
 			options.hidelinks ? '&laquo;$1&raquo;' : '&laquo;<a href="/$1" target="_blank">$1</a>&raquo;');
@@ -471,7 +573,7 @@ var Tools = {
 					onclick = "return selectTab('" + m[1] + "');";
 				} else {
 					var event;
-					if (Tools.interstice.isWhitelisted(fulluri)) {
+					if (Tools.interstice.isWhitelisted(fulluri) || options.hideinterstice) {
 						event = 'External link';
 					} else {
 						event = 'Interstice link';
@@ -491,7 +593,7 @@ var Tools = {
 					if (slashIndex - 4 > 19 + 3) uri = uri.slice(0, 19) + '<small class="message-overflow">' + uri.slice(19, slashIndex - 4) + '</small>' + uri.slice(slashIndex - 4);
 				}
 				return '<a href="' + fulluri +
-					'" target="_blank" onclick="' + onclick + '">' + uri + '</a>';
+					'" target="_blank" onclick="' + onclick + '" rel="noopener">' + uri + '</a>';
 			});
 			// google [blah]
 			//   Google search for 'blah'
@@ -523,18 +625,12 @@ var Tools = {
 			});
 			// [[blah]]
 			//   Short form of gl[blah]
-			str = str.replace(/\[\[([^< ](?:[^<`]*?[^< ])??)\]\]/ig, function (p0, p1) {
+			str = str.replace(/\[\[([^< ](?:[^<`]*?[^< ])??)\]\]/g, function (p0, p1) {
 				var q = Tools.escapeHTML(encodeURIComponent(Tools.unescapeHTML(p1)));
 				return '<a href="http://www.google.com/search?ie=UTF-8&btnI&q=' + q +
 					'" target="_blank">' + p1 + '</a>';
 			});
 		}
-		// __italics__
-		str = str.replace(/\_\_([^< ](?:[^<]*?[^< ])??)\_\_(?![^<]*?<\/a)/g,
-			options.hideitalics ? '$1' : '<i>$1</i>');
-		// **bold**
-		str = str.replace(/\*\*([^< ](?:[^<]*?[^< ])??)\*\*/g,
-			options.hidebold ? '$1' : '<b>$1</b>');
 
 		if (!options.hidespoiler) {
 			var untilIndex = 0;
@@ -571,12 +667,18 @@ var Tools = {
 			}
 		}
 
+		if (!options.hidegreentext && str.slice(0, 4) === '&gt;') {
+			// greentext aka meme arrows
+			if (str.charAt(4) !== '.' && str.charAt(4) !== '_' && str.charAt(4) !== '/' && str.charAt(4) !== '=' && str.charAt(4) !== ':' && str.charAt(4) !== ';' && str.substr(4, 5) !== 'w&lt;' && str.substr(4, 5) !== 'w&gt;') {
+				str = '<span class="greentext">' + str + '</span>';
+			}
+		}
+
 		return str;
 	},
 
 	escapeHTML: function (str, jsEscapeToo) {
-		str = (str ? '' + str : '');
-		str = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+		str = getString(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 		if (jsEscapeToo) str = str.replace(/'/g, '\\\'');
 		return str;
 	},
@@ -676,7 +778,7 @@ var Tools = {
 			return {attribs: attribs};
 		};
 		return function (input) {
-			return html.sanitizeWithPolicy(input, tagPolicy);
+			return html.sanitizeWithPolicy(getString(input), tagPolicy);
 		};
 	})(),
 
@@ -684,7 +786,7 @@ var Tools = {
 		var patterns = (function (whitelist) {
 			var patterns = [];
 			for (var i = 0; i < whitelist.length; ++i) {
-				patterns.push(new RegExp('https?://([A-Za-z0-9-]*\\.)?' +
+				patterns.push(new RegExp('^(https?:)?//([A-Za-z0-9-]*\\.)?' +
 					whitelist[i] +
 					'(/.*)?', 'i'));
 			}
@@ -720,6 +822,14 @@ var Tools = {
 	prefs: function (prop, value, save) {
 		if (window.Storage && Storage.prefs) return Storage.prefs(prop, value, save);
 		return undefined;
+	},
+
+	getShortName: function (name) {
+		var shortName = name.replace(/[^A-Za-z0-9]+$/, '');
+		if (shortName.indexOf('(') >= 0) {
+			shortName += name.slice(shortName.length).replace(/[^\(\)]+/g, '').replace(/\(\)/g, '');
+		}
+		return shortName;
 	},
 
 	getEffect: function (effect) {
@@ -778,6 +888,16 @@ var Tools = {
 				move = $.extend({}, move);
 				move.basePower = matches[2];
 			}
+			if (!move.exists && id.substr(0, 6) === 'return' && id.length > 6) {
+				move = (window.BattleMovedex && window.BattleMovedex['return']) || {};
+				move = $.extend({}, move);
+				move.basePower = id.slice(6);
+			}
+			if (!move.exists && id.substr(0, 11) === 'frustration' && id.length > 11) {
+				move = (window.BattleMovedex && window.BattleMovedex['frustration']) || {};
+				move = $.extend({}, move);
+				move.basePower = id.slice(11);
+			}
 
 			if (!move.id) move.id = id;
 			if (!move.name) move.name = Tools.escapeHTML(name);
@@ -811,6 +931,13 @@ var Tools = {
 			}
 		}
 		return move;
+	},
+
+	getCategory: function (move, gen, type) {
+		if (gen <= 3 && move.category !== 'Status') {
+			return ((type || move.type) in {Fire:1, Water:1, Grass:1, Electric:1, Ice:1, Psychic:1, Dark:1, Dragon:1} ? 'Special' : 'Physical');
+		}
+		return move.category;
 	},
 
 	getItem: function (item) {
@@ -869,6 +996,7 @@ var Tools = {
 		if (!template || typeof template === 'string') {
 			var name = template;
 			var id = toId(name);
+			var speciesid = id;
 			if (window.BattleAliases && BattleAliases[id]) {
 				name = BattleAliases[id];
 				id = toId(name);
@@ -895,9 +1023,6 @@ var Tools = {
 			template = window.BattlePokedex[id];
 			if (template.species) name = template.species;
 			if (template.exists === undefined) template.exists = true;
-			if (window.BattleLearnsets && window.BattleLearnsets[id]) {
-				template.learnset = window.BattleLearnsets[id].learnset;
-			}
 			if (!template.id) template.id = id;
 			if (!template.name) template.name = name = Tools.escapeHTML(name);
 			if (!template.speciesid) template.speciesid = id;
@@ -941,30 +1066,22 @@ var Tools = {
 					template.gen = 0;
 				}
 			}
+			if (template.otherForms && template.otherForms.indexOf(speciesid) >= 0) {
+				if (!window.BattlePokedexAltForms) window.BattlePokedexAltForms = {};
+				if (!window.BattlePokedexAltForms[speciesid]) {
+					template = window.BattlePokedexAltForms[speciesid] = $.extend({}, template);
+					var form = speciesid.slice(template.baseSpecies.length);
+					var formid = '-' + form;
+					form = form[0].toUpperCase() + form.slice(1);
+					template.form = form;
+					template.species = template.baseSpecies + (form ? '-' + form : '');
+					template.speciesid = toId(template.species);
+					template.spriteid = toId(template.baseSpecies) + formid;
+				}
+				template = window.BattlePokedexAltForms[speciesid];
+			}
 		}
 		return template;
-	},
-
-	getLearnset: function (template) {
-		template = Tools.getTemplate(template);
-		var alreadyChecked = {};
-		var learnset = {};
-		do {
-			alreadyChecked[template.speciesid] = true;
-			if (template.learnset) {
-				for (var l in template.learnset) {
-					learnset[l] = template.learnset[l];
-				}
-			}
-			if (template.speciesid === 'shaymin') {
-				template = Tools.getTemplate('shayminsky');
-			} else if (template.baseSpecies !== template.species) {
-				template = Tools.getTemplate(template.baseSpecies);
-			} else {
-				template = Tools.getTemplate(template.prevo);
-			}
-		} while (template && template.species && !alreadyChecked[template.speciesid]);
-		return learnset;
 	},
 
 	getType: function (type) {
@@ -1023,13 +1140,18 @@ var Tools = {
 		if (Tools.prefs('nopastgens')) gen = 'xy';
 		if (Tools.prefs('bwgfx') && gen === 'xy') gen = 'bw';
 
-		var animationData = {};
-		if (gen === 'bw' && window.BattlePokemonSpritesBW) {
-			animationData = BattlePokemonSpritesBW && window.BattlePokemonSpritesBW[pokemon.speciesid];
-		} else {
-			animationData = BattlePokemonSprites && window.BattlePokemonSprites[pokemon.speciesid];
+		var gen6animationData = null;
+		if (window.BattlePokemonSprites) {
+			gen6animationData = BattlePokemonSprites[pokemon.speciesid];
 		}
-		if (animationData && typeof animationData.num !== 'undefined') {
+		var animationData = gen6animationData;
+		if (gen === 'bw' && window.BattlePokemonSpritesBW) {
+			animationData = BattlePokemonSpritesBW[pokemon.speciesid];
+		}
+		if (!gen6animationData) gen6animationData = {};
+		if (!animationData) animationData = {};
+
+		if (typeof animationData.num !== 'undefined') {
 			var num = '' + animationData.num;
 			if (num.length < 3) num = '0' + num;
 			if (num.length < 3) num = '0' + num;
@@ -1049,7 +1171,7 @@ var Tools = {
 			return spriteData;
 		}
 
-		if (animationData && animationData[facing]) {
+		if (animationData[facing]) {
 			var spriteType = '';
 			if (animationData[facing]['anif'] && pokemon.gender === 'F') {
 				name += '-f';
@@ -1064,6 +1186,9 @@ var Tools = {
 				spriteData.url += dir + '/' + name + '.gif';
 				return spriteData;
 			}
+		} else if (gen6animationData[facing] && gen6animationData[facing]['anif'] && pokemon.gender === 'F') {
+			name += '-f';
+			spriteType += 'f';
 		}
 
 		// There is no entry or enough data in pokedex-mini.js
@@ -1079,10 +1204,10 @@ var Tools = {
 		return spriteData;
 	},
 
-	getPokemonIcon: function (pokemon) {
-		return this.getIcon(pokemon, true);
+	getPokemonIcon: function (pokemon, facingLeft) {
+		return this.getIcon(pokemon, true, facingLeft);
 	},
-	getIcon: function (pokemon, newSize) {
+	getIcon: function (pokemon, newSize, facingLeft) {
 		var num = 0;
 		if (pokemon === 'pokeball') {
 			return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/bwicons-pokeball-sheet.png) no-repeat scroll -0px -8px';
@@ -1113,15 +1238,23 @@ var Tools = {
 			"deoxysattack": 763,
 			"deoxysdefense": 764,
 			"deoxysspeed": 766,
+			"deerlingautumn": 793,
+			"deerlingsummer": 795,
+			"deerlingwinter": 796,
+			"sawsbuckautumn": 797,
+			"sawsbucksummer": 799,
+			"sawsbuckwinter": 800,
 			"wormadamsandy": 771,
 			"wormadamtrash": 772,
 			"cherrimsunshine": 774,
+			"shelloseast": 775,
+			"gastrodoneast": 777,
 			"castformrainy": 760,
 			"castformsnowy": 761,
 			"castformsunny": 762,
 			"meloettapirouette": 804,
 			"meowsticf": 809,
-			"floetteeternalflower": 810,
+			"floetteeternal": 810,
 			"tornadustherian": 816,
 			"thundurustherian": 817,
 			"landorustherian": 818,
@@ -1198,44 +1331,293 @@ var Tools = {
 			"cawmodore": 832 + 16,
 			"volkraken": 832 + 17,
 			"plasmanta": 832 + 18,
-			"naviathan": 832 + 19
+			"naviathan": 832 + 19,
+			"crucibelle": 832 + 20,
+			"crucibellemega": 832 + 21
 		};
+
 		if (altNums[id]) {
 			num = altNums[id];
 		}
-		if (pokemon && pokemon.gender === 'F') {
-			if (id === 'unfezant') num = 788;
-			else if (id === 'frillish') num = 801;
-			else if (id === 'jellicent') num = 802;
-			else if (id === 'meowstic') num = 809;
+		var newAltNums = {
+			pikachubelle: 732 + 2,
+			pikachulibre: 732 + 3,
+			pikachuphd: 732 + 4,
+			pikachupopstar: 732 + 5,
+			pikachurockstar: 732 + 6,
+			pikachucosplay: 732 + 7,
+			castformrainy: 732 + 35,
+			castformsnowy: 732 + 36,
+			castformsunny: 732 + 37,
+			deoxysattack: 732 + 38,
+			deoxysdefense: 732 + 39,
+			deoxysspeed: 732 + 40,
+			wormadamsandy: 732 + 43,
+			wormadamtrash: 732 + 44,
+			cherrimsunshine: 732 + 45,
+			shelloseast: 732 + 46,
+			gastrodoneast: 732 + 47,
+			rotomfan: 732 + 48,
+			rotomfrost: 732 + 49,
+			rotomheat: 732 + 50,
+			rotommow: 732 + 51,
+			rotomwash: 732 + 52,
+			giratinaorigin: 732 + 53,
+			shayminsky: 732 + 54,
+			unfezantf: 732 + 55,
+			basculinbluestriped: 732 + 56,
+			darmanitanzen: 732 + 57,
+			deerlingautumn: 732 + 58,
+			deerlingsummer: 732 + 59,
+			deerlingwinter: 732 + 60,
+			sawsbuckautumn: 732 + 61,
+			sawsbucksummer: 732 + 62,
+			sawsbuckwinter: 732 + 63,
+			frillishf: 732 + 64,
+			jellicentf: 732 + 65,
+			tornadustherian: 732 + 66,
+			thundurustherian: 732 + 67,
+			landorustherian: 732 + 68,
+			kyuremblack: 732 + 69,
+			kyuremwhite: 732 + 70,
+			keldeoresolute: 732 + 71,
+			meloettapirouette: 732 + 72,
+			vivillonarchipelago: 732 + 73,
+			vivilloncontinental: 732 + 74,
+			vivillonelegant: 732 + 75,
+			vivillonfancy: 732 + 76,
+			vivillongarden: 732 + 77,
+			vivillonhighplains: 732 + 78,
+			vivillonicysnow: 732 + 79,
+			vivillonjungle: 732 + 80,
+			vivillonmarine: 732 + 81,
+			vivillonmodern: 732 + 82,
+			vivillonmonsoon: 732 + 83,
+			vivillonocean: 732 + 84,
+			vivillonpokeball: 732 + 85,
+			vivillonpolar: 732 + 86,
+			vivillonriver: 732 + 87,
+			vivillonsandstorm: 732 + 88,
+			vivillonsavanna: 732 + 89,
+			vivillonsun: 732 + 90,
+			vivillontundra: 732 + 91,
+			pyroarf: 732 + 92,
+			flabebeblue: 732 + 93,
+			flabebeorange: 732 + 94,
+			flabebewhite: 732 + 95,
+			flabebeyellow: 732 + 96,
+			floetteblue: 732 + 97,
+			floetteeternal: 732 + 98,
+			floetteorange: 732 + 99,
+			floettewhite: 732 + 100,
+			floetteyellow: 732 + 101,
+			florgesblue: 732 + 102,
+			florgesorange: 732 + 103,
+			florgeswhite: 732 + 104,
+			florgesyellow: 732 + 105,
+			meowsticf: 732 + 115,
+			aegislashblade: 732 + 116,
+			hoopaunbound: 732 + 118,
+
+			venusaurmega: 852 + 0,
+			charizardmegax: 852 + 1,
+			charizardmegay: 852 + 2,
+			blastoisemega: 852 + 3,
+			beedrillmega: 852 + 4,
+			pidgeotmega: 852 + 5,
+			alakazammega: 852 + 6,
+			slowbromega: 852 + 7,
+			gengarmega: 852 + 8,
+			kangaskhanmega: 852 + 9,
+			pinsirmega: 852 + 10,
+			gyaradosmega: 852 + 11,
+			aerodactylmega: 852 + 12,
+			mewtwomegax: 852 + 13,
+			mewtwomegay: 852 + 14,
+			ampharosmega: 852 + 15,
+			steelixmega: 852 + 16,
+			scizormega: 852 + 17,
+			heracrossmega: 852 + 18,
+			houndoommega: 852 + 19,
+			tyranitarmega: 852 + 20,
+			sceptilemega: 852 + 21,
+			blazikenmega: 852 + 22,
+			swampertmega: 852 + 23,
+			gardevoirmega: 852 + 24,
+			sableyemega: 852 + 25,
+			mawilemega: 852 + 26,
+			aggronmega: 852 + 27,
+			medichammega: 852 + 28,
+			manectricmega: 852 + 29,
+			sharpedomega: 852 + 30,
+			cameruptmega: 852 + 31,
+			altariamega: 852 + 32,
+			banettemega: 852 + 33,
+			absolmega: 852 + 34,
+			glaliemega: 852 + 35,
+			salamencemega: 852 + 36,
+			metagrossmega: 852 + 37,
+			latiasmega: 852 + 38,
+			latiosmega: 852 + 39,
+			kyogreprimal: 852 + 40,
+			groudonprimal: 852 + 41,
+			rayquazamega: 852 + 42,
+			lopunnymega: 852 + 43,
+			garchompmega: 852 + 44,
+			lucariomega: 852 + 45,
+			abomasnowmega: 852 + 46,
+			gallademega: 852 + 47,
+			audinomega: 852 + 48,
+			dianciemega: 852 + 49
+		};
+		if (newSize) {
+			if (newAltNums[id]) num = newAltNums[id];
+			else if (num >= 832 && num < 864) num = num - 832 + 996; // CAP
 		}
 
-		var top = 8 + Math.floor(num / 16) * (newSize ? 30 : 32);
-		var left = (num % 16) * (newSize ? 40 : 32);
+		if (pokemon && pokemon.gender === 'F') {
+			if (newSize) {
+				if (id === 'unfezant' || id === 'frillish' || id === 'jellicent' || id === 'meowstic' || id === 'pyroar') {
+					num = newAltNums[id + 'f'];
+				}
+			} else {
+				if (id === 'unfezant') num = 788;
+				else if (id === 'frillish') num = 801;
+				else if (id === 'jellicent') num = 802;
+				else if (id === 'meowstic') num = 809;
+			}
+		}
+
+		if (facingLeft) {
+			newAltNums = {
+				pikachubelle: 912 + 0,
+				pikachupopstar: 912 + 1,
+				clefairy: 912 + 2,
+				clefable: 912 + 3,
+				jigglypuff: 912 + 4,
+				wigglytuff: 912 + 5,
+				poliwhirl: 912 + 6,
+				poliwrath: 912 + 7,
+				kingler: 912 + 8,
+				croconaw: 912 + 9,
+				cleffa: 912 + 10,
+				igglybuff: 912 + 11,
+				politoed: 912 + 12,
+				// unown gap
+				sneasel: 912 + 33,
+				teddiursa: 912 + 34,
+				roserade: 912 + 35,
+				zangoose: 912 + 36,
+				seviper: 912 + 37,
+				castformrainy: 912 + 38,
+				absolmega: 912 + 39,
+				absol: 912 + 40,
+				regirock: 912 + 41,
+				torterra: 912 + 42,
+				budew: 912 + 43,
+				roselia: 912 + 44,
+				magmortar: 912 + 45,
+				togekiss: 912 + 46,
+				rotomwash: 912 + 47,
+				shayminsky: 912 + 48,
+				emboar: 912 + 49,
+				pansear: 912 + 50,
+				simisear: 912 + 51,
+				drilbur: 912 + 52,
+				excadrill: 912 + 53,
+				sawk: 912 + 54,
+				lilligant: 912 + 55,
+				garbodor: 912 + 56,
+				solosis: 912 + 57,
+				vanilluxe: 912 + 58,
+				amoonguss: 912 + 59,
+				klink: 912 + 60,
+				klang: 912 + 61,
+				klinklang: 912 + 62,
+				litwick: 912 + 63,
+				golett: 912 + 64,
+				golurk: 912 + 65,
+				kyuremblack: 912 + 66,
+				kyuremwhite: 912 + 67,
+				kyurem: 912 + 68,
+				keldeoresolute: 912 + 69,
+				meloetta: 912 + 70,
+				greninja: 912 + 71,
+				// furfroudebutante: 912 + 72,
+				barbaracle: 912 + 73,
+				clauncher: 912 + 74,
+				clawitzer: 912 + 75,
+				sylveon: 912 + 76,
+				klefki: 912 + 77,
+				zygarde: 912 + 78
+			};
+			if (newAltNums[id]) {
+				num = newAltNums[id];
+			}
+		}
+
+		var top;
+		var left;
+		if (newSize) {
+			 top = Math.floor(num / 12) * 30;
+			 left = (num % 12) * 40;
+		} else {
+			 top = 8 + Math.floor(num / 16) * 32;
+			 left = (num % 16) * 32;
+		}
 		var fainted = (pokemon && pokemon.fainted ? ';opacity:.4' : '');
 		return 'background:transparent url(' + Tools.resourcePrefix + 'sprites/' + (newSize ? 'xyicons-sheet.png?a1' : 'bwicons-sheet.png?g6') + ') no-repeat scroll -' + left + 'px -' + top + 'px' + fainted;
 	},
 
-	getTeambuilderSprite: function (pokemon) {
+	getTeambuilderSprite: function (pokemon, gen) {
 		if (!pokemon) return '';
-		var id = toId(pokemon);
-		if (pokemon.spriteid) id = pokemon.spriteid;
-		if (pokemon.species && !id) {
-			var template = Tools.getTemplate(pokemon.species);
+		var id = toId(pokemon.species);
+		var spriteid = pokemon.spriteid;
+		var template = Tools.getTemplate(pokemon.species);
+		if (pokemon.species && !spriteid) {
 			if (template.spriteid) {
-				id = template.spriteid;
+				spriteid = template.spriteid;
 			} else {
-				id = toId(pokemon.species);
+				spriteid = toId(pokemon.species);
 			}
 		}
 		if (Tools.getTemplate(pokemon.species).exists === false) {
-			return 'background-image:url(' + Tools.resourcePrefix + 'sprites/bw/0.png)';
+			return 'background-image:url(' + Tools.resourcePrefix + 'sprites/bw/0.png);background-position:10px 5px;background-repeat:no-repeat';
 		}
 		var shiny = (pokemon.shiny ? '-shiny' : '');
-		if (BattlePokemonSprites && BattlePokemonSprites[id] && BattlePokemonSprites[id].front && BattlePokemonSprites[id].front.anif && pokemon.gender === 'F') {
-			id += '-f';
+		// var sdata;
+		// if (BattlePokemonSprites[id] && BattlePokemonSprites[id].front && !Tools.prefs('bwgfx')) {
+		// 	if (BattlePokemonSprites[id].front.anif && pokemon.gender === 'F') {
+		// 		spriteid += '-f';
+		// 		sdata = BattlePokemonSprites[id].front.anif;
+		// 	} else {
+		// 		sdata = BattlePokemonSprites[id].front.ani;
+		// 	}
+		// } else {
+		// 	return 'background-image:url(' + Tools.resourcePrefix + 'sprites/bw' + shiny + '/' + spriteid + '.png);background-position:10px 5px;background-repeat:no-repeat';
+		// }
+		if (Tools.prefs('nopastgens')) gen = 6;
+		if ((!gen || gen === 6) && !template.isNonstandard && !Tools.prefs('bwgfx')) {
+			var offset = '-2px -3px';
+			if (id.substr(0, 6) === 'arceus') offset = '-2px 7px';
+			if (id === 'garchomp') offset = '-2px 2px';
+			if (id === 'garchompmega') offset = '-2px 0px';
+			return 'background-image:url(' + Tools.resourcePrefix + 'sprites/xydex' + shiny + '/' + spriteid + '.png);background-position:' + offset + ';background-repeat:no-repeat';
 		}
-		return 'background-image:url(' + Tools.resourcePrefix + 'sprites/bw' + shiny + '/' + id + '.png)';
+		var spriteDir = Tools.resourcePrefix + 'sprites/bw';
+		if (gen <= 1 && template.gen <= 1) spriteDir = Tools.resourcePrefix + 'sprites/rby';
+		else if (gen <= 2 && template.gen <= 2) spriteDir = Tools.resourcePrefix + 'sprites/gsc';
+		else if (gen <= 3 && template.gen <= 3) spriteDir = Tools.resourcePrefix + 'sprites/rse';
+		else if (gen <= 4 && template.gen <= 4) spriteDir = Tools.resourcePrefix + 'sprites/dpp';
+		return 'background-image:url(' + spriteDir + shiny + '/' + spriteid + '.png);background-position:10px 5px;background-repeat:no-repeat';
+		// var w = Math.round(57 - sdata.w / 2), h = Math.round(57 - sdata.h / 2);
+		// if (id === 'altariamega' || id === 'dianciemega' || id === 'charizardmegay') h += 15;
+		// if (id === 'gliscor' || id === 'gardevoirmega' || id === 'garchomp' || id === 'garchompmega' || id === 'lugia' || id === 'golurk') h += 8;
+		// if (id === 'manectricmega') h -= 8;
+		// if (id === 'giratinaorigin' || id === 'steelixmega') h -= 15;
+		// if (id === 'lugia' || id === 'latiosmega' || id === 'latias' || id === 'garchompmega' || id === 'kyuremwhite') w += 8;
+		// if (id === 'rayquazamega' || id === 'giratinaorigin' || id === 'wailord' || id === 'latiasmega') w += 15;
+		// return 'background-image:url(' + Tools.resourcePrefix + 'sprites/xy' + shiny + '/' + spriteid + '.png);background-position:' + w + 'px ' + h + 'px;background-repeat:no-repeat';
 	},
 
 	getItemIcon: function (item) {
@@ -1252,5 +1634,73 @@ var Tools = {
 		if (!type) return '';
 		var sanitizedType = type.replace(/\?/g, '%3f');
 		return '<img src="' + Tools.resourcePrefix + 'sprites/types/' + sanitizedType + '.png" alt="' + type + '" height="14" width="32"' + (b ? ' class="b"' : '') + ' />';
+	},
+
+	/*********************************************************
+	 * Replay files
+	 *********************************************************/
+
+	// Replay files are .html files that display a replay for a battle.
+
+	// The .html files mainly contain replay log data; the actual replay
+	// player is downloaded online. Also included is a textual log and
+	// some minimal CSS to make it look pretty, for offline viewing.
+
+	// This strategy helps keep the replay file reasonably small; of
+	// the 30 KB or so for a 50-turn battle, around 10 KB is the log
+	// data, and around 20 KB is the textual log.
+
+	// The actual replay player is downloaded from replay-embed.js,
+	// which handles loading all the necessary resources for turning the log
+	// data into a playable replay.
+
+	// Battle log data is stored in and loaded from a
+	// <script type="text/plain" class="battle-log-data"> tag.
+
+	// replay-embed.js is loaded through a cache-buster that rotates daily.
+	// This allows pretty much anything about the replay viewer to be
+	// updated as desired.
+
+	createReplayFile: function (room) {
+		var battle = room.battle;
+		var replayid = room.id;
+		if (replayid) {
+			// battle room
+			replayid = replayid.slice(7);
+			if (Config.server.id !== 'showdown') {
+				if (!Config.server.registered) {
+					replayid = 'unregisteredserver-' + replayid;
+				} else {
+					replayid = Config.server.id + '-' + replayid;
+				}
+			}
+		} else {
+			// replay panel
+			replayid = room.fragment;
+		}
+		battle.fastForwardTo(-1);
+		var buf = '<!DOCTYPE html>\n';
+		buf += '<meta charset="utf-8" />\n';
+		buf += '<!-- version 1 -->\n';
+		buf += '<title>' + Tools.escapeHTML(battle.tier) + ' replay: ' + Tools.escapeHTML(battle.p1.name) + ' vs. ' + Tools.escapeHTML(battle.p2.name) + '</title>\n';
+		buf += '<style>\n';
+		buf += 'html,body {font-family:Verdana, sans-serif;font-size:10pt;margin:0;padding:0;}body{padding:12px 0;} .battle-log {font-family:Verdana, sans-serif;font-size:10pt;} .battle-log-inline {border:1px solid #AAAAAA;background:#EEF2F5;color:black;max-width:640px;margin:0 auto 80px;padding-bottom:5px;} .battle-log .inner {padding:4px 8px 0px 8px;} .battle-log .inner-preempt {padding:0 8px 4px 8px;} .battle-log .inner-after {margin-top:0.5em;} .battle-log h2 {margin:0.5em -8px;padding:4px 8px;border:1px solid #AAAAAA;background:#E0E7EA;border-left:0;border-right:0;font-family:Verdana, sans-serif;font-size:13pt;} .battle-log .chat {vertical-align:middle;padding:3px 0 3px 0;font-size:8pt;} .battle-log .chat strong {color:#40576A;} .battle-log .chat em {padding:1px 4px 1px 3px;color:#000000;font-style:normal;} .chat.mine {background:rgba(0,0,0,0.05);margin-left:-8px;margin-right:-8px;padding-left:8px;padding-right:8px;} .spoiler {color:#BBBBBB;background:#BBBBBB;padding:0px 3px;} .spoiler:hover, .spoiler:active, .spoiler-shown {color:#000000;background:#E2E2E2;padding:0px 3px;} .spoiler a {color:#BBBBBB;} .spoiler:hover a, .spoiler:active a, .spoiler-shown a {color:#2288CC;} .chat code, .chat .spoiler:hover code, .chat .spoiler:active code, .chat .spoiler-shown code {border:1px solid #C0C0C0;background:#EEEEEE;color:black;padding:0 2px;} .chat .spoiler code {border:1px solid #CCCCCC;background:#CCCCCC;color:#CCCCCC;} .battle-log .rated {padding:3px 4px;} .battle-log .rated strong {color:white;background:#89A;padding:1px 4px;border-radius:4px;} .spacer {margin-top:0.5em;} .message-announce {background:#6688AA;color:white;padding:1px 4px 2px;} .message-announce a, .broadcast-green a, .broadcast-blue a, .broadcast-red a {color:#DDEEFF;} .broadcast-green {background-color:#559955;color:white;padding:2px 4px;} .broadcast-blue {background-color:#6688AA;color:white;padding:2px 4px;} .infobox {border:1px solid #6688AA;padding:2px 4px;} .infobox-limited {max-height:200px;overflow:auto;overflow-x:hidden;} .broadcast-red {background-color:#AA5544;color:white;padding:2px 4px;} .message-learn-canlearn {font-weight:bold;color:#228822;text-decoration:underline;} .message-learn-cannotlearn {font-weight:bold;color:#CC2222;text-decoration:underline;} .message-effect-weak {font-weight:bold;color:#CC2222;} .message-effect-resist {font-weight:bold;color:#6688AA;} .message-effect-immune {font-weight:bold;color:#666666;} .message-learn-list {margin-top:0;margin-bottom:0;} .message-throttle-notice, .message-error {color:#992222;} .message-overflow, .chat small.message-overflow {font-size:0pt;} .message-overflow::before {font-size:9pt;content:\'...\';} .subtle {color:#3A4A66;}\n';
+		buf += '</style>\n';
+		buf += '<div class="wrapper replay-wrapper" style="max-width:1180px;margin:0 auto">\n';
+		buf += '<input type="hidden" name="replayid" value="' + replayid + '" />\n';
+		buf += '<div class="battle"></div><div class="battle-log"></div><div class="replay-controls"></div><div class="replay-controls-2"></div>\n';
+		buf += '<h1 style="font-weight:normal;text-align:center"><strong>' + Tools.escapeHTML(battle.tier) + '</strong><br /><a href="http://pokemonshowdown.com/users/' + toId(battle.p1.name) + '" class="subtle" target="_blank">' + Tools.escapeHTML(battle.p1.name) + '</a> vs. <a href="http://pokemonshowdown.com/users/' + toId(battle.p2.name) + '" class="subtle" target="_blank">' + Tools.escapeHTML(battle.p2.name) + '</a></h1>\n';
+		buf += '<script type="text/plain" class="battle-log-data">' + battle.activityQueue.join('\n').replace(/\//g, '\\/') + '</script>\n';
+		buf += '</div>\n';
+		buf += '<div class="battle-log battle-log-inline"><div class="inner">' + battle.logElem.html() + '</div></div>\n';
+		buf += '</div>\n';
+		buf += '<script>\n';
+		buf += 'var daily = Math.floor(Date.now()/1000/60/60/24);document.write(\'<script src="https://play.pokemonshowdown.com/js/replay-embed.js?version\'+daily+\'"></\'+\'script>\');\n';
+		buf += '</script>\n';
+		return buf;
+	},
+
+	createReplayFileHref: function (room) {
+		return 'data:text/plain;base64,' + encodeURIComponent(window.btoa(unescape(encodeURIComponent(Tools.createReplayFile(room)))));
 	}
 };

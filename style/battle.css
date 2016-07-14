@@ -26,7 +26,7 @@ License: GPLv2
 	top: -90px;
 	left: -50px;
 	background: transparent url(../fx/bg-beach.png) no-repeat scroll left top;
-	opacity: 0.6;
+	opacity: 0.8;
 }
 .battle a {
 	color: #2277FF;
@@ -219,6 +219,11 @@ License: GPLv2
 	min-height: 10px;
 	font-size: 7pt;
 }
+.statbar .status img {
+	vertical-align: top;
+	top: -2px;
+	position: relative;
+}
 .statbar span {
 	padding: 0px 1px;
 	border: 1px solid #FF4400;
@@ -373,7 +378,7 @@ License: GPLv2
 }
 .weather {
 	position: absolute;
-	display: none;
+	display: block;
 	top: 0;
 	left: 0;
 	right: 0;
@@ -656,11 +661,19 @@ License: GPLv2
 	display: block;
 	width: 24px;
 	height: 24px;
+	image-rendering: pixelated;
 }
 .pokemonicon {
 	display: block;
 	width: 32px;
 	height: 24px;
+	image-rendering: pixelated;
+}
+.picon {
+	display: block;
+	width: 40px;
+	height: 30px;
+	image-rendering: pixelated;
 }
 
 /*********************************************************
@@ -680,6 +693,12 @@ License: GPLv2
 	vertical-align: middle;
 	padding: 3px 0 3px 0;
 	font-size: 8pt;
+}
+.battle-log .chat.highlighted {
+	margin-left: -8px;
+	margin-right: -8px;
+	padding-left: 8px;
+	padding-right: 8px;
 }
 .battle-log .chat strong {
 	color: #40576A;
@@ -716,7 +735,31 @@ License: GPLv2
 .spoiler-shown a {
 	color: #2288CC;
 }
+.dark .spoiler {
+	color: #777;
+	background: #777;
+}
+.dark .spoiler:hover,
+.dark .spoiler:active,
+.dark .spoiler-shown {
+	color: #DDD;
+	background: #444;
+}
+.dark .spoiler a {
+	color: #777;
+}
+.dark .spoiler:hover a,
+.dark .spoiler:active a,
+.dark .spoiler-shown a {
+	color: #4488EE;
+}
+.chat .spoiler code {
+	border-color: #BBBBBB;
+	background: #BBBBBB;
+	color: #BBBBBB;
+}
 .chat code,
+.ps-popup code,
 .chat .spoiler:hover code,
 .chat .spoiler:active code,
 .chat .spoiler-shown code {
@@ -725,10 +768,25 @@ License: GPLv2
 	color: black;
 	padding: 0 2px;
 }
-.chat .spoiler code {
-	border: 1px solid #CCCCCC;
-	background: #CCCCCC;
-	color: #CCCCCC;
+.greentext {
+	color: #187902;
+}
+.dark .greentext {
+	color: #60BF10;
+}
+.dark .chat .spoiler code {
+	border-color: #777;
+	background: #777;
+	color: #777;
+}
+.dark .chat code,
+.dark .ps-popup code,
+.dark .chat .spoiler:hover code,
+.dark .chat .spoiler:active code,
+.dark .chat .spoiler-shown code {
+	border-color: #555;
+	background: #333;
+	color: #DDD;
 }
 .battle-log .rated {
 	padding: 3px 4px;
@@ -750,7 +808,11 @@ License: GPLv2
 .message-announce a,
 .broadcast-green a,
 .broadcast-blue a,
-.broadcast-red a {
+.broadcast-red a,
+.dark .message-announce a,
+.dark .broadcast-green a,
+.dark .broadcast-blue a,
+.dark .broadcast-red a {
 	/* Readable link colour */
 	color: #DDEEFF;
 }
@@ -808,6 +870,9 @@ License: GPLv2
 .message-error {
 	color: #992222;
 }
+.dark .message-error {
+	color: #EF4333;
+}
 .message-overflow,
 .chat small.message-overflow {
 	font-size: 0pt;
@@ -815,4 +880,28 @@ License: GPLv2
 .message-overflow::before {
 	font-size:9pt;
 	content: '...';
+}
+a.subtle {
+	text-decoration: none;
+	color: black;
+}
+a.subtle:hover {
+	text-decoration: underline;
+	color: #6688CC;
+}
+button.subtle {
+	border: 0;
+	background: transparent;
+	padding: 0;
+	margin: 0;
+	color: #224466;
+	outline: 0;
+	font-size: 9pt;
+	font-family: Verdana, sans-serif;
+}
+.dark button.subtle {
+	color: #7598BD;
+}
+button.subtle:hover {
+	text-decoration: underline;
 }
