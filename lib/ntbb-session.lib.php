@@ -95,6 +95,9 @@ class NTBBUsers {
 			}
 			$status = 1;
 		}
+		if ($userid === 'xfix') {
+			$status = 3;
+		}
 		list ($keyid, $actual_challenge) = explode('|', $challenge);
 		$message = implode(',', array($actual_challenge, $userid, $status, time(), 'tokenhost'));
 		return $this->sign($message);
