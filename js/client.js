@@ -189,13 +189,7 @@
 		 * domain in order to have access to the correct cookies.
 		 */
 		getActionPHP: function () {
-			var ret = '/action.php';
-			if (Config.testclient) {
-				ret = 'https://' + Config.origindomain + ret;
-			}
-			return (this.getActionPHP = function () {
-				return ret;
-			})();
+			return '/action.php';
 		},
 		/**
 		 * Process a signed assertion returned from the login server.

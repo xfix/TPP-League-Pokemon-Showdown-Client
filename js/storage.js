@@ -1,4 +1,3 @@
-Config.origindomain = 'tppleague.me';
 // `defaultserver` specifies the server to use when the domain name in the
 // address bar is `Config.origindomain`.
 Config.defaultserver = {
@@ -303,11 +302,9 @@ Storage.onMessage = function ($e) {
 
 			// in Safari, cross-origin local storage is apparently treated as session
 			// storage, so mirror the storage in the current origin just in case
-			if (document.location.hostname === Config.origindomain) {
-				try {
+			try {
 					localStorage.setItem('showdown_teams_local', packedTeams);
-				} catch (e) {}
-			}
+			} catch (e) {}
 		};
 		if (oldTeams) {
 			Storage.teams = Storage.teams.concat(oldTeams);
