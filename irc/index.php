@@ -38,9 +38,9 @@ else {
     $yesterday->add($interval);
 
     echo 'Current hour: ', $today->format('Y-m-d H:i'), ' UTC | ';
-    echo '<a href="', $yesterday->format('Y-m-d\TH:i'), '#end">Previous hour</a>';
+    echo '<a href="', $yesterday->format('Y-m-d\TH%\3\Ai'), '#end">Previous hour</a>';
     if (isset($_GET['date']) && $today->format('Y-m-d H:i') < date('Y-m-d H:i')) {
-        echo ' | <a href="', $tomorrow->format('Y-m-d\TH:i'), '">Next hour</a>';
+        echo ' | <a href="', $tomorrow->format('Y-m-d\TH%\3\Ai'), '">Next hour</a>';
     }
 
 }
@@ -82,7 +82,7 @@ function display_row($row) {
 
     $unix_time = strtotime($time);
     $formatted_time = date('H:i', $unix_time);
-    $formatted_date = date('Y-m-d+H:00', $unix_time);
+    $formatted_date = date('Y-m-d+H%\3\A00', $unix_time);
 
     if ($type === '1') {
         if ($previous_sender === $sender) {
