@@ -790,7 +790,7 @@
 						if (roomid === 'lobby') this.joinRoom('rooms');
 					}
 					if (errormessage) {
-						if (Config.server.id && roomid.slice(0, 7) === 'battle-') {
+						if (data === 'nonexistent' && Config.server.id && roomid.slice(0, 7) === 'battle-') {
 							var replayid = roomid.slice(7);
 							if (Config.server.id !== 'showdown') replayid = Config.server.id + '-' + replayid;
 							var replayLink = 'http://replay.pokemonshowdown.com/' + replayid;
@@ -1175,6 +1175,7 @@
 		unjoinRoom: function (id, reason) {
 			this.removeRoom(id, true);
 			if (this.curRoom) this.navigate(this.curRoom.id, {replace: true});
+			this.updateAutojoin();
 		},
 		tryJoinRoom: function (id) {
 			this.joinRoom(id);
