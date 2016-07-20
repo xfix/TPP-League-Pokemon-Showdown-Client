@@ -7,4 +7,7 @@ Config.customcolors = {
     'tustin2121' : 'tustin2121',
     'megacharizard' : { color : "#FF0000" },
     'abyll' : { color : "#007FFF" },
+    'azum4roll' : { color : "#00CCFF" },
+    'darkfiregamer' : { color : "#000000" },
+    'lasszeowx' : { color : "#FF7F0F" },
 };
