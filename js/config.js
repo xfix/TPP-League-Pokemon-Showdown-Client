@@ -13,5 +13,5 @@ Config.customcolors = {
     'poksonkirmar' : { color : "#0000B7" },
     'cerebralharlot' : { color : "#FD00FF" },
     'coryn216' : { color : "#006778" },
-    'bigfatmantis' : { color : "#61FF35" },
+    'bigfatmantis' : { color : "#4BEA02" },
 };
