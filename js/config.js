@@ -10,4 +10,6 @@ Config.customcolors = {
     'azum4roll' : { color : "#00CCFF" },
     'darkfiregamer' : { color : "#000000" },
     'lasszeowx' : { color : "#FF7F0F" },
+    'poksonkirmar' : { color : "#0000B7" },
+    'cerebralharlot' : { color : "#660066" },
 };
