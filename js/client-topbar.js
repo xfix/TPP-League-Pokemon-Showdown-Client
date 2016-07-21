@@ -14,7 +14,7 @@
 		initialize: function () {
 			// April Fool's 2016 - Digimon Showdown
 			// this.$el.html('<img class="logo" src="' + Tools.resourcePrefix + 'sprites/afd/digimonshowdown.png" alt="Digimon Showdown! (beta)" width="146" height="44" /><div class="maintabbarbottom"></div><div class="tabbar maintabbar"><div class="inner"></div></div><div class="userbar"></div>');
-			this.$el.html('<img class="logo" src="' + 'https://tppleague.me/tppleague.png" alt="TPPLeague" width="184" height="40" /><div class="maintabbarbottom"></div><div class="tabbar maintabbar"><div class="inner"></div></div><div class="userbar"></div>');
+			this.$el.html('<img class="logo" src="tppleague.png" alt="TPPLeague" width="184" height="40" /><div class="maintabbarbottom"></div><div class="tabbar maintabbar"><div class="inner"></div></div><div class="userbar"></div>');
 			this.$tabbar = this.$('.maintabbar .inner');
 			// this.$sidetabbar = this.$('.sidetabbar');
 			this.$userbar = this.$('.userbar');

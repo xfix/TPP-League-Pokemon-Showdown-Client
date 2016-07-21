@@ -782,8 +782,9 @@ var Tools = {
 		};
 	})(),
 
-// We don't really need this
-/*	interstice: (function () {
+// We don't really need this --azum
+// Like hell we don't. Without it, Lobby doesn't work for some reason --tustin 2016/07/20
+	interstice: (function () {
 		var patterns = (function (whitelist) {
 			var patterns = [];
 			for (var i = 0; i < whitelist.length; ++i) {
@@ -810,7 +811,7 @@ var Tools = {
 				return 'http://pokemonshowdown.com/interstice?uri=' + encodeURIComponent(uri);
 			}
 		};
-	})(),*/
+	})(),
 
 	safeJSON: function (f) {
 		return function (data) {
