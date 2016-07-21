@@ -345,7 +345,7 @@ var Tools = {
 	resourcePrefix: (function () {
 		var prefix = '';
 		if (document.location.protocol === 'file:') prefix = 'https:';
-		return prefix + '//tppleague.me/';
+		return prefix + '//play.pokemonshowdown.com/';
 	})(),
 
 	fxPrefix: (function () {
