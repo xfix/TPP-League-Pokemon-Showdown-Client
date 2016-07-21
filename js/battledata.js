@@ -353,7 +353,7 @@ var Tools = {
 			if (window.Replays) return 'https://play.pokemonshowdown.com/fx/';
 			return 'fx/';
 		}
-		return '//tppleague.me/fx/';
+		return '//play.pokemonshowdown.com/fx/';
 	})(),
 
 	/*
