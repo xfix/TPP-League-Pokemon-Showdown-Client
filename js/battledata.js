@@ -345,7 +345,7 @@ var Tools = {
 	resourcePrefix: (function () {
 		var prefix = '';
 		if (document.location.protocol === 'file:') prefix = 'https:';
-		return prefix + '//play.pokemonshowdown.com/';
+		return prefix + '//tppleague.me/';
 	})(),
 
 	fxPrefix: (function () {
@@ -353,7 +353,7 @@ var Tools = {
 			if (window.Replays) return 'https://play.pokemonshowdown.com/fx/';
 			return 'fx/';
 		}
-		return '//play.pokemonshowdown.com/fx/';
+		return '//tppleague.me/fx/';
 	})(),
 
 	/*
@@ -782,7 +782,8 @@ var Tools = {
 		};
 	})(),
 
-	interstice: (function () {
+// We don't really need this
+/*	interstice: (function () {
 		var patterns = (function (whitelist) {
 			var patterns = [];
 			for (var i = 0; i < whitelist.length; ++i) {
@@ -809,7 +810,7 @@ var Tools = {
 				return 'http://pokemonshowdown.com/interstice?uri=' + encodeURIComponent(uri);
 			}
 		};
-	})(),
+	})(),*/
 
 	safeJSON: function (f) {
 		return function (data) {
