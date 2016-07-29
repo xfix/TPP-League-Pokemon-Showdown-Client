@@ -9,6 +9,7 @@
 !/data/pokedex-mini.js
 !/data/pokedex-mini-bw.js
 !/data/learnsets-g6.js
+!/data/custom/
 node_modules/
 eslint-cache/
 .DS_Store
