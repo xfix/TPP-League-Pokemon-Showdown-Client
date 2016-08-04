@@ -42,10 +42,11 @@
 			<div class="leftmenu">
 				<div class="activitymenu">
 					<div class="pmbox">
+						<?php include 'news-embed.php'; ?>
 					</div>
 				</div>
 				<div class="mainmenu">
-					<div id="loading-message" class="mainmessage">Initializing... <noscript>FAILED<br /><br />Pok&eacute;mon Showdown requires JavaScript.</noscript></div>
+					<div id="loading-message" class="mainmessage">Initialising... <noscript>FAILED<br /><br />Pok&eacute;mon Showdown requires JavaScript.</noscript></div>
 				</div>
 			</div>
 			<div class="rightmenu">
