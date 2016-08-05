@@ -115,12 +115,22 @@
 		addNews: function () {
 			var newsId = '1990';
 			if (newsId === '' + Tools.prefs('readnews')) return;
-			this.addPseudoPM({
-				title: 'Latest News',
-				html: '<iframe src="/news-embed.php?news' + (window.nodewebkit || document.location.protocol === 'https:' ? '&amp;https' : '') + '" width="270" height="400" border="0" style="border:0;width:100%;height:100%;display:block"></iframe>',
-				attributes: 'data-newsid="' + newsId + '"',
-				cssClass: 'news-embed',
-				height: 400
+			var self = this;
+			
+			$.ajax("/news-embed.php?news", {
+				success: function(data, txstat, xhr) {
+					if (xhr.status == 204) return; //do nothing
+					var embed = $(".news-embed");
+					if (embed.length == 0) {
+						self.addPseudoPM({
+							title: "News",
+							attributes: 'data-newsid="' + newsId + '"',
+							cssClass: 'news-embed',
+						});
+						embed = $(".news-embed");
+					}
+					embed.find(".pm-log").html(data);
+				},
 			});
 		},
 

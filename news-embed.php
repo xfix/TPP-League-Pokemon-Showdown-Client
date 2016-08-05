@@ -2,6 +2,22 @@
 if (!file_exists('../news/embed.php')) { 
     return; // Only include if there is a file to embed 
 }
+
+// If this page specifically is being queried, don't send the wrappings below.
+// The wrappings will be added client side.
+if (substr($_SERVER["QUERY_STRING"], 0, 4) === "news" && !headers_sent()) {
+	header("Cache-Control: no-cache, must-revalidate");
+	ob_start();
+	include '../news/embed.php';
+	if (ob_get_length() > 0) {
+		ob_end_flush();
+	} else {
+		http_response_code(204);
+		ob_end_clean();
+	}
+	return;
+}
+
 ob_start(); //start output buffering
 ?>
 <div class="pm-window news-embed" data-newsid="<?= date("Ymd") ?>">
