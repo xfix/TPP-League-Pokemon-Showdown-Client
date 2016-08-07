@@ -341,6 +341,7 @@
 		parseCommand: function (text) {
 			var cmd = '';
 			var target = '';
+			var noSpace = false;
 			if (text.substr(0, 2) !== '//' && text.substr(0, 1) === '/') {
 				var spaceIndex = text.indexOf(' ');
 				if (spaceIndex > 0) {
@@ -349,6 +350,7 @@
 				} else {
 					cmd = text.substr(1);
 					target = '';
+					noSpace = true;
 				}
 			}
 
@@ -825,6 +827,8 @@
 
 			case 'joim':
 			case 'join':
+			case 'j':
+				if (noSpace) return text;
 				var room = toRoomid(target);
 				if (app.rooms[target]) {
 					app.focusRoom(target);
@@ -923,9 +927,6 @@
 				case 'ladder':
 					this.add('/rating - Get your own rating.');
 					this.add('/rating [username] - Get user [username]\'s rating.');
-					return false;
-				case 'join':
-					this.add('/join [roomname] - Attempt to join the room [roomname].');
 					return false;
 				}
 			}
