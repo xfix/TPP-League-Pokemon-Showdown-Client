@@ -343,9 +343,9 @@ var linkRegex = new RegExp(
 var Tools = {
 
 	resourcePrefix: (function () {
-		var prefix = '';
-		if (document.location.protocol === 'file:') prefix = 'https:';
-		return prefix + '//play.pokemonshowdown.com/';
+		var prefix = '/';
+		if (document.location.protocol === 'file:') prefix = 'https://play.pokemonshowdown.com/';
+		return prefix;
 	})(),
 
 	fxPrefix: (function () {
@@ -353,7 +353,7 @@ var Tools = {
 			if (window.Replays) return 'https://play.pokemonshowdown.com/fx/';
 			return 'fx/';
 		}
-		return '//play.pokemonshowdown.com/fx/';
+		return '/fx/';
 	})(),
 
 	/*
@@ -785,32 +785,36 @@ var Tools = {
 // We don't really need this --azum
 // Like hell we don't. Without it, Lobby doesn't work for some reason --tustin 2016/07/20
 	interstice: (function () {
-		var patterns = (function (whitelist) {
-			var patterns = [];
-			for (var i = 0; i < whitelist.length; ++i) {
-				patterns.push(new RegExp('^(https?:)?//([A-Za-z0-9-]*\\.)?' +
-					whitelist[i] +
-					'(/.*)?', 'i'));
-			}
-			return patterns;
-		})((window.Config && Config.whitelist) ? Config.whitelist : []);
 		return {
-			isWhitelisted: function (uri) {
-				if ((uri[0] === '/') && (uri[1] !== '/')) {
-					// domain-relative URIs are safe
-					return true;
-				}
-				for (var i = 0; i < patterns.length; ++i) {
-					if (patterns[i].test(uri)) {
-						return true;
-					}
-				}
-				return false;
-			},
-			getURI: function (uri) {
-				return 'http://pokemonshowdown.com/interstice?uri=' + encodeURIComponent(uri);
-			}
+			isWhitelisted: function(uri) { return true; },
+			getURI: function(uri) { return uri; },
 		};
+		// var patterns = (function (whitelist) {
+		// 	var patterns = [];
+		// 	for (var i = 0; i < whitelist.length; ++i) {
+		// 		patterns.push(new RegExp('^(https?:)?//([A-Za-z0-9-]*\\.)?' +
+		// 			whitelist[i] +
+		// 			'(/.*)?', 'i'));
+		// 	}
+		// 	return patterns;
+		// })((window.Config && Config.whitelist) ? Config.whitelist : []);
+		// return {
+		// 	isWhitelisted: function (uri) {
+		// 		if ((uri[0] === '/') && (uri[1] !== '/')) {
+		// 			// domain-relative URIs are safe
+		// 			return true;
+		// 		}
+		// 		for (var i = 0; i < patterns.length; ++i) {
+		// 			if (patterns[i].test(uri)) {
+		// 				return true;
+		// 			}
+		// 		}
+		// 		return false;
+		// 	},
+		// 	getURI: function (uri) {
+		// 		return 'http://pokemonshowdown.com/interstice?uri=' + encodeURIComponent(uri);
+		// 	}
+		// };
 	})(),
 
 	safeJSON: function (f) {
