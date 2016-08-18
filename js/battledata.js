@@ -395,7 +395,7 @@ var Tools = {
 		var avatarnum = Number(avatar);
 		if (!isNaN(avatarnum)) {
 			// default avatars
-			return Tools.resourcePrefix + 'sprites/trainers/' + avatarnum + '.png';
+			return Tools.resourcePrefix + 'sprites/trainers/' + ("000"+avatarnum).substr(-3) + '.png';
 		}
 		if (avatar.charAt(0) === '#') {
 			return Tools.resourcePrefix + 'sprites/trainers/' + toId(avatar.substr(1)) + '.png';
