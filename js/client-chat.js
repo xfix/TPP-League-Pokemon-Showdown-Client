@@ -1242,11 +1242,22 @@
 					if (!this.tournamentBox) this.tournamentBox = new TournamentBox(this, this.$tournamentWrapper);
 					if (!this.tournamentBox.parseMessage(row.slice(1), row[0] === 'tournaments')) break;
 					// fallthrough in case of unparsed message
-
+				
 				case '':
 					this.$chat.append('<div class="notice">' + Tools.escapeHTML(row.slice(1).join('|')) + '</div>');
 					break;
-
+				
+				case 'news':
+					switch (row[1]) {
+						case "refresh":
+							window.room.addNews();
+							break;
+						case "refreshall":
+							setTimeout(function(){ window.room.addNews(); }, Math.floor(Math.random() * 5000)+100);
+							break;
+					}
+					break;
+				
 				default:
 					this.$chat.append('<div class="notice"><code>|' + Tools.escapeHTML(row.join('|')) + '</code></div>');
 					break;

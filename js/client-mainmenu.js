@@ -129,6 +129,9 @@
 						});
 						embed = $(".news-embed");
 					}
+					if (embed.data('minimized')) {
+						self.minimizePM(embed); //unminimize
+					}
 					embed.find(".pm-log").html(data);
 				},
 			});
