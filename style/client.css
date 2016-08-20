@@ -889,6 +889,11 @@ p.or:after {
 	padding: 1px 10px;
 	border-bottom: 1px solid #AAAAAA;
 }
+.newsfooter {
+    font-size: 7pt;
+    border-bottom: 1px solid #AAAAAA;
+    padding: 3px 10px;
+}
 .unread {
 	background: rgba(255,240,130,0.33);
 }
