@@ -889,6 +889,12 @@ p.or:after {
 	padding: 1px 10px;
 	border-bottom: 1px solid #AAAAAA;
 }
+.newsentry h4 {
+    margin: 6px 0;
+}
+.newsentry ul {
+    margin: 2px 0;
+}
 .newsfooter {
     font-size: 7pt;
     border-bottom: 1px solid #AAAAAA;
