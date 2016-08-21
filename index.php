@@ -62,7 +62,8 @@
 		<script src="js/lib/jquery-cookie.js"></script>
 		<script src="js/lib/autoresize.jquery.min.js"></script>
 		<script src="js/lib/jquery.json-2.3.min.js"></script>
-		<script src="js/lib/soundmanager2-nodebug-jsmin.js"></script>
+		<script src="js/webAudioManager.js"></script>
+		<script src="audio/bgm-index.js"></script>
 		<script>
 			soundManager.setup({url: 'swf/'});
 		</script>

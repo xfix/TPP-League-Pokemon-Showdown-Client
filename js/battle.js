@@ -37,6 +37,10 @@ var BattleSoundLibrary = (function () {
 		// bgm
 		this.bgmCache = {};
 		this.bgm = null;
+		
+		// winm
+		this.winmCache = {};
+		this.winm = null;
 
 		// misc
 		this.soundPlaceholder = {
@@ -58,13 +62,11 @@ var BattleSoundLibrary = (function () {
 		if (this.effectCache[url] && this.effectCache[url] !== this.soundPlaceholder) {
 			return this.effectCache[url];
 		}
-		try {
-			this.effectCache[url] = soundManager.createSound({
-				id: url,
-				url: Tools.resourcePrefix + url,
-				volume: this.effectVolume
-			});
-		} catch (e) {}
+		this.effectCache[url] = soundManager.createSound({
+			id: url,
+			url: Tools.resourcePrefix + url,
+			volume: this.effectVolume
+		});
 		if (!this.effectCache[url]) {
 			this.effectCache[url] = this.soundPlaceholder;
 		}
@@ -73,28 +75,69 @@ var BattleSoundLibrary = (function () {
 	BattleSoundLibrary.prototype.playEffect = function (url) {
 		if (!this.muted) this.loadEffect(url).setVolume(this.effectVolume).play();
 	};
-
+	
+	BattleSoundLibrary.prototype.loadWinMusic = function (url, loopstart, loopend) {
+		if (this.winmCache[url]) {
+			if (this.winmCache[url] !== this.soundPlaceholder || loopstart === undefined) {
+				return this.winmCache[url];
+			}
+		}
+		this.winmCache[url] = soundManager.createSound({
+			id: url,
+			url: Tools.resourcePrefix + url,
+			volume: this.bgmVolume,
+			loopstart: loopstart,
+			loopend: loopend,
+		});
+		if (!this.winmCache[url]) {
+			// couldn't load
+			// suppress crash
+			return (this.winmCache[url] = this.soundPlaceholder);
+		}
+		return this.winmCache[url];
+	};
+	BattleSoundLibrary.prototype.playWinMusic = function (url, loopstart, loopstop) {
+		this.stopBgm();
+		this.winm = this.loadWinMusic(url, loopstart, loopstop).setVolume(this.bgmVolume);
+		if (!this.muted) {
+			this.winm.play();
+			this.winm.fadeOut(30.0, 15.0);
+			
+			var self = this;
+			setTimeout(function(){
+				if (self.winm) self.winm.stop();
+				self.winm = null;
+			}, (45+1)*1000);
+		}
+	};
+	BattleSoundLibrary.prototype.stopWinMusic = function () {
+		if (this.winm) {
+			this.winm.stop();
+			this.winm = null;
+		}
+	};
+	
 	BattleSoundLibrary.prototype.loadBgm = function (url, loopstart, loopend) {
 		if (this.bgmCache[url]) {
 			if (this.bgmCache[url] !== this.soundPlaceholder || loopstart === undefined) {
 				return this.bgmCache[url];
 			}
 		}
-		try {
-			this.bgmCache[url] = soundManager.createSound({
-				id: url,
-				url: Tools.resourcePrefix + url,
-				volume: this.bgmVolume
-			});
-		} catch (e) {}
+		this.bgmCache[url] = soundManager.createSound({
+			id: url,
+			url: Tools.resourcePrefix + url,
+			volume: this.bgmVolume,
+			loopstart: loopstart,
+			loopend: loopend,
+		});
 		if (!this.bgmCache[url]) {
 			// couldn't load
 			// suppress crash
 			return (this.bgmCache[url] = this.soundPlaceholder);
 		}
-		this.bgmCache[url].onposition(loopend, function () {
-			this.setPosition(loopstart);
-		});
+		// this.bgmCache[url].onposition(loopend, function () {
+		// 	this.setPosition(loopstart);
+		// });
 		return this.bgmCache[url];
 	};
 	BattleSoundLibrary.prototype.playBgm = function (url, loopstart, loopstop) {
@@ -105,16 +148,14 @@ var BattleSoundLibrary = (function () {
 		} else {
 			this.stopBgm();
 		}
-		try {
-			this.bgm = this.loadBgm(url, loopstart, loopstop).setVolume(this.bgmVolume);
-			if (!this.muted) {
-				if (this.bgm.paused) {
-					this.bgm.resume();
-				} else {
-					this.bgm.play();
-				}
+		this.bgm = this.loadBgm(url, loopstart, loopstop).setVolume(this.bgmVolume);
+		if (!this.muted) {
+			if (this.bgm.paused) {
+				this.bgm.resume();
+			} else {
+				this.bgm.play();
 			}
-		} catch (e) {}
+		}
 	};
 	BattleSoundLibrary.prototype.pauseBgm = function () {
 		if (this.bgm) {
@@ -132,12 +173,13 @@ var BattleSoundLibrary = (function () {
 	BattleSoundLibrary.prototype.setMute = function (muted) {
 		muted = !!muted;
 		if (this.muted == muted) return;
-		this.muted = muted;
-		if (muted) {
-			if (this.bgm) this.bgm.pause();
-		} else {
-			if (this.bgm) this.bgm.play();
-		}
+		if (this.bgm) this.bgm.muted = muted;
+		if (this.winm) this.winm.muted = muted;
+		// if (muted) {
+		// 	if (this.bgm) this.bgm.pause();
+		// } else {
+		// 	if (this.bgm) this.bgm.play();
+		// }
 	};
 
 	function loudnessPercentToAmplitudePercent(loudnessPercent) {
@@ -148,9 +190,10 @@ var BattleSoundLibrary = (function () {
 	BattleSoundLibrary.prototype.setBgmVolume = function (bgmVolume) {
 		this.bgmVolume = loudnessPercentToAmplitudePercent(bgmVolume);
 		if (this.bgm) {
-			try {
-				this.bgm.setVolume(this.bgmVolume);
-			} catch (e) {}
+			this.bgm.setVolume(this.bgmVolume);
+		}
+		if (this.winm) {
+			this.winm.setVolume(this.bgmVolume);
 		}
 	};
 	BattleSoundLibrary.prototype.setEffectVolume = function (effectVolume) {
@@ -2491,6 +2534,7 @@ var Battle = (function () {
 		if (this.logFrameElem) this.logFrameElem.remove();
 
 		this.soundStop();
+		BattleSound.stopWinMusic();
 		for (var i = 0; i < this.sides.length; i++) {
 			if (this.sides[i]) this.sides[i].destroy();
 			this.sides[i] = null;
@@ -2778,6 +2822,7 @@ var Battle = (function () {
 		if (winner) this.message('' + Tools.escapeHTML(winner) + ' won the battle!');
 		else this.message('Tie between ' + Tools.escapeHTML(this.p1.name) + ' and ' + Tools.escapeHTML(this.p2.name) + '!');
 		this.ended = true;
+		if (!this.fastForward) this.playVictoryTheme();
 	};
 	Battle.prototype.prematureEnd = function () {
 		this.message('This replay ends here.');
@@ -5899,7 +5944,7 @@ var Battle = (function () {
 			this.paused = false;
 			this.activityQueue.push(command);
 			this.activityQueueActive = true;
-			this.soundStart();
+			if (!this.ended) this.soundStart();
 			if (fastForward) {
 				this.fastForwardTo(-1);
 			} else {
@@ -6575,13 +6620,13 @@ var Battle = (function () {
 		if (pokemon.side.n === 1) return;
 
 		if (pokemon.species === 'Koffing' && pokemon.name.match(/dogars/i)) {
-			if (window.forceBgm !== -1) {
-				window.originalBgm = window.bgmNum;
-				window.forceBgm = -1;
+			if (window.forceBgm !== 'bw2-homika-dogars') {
+				window.originalBgm = window.bgmId;
+				window.forceBgm = 'bw2-homika-dogars';
 				this.preloadBgm();
 				this.soundStart();
 			}
-		} else if (window.forceBgm === -1) {
+		} else if (window.forceBgm === 'bw2-homika-dogars') {
 			window.forceBgm = null;
 			if (window.originalBgm || window.originalBgm === 0) {
 				window.forceBgm = window.originalBgm;
@@ -6590,75 +6635,41 @@ var Battle = (function () {
 			this.soundStart();
 		}
 	};
-	Battle.prototype.preloadBgm = function () {
-		var bgmNum = Math.floor(Math.random() * 13);
-
-		if (window.forceBgm || window.forceBgm === 0) bgmNum = window.forceBgm;
-		window.bgmNum = bgmNum;
-		switch (bgmNum) {
-		case -1:
-			BattleSound.loadBgm('audio/bw2-homika-dogars.mp3', 1661, 68131);
-			this.bgm = 'audio/bw2-homika-dogars.mp3';
-			break;
-		case 0:
-			BattleSound.loadBgm('audio/hgss-kanto-trainer.mp3', 13003, 94656);
-			this.bgm = 'audio/hgss-kanto-trainer.mp3';
-			break;
-		case 1:
-			BattleSound.loadBgm('audio/bw-subway-trainer.mp3', 15503, 110984);
-			this.bgm = 'audio/bw-subway-trainer.mp3';
-			break;
-		case 2:
-			BattleSound.loadBgm('audio/bw-trainer.mp3', 14629, 110109);
-			this.bgm = 'audio/bw-trainer.mp3';
-			break;
-		case 3:
-			BattleSound.loadBgm('audio/bw-rival.mp3', 19180, 57373);
-			this.bgm = 'audio/bw-rival.mp3';
-			break;
-		case 4:
-			BattleSound.loadBgm('audio/dpp-trainer.mp3', 13440, 96959);
-			this.bgm = 'audio/dpp-trainer.mp3';
-			break;
-		case 5:
-			BattleSound.loadBgm('audio/hgss-johto-trainer.mp3', 23731, 125086);
-			this.bgm = 'audio/hgss-johto-trainer.mp3';
-			break;
-		case 6:
-			BattleSound.loadBgm('audio/dpp-rival.mp3', 13888, 66352);
-			this.bgm = 'audio/dpp-rival.mp3';
-			break;
-		case 7:
-			BattleSound.loadBgm('audio/bw2-kanto-gym-leader.mp3', 14626, 58986);
-			this.bgm = 'audio/bw2-kanto-gym-leader.mp3';
-			break;
-		case 8:
-			BattleSound.loadBgm('audio/bw2-rival.mp3', 7152, 68708);
-			this.bgm = 'audio/bw2-rival.mp3';
-			break;
-		case 9:
-			BattleSound.loadBgm('audio/xy-trainer.mp3', 7802, 82469);
-			this.bgm = 'audio/xy-trainer.mp3';
-			break;
-		case 10:
-			BattleSound.loadBgm('audio/xy-rival.mp3', 7802, 58634);
-			this.bgm = 'audio/xy-rival.mp3';
-			break;
-		case 11:
-			BattleSound.loadBgm('audio/oras-trainer.mp3', 13579, 91548);
-			this.bgm = 'audio/oras-trainer.mp3';
-			break;
-		default:
-			BattleSound.loadBgm('audio/oras-rival.mp3', 14303, 69149);
-			this.bgm = 'audio/oras-rival.mp3';
-			break;
+	
+	// TODO:
+	// /music <id> : command to force the battle music
+	// |music|cat|<category>  - To force a certain category of music (trainer/gym/wild)
+	// |music|force|<id>      - To force a certain music id
+	// |music|dynamic|gym     - To set the music to change when the last pokemon on the opposing side is left (a la Black/White)
+	
+	Battle.prototype.preloadVictory = function() {
+		var id = musicTable.randVictory();
+		if (window.bgmId && musicTable.meta[window.bgmId+"-win"]) {
+			id = window.bgmId+"-win"; //if there's a matching win music, load that up
 		}
+		if (window.forceWinm) {
+			id = window.forceWinm;
+		}
+		var bgmInfo = musicTable.meta[id];
+		BattleSound.loadWinMusic(bgmInfo.url, bgmInfo.loop[0], bgmInfo.loop[1]);
+		this.winm = bgmInfo.url;
+	};
+	Battle.prototype.preloadBgm = function () {
+		var id = musicTable.randBattle();
+		if (window.forceBgm) {
+			id = window.forceBgm;
+		}
+		var bgmInfo = musicTable.meta[id];
+		window.bgmId = id;
+		BattleSound.loadBgm(bgmInfo.url, bgmInfo.loop[0], bgmInfo.loop[1]);
+		this.bgm = bgmInfo.url;
 	};
 	Battle.prototype.setMute = function (mute) {
 		BattleSound.setMute(mute);
 	};
 	Battle.prototype.soundStart = function () {
 		if (!this.bgm) this.preloadBgm();
+		if (!this.winm) this.preloadVictory();
 		BattleSound.playBgm(this.bgm);
 	};
 	Battle.prototype.soundStop = function () {
@@ -6666,6 +6677,10 @@ var Battle = (function () {
 	};
 	Battle.prototype.soundPause = function () {
 		BattleSound.pauseBgm();
+	};
+	Battle.prototype.playVictoryTheme = function() {
+		if (!this.winm) this.preloadVictory();
+		BattleSound.playWinMusic(this.winm);
 	};
 
 	return Battle;
