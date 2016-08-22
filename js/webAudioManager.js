@@ -153,7 +153,7 @@ Sound.prototype = {
         if (this.loop && offset === true) {
             offset = (Math.random() * (this.loop[1] - this.loop[0])) + this.loop[0];
         } else {
-            offset = offset || 0;
+            offset = ((typeof offset == "number")?offset : 0);
         }
         
         this.__sourceNode = audioCtx.createBufferSource();
@@ -230,11 +230,11 @@ Sound.prototype = {
         this.__sourceNode.onended = evt;
     },
     
-    get mute() {
+    get muted() {
         return this.__muteNode.gain.value < 0.5;
     },
-    set mute(val) {
-        this.__muteNode.gain.value = (!!val);
+    set muted(val) {
+        this.__muteNode.gain.value = (val)?0.0:1.0;
     },
     
     get volume(){

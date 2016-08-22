@@ -62,11 +62,13 @@ var BattleSoundLibrary = (function () {
 		if (this.effectCache[url] && this.effectCache[url] !== this.soundPlaceholder) {
 			return this.effectCache[url];
 		}
-		this.effectCache[url] = soundManager.createSound({
-			id: url,
-			url: Tools.resourcePrefix + url,
-			volume: this.effectVolume
-		});
+		try {
+			this.effectCache[url] = soundManager.createSound({
+				id: url,
+				url: Tools.resourcePrefix + url,
+				volume: this.effectVolume
+			});
+		} catch (e) { console.error("BattleSoundLibrary::loadEffect: ", e); }
 		if (!this.effectCache[url]) {
 			this.effectCache[url] = this.soundPlaceholder;
 		}
@@ -82,13 +84,15 @@ var BattleSoundLibrary = (function () {
 				return this.winmCache[url];
 			}
 		}
-		this.winmCache[url] = soundManager.createSound({
-			id: url,
-			url: Tools.resourcePrefix + url,
-			volume: this.bgmVolume,
-			loopstart: loopstart,
-			loopend: loopend,
-		});
+		try {
+			this.winmCache[url] = soundManager.createSound({
+				id: url,
+				url: Tools.resourcePrefix + url,
+				volume: this.bgmVolume,
+				loopstart: loopstart,
+				loopend: loopend,
+			});
+		} catch (e) { console.error("BattleSoundLibrary::loadWinMusic: ", e); }
 		if (!this.winmCache[url]) {
 			// couldn't load
 			// suppress crash
@@ -99,7 +103,7 @@ var BattleSoundLibrary = (function () {
 	BattleSoundLibrary.prototype.playWinMusic = function (url, loopstart, loopstop) {
 		this.stopBgm();
 		this.winm = this.loadWinMusic(url, loopstart, loopstop).setVolume(this.bgmVolume);
-		if (!this.muted) {
+		if (!this.muted && this.winm) {
 			this.winm.play();
 			this.winm.fadeOut(30.0, 15.0);
 			
@@ -123,13 +127,15 @@ var BattleSoundLibrary = (function () {
 				return this.bgmCache[url];
 			}
 		}
-		this.bgmCache[url] = soundManager.createSound({
-			id: url,
-			url: Tools.resourcePrefix + url,
-			volume: this.bgmVolume,
-			loopstart: loopstart,
-			loopend: loopend,
-		});
+		try {
+			this.bgmCache[url] = soundManager.createSound({
+				id: url,
+				url: Tools.resourcePrefix + url,
+				volume: this.bgmVolume,
+				loopstart: loopstart,
+				loopend: loopend,
+			});
+		} catch (e) { console.error("BattleSoundLibrary::loadBgm: ", e); }
 		if (!this.bgmCache[url]) {
 			// couldn't load
 			// suppress crash
@@ -140,20 +146,20 @@ var BattleSoundLibrary = (function () {
 		// });
 		return this.bgmCache[url];
 	};
-	BattleSoundLibrary.prototype.playBgm = function (url, loopstart, loopstop) {
-		if (this.bgm === this.loadBgm(url, loopstart, loopstop)) {
+	BattleSoundLibrary.prototype.playBgm = function (url, turnCount) {
+		if (this.bgm === this.loadBgm(url)) {
 			if (!this.bgm.paused && this.bgm.playState) {
 				return;
 			}
 		} else {
 			this.stopBgm();
 		}
-		this.bgm = this.loadBgm(url, loopstart, loopstop).setVolume(this.bgmVolume);
-		if (!this.muted) {
+		this.bgm = this.loadBgm(url).setVolume(this.bgmVolume);
+		if (!this.muted && this.bgm) {
 			if (this.bgm.paused) {
 				this.bgm.resume();
 			} else {
-				this.bgm.play();
+				this.bgm.play(0, (turnCount > 1));
 			}
 		}
 	};
@@ -175,6 +181,7 @@ var BattleSoundLibrary = (function () {
 		if (this.muted == muted) return;
 		if (this.bgm) this.bgm.muted = muted;
 		if (this.winm) this.winm.muted = muted;
+		this.muted = muted;
 		// if (muted) {
 		// 	if (this.bgm) this.bgm.pause();
 		// } else {
@@ -6670,7 +6677,7 @@ var Battle = (function () {
 	Battle.prototype.soundStart = function () {
 		if (!this.bgm) this.preloadBgm();
 		if (!this.winm) this.preloadVictory();
-		BattleSound.playBgm(this.bgm);
+		BattleSound.playBgm(this.bgm, this.turn);
 	};
 	Battle.prototype.soundStop = function () {
 		BattleSound.stopBgm();
