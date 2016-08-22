@@ -1250,10 +1250,10 @@
 				case 'news':
 					switch (row[1]) {
 						case "refresh":
-							window.room.addNews();
+							window.app.rooms[""].addNews();
 							break;
 						case "refreshall":
-							setTimeout(function(){ window.room.addNews(); }, Math.floor(Math.random() * 5000)+100);
+							setTimeout(function(){ window.app.rooms[""].addNews(); }, Math.floor(Math.random() * 5000)+100);
 							break;
 					}
 					break;

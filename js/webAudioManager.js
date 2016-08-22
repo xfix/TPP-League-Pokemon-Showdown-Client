@@ -4,7 +4,7 @@
 
 /*global window, $ */
 
-if (window.AudioContext || window.webkitAudioContext)
+if (window.AudioContext || window.webkitAudioContext) {
 
 (function(window){
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -264,11 +264,78 @@ Sound.prototype = {
 
 window.SoundManager = SoundManager;
 window.soundManager = new SoundManager;
+
 })(window);
 
-else  //No webaudio, make placeholder fallback
-
+/*
+} else if (window.Audio) {
 (function(window){
+
+function SoundManager() {
+    this.soundBank = {};
+}
+SoundManager.prototype = {
+    soundBank : null,
+    setup : function(options) {},
+    // Creates and returns a sound clip.
+    createSound : function(config) {
+        if (!config) throw new Error("No configuration given for sound!");
+        if (typeof config == "string") {
+            config = { id : config, url : config, };
+        }
+        if (config.url === undefined) throw new Error("No url given for sound!");
+        if (config.id === undefined) config.id = config.url;
+        return (this.soundBank[config.id] = new Sound(config));
+    },
+    destroySound : function(id) {
+        this.soundBank[id].stop();
+        this.soundBank[id].unload();
+        this.soundBank[id].distruct();
+        delete this.soundBank[id];
+        return true;
+    },
+    onready : function() {},
+};
+
+function Sound() {
+    this.id = opts.id;
+    this.url = opts.url;
+    
+    
+    
+    this.load();
+}
+Sound.prototype = {
+    id : null,
+    
+    distruct : function(){},
+    load : function(){},
+    unload : function(){},
+    play : function(){},
+    stop: function(){},
+    pause: function(){},
+    resume: function(){},
+    fadeOut: function(){},
+    set onended(evt) {},
+    get mute() {},
+    set mute(val) { return true; },
+    get volume(){},
+    set volume(val){ return 0; },
+    setVolume : function() { return this; },
+    get pan() {},
+    set pan(val) { return  0; },
+    setPan : function() { return this; },
+};
+
+window.SoundManager = SoundManager;
+window.soundManager = new SoundManager;
+
+})(window);
+
+//*/
+} else {  //No webaudio, make placeholder fallback
+(function(window){
+    
 function SoundManager() {}
 SoundManager.prototype = {
     soundBank : null,
@@ -311,3 +378,4 @@ Sound.prototype = {
 window.SoundManager = SoundManager;
 window.soundManager = new SoundManager;
 })(window);
+}
