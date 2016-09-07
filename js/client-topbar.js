@@ -423,6 +423,7 @@
 			'change input[name=nopastgens]': 'setNopastgens',
 			'change input[name=notournaments]': 'setNotournaments',
 			'change input[name=inchatpm]': 'setInchatpm',
+			'change input[name=showrenames]': 'setShowRenames',
 			'change input[name=dark]': 'setDark',
 			'change input[name=temporarynotifications]': 'setTemporaryNotifications',
 			'change select[name=bg]': 'setBg',
@@ -460,6 +461,7 @@
 			buf += '<p><strong>Chat</strong></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="notournaments"' + (Tools.prefs('notournaments') ? ' checked' : '') + ' /> Ignore tournaments</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="inchatpm"' + (Tools.prefs('inchatpm') ? ' checked' : '') + ' /> Show PMs in chat rooms</label></p>';
+			buf += '<p><label class="optlabel"><input type="checkbox" name="showrenames"' + (!Tools.prefs('!showrenames') ? ' checked' : '') + ' /> Show rename messages.</label></p>';
 			buf += '<p><label class="optlabel"><input type="checkbox" name="selfhighlight"' + (!Tools.prefs('noselfhighlight') ? ' checked' : '') + '> Highlight when your name is said in chat</label></p>';
 
 			if (window.Notification) {
@@ -521,6 +523,10 @@
 		setNotournaments: function (e) {
 			var notournaments = !!e.currentTarget.checked;
 			Tools.prefs('notournaments', notournaments);
+		},
+		setShowRenames: function(e) {
+			var showrenames = !e.currentTarget.checked;
+			Tools.prefs('!showrenames', showrenames);
 		},
 		setSelfHighlight: function (e) {
 			var noselfhighlight = !e.currentTarget.checked;

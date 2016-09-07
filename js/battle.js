@@ -124,10 +124,12 @@ var BattleSoundLibrary = (function () {
 	BattleSoundLibrary.prototype.loadBgm = function (url, loopstart, loopend) {
 		if (this.bgmCache[url]) {
 			if (this.bgmCache[url] !== this.soundPlaceholder || loopstart === undefined) {
+				console.debug("loadBgm : memoized bgm");
 				return this.bgmCache[url];
 			}
 		}
 		try {
+			console.debug("loadBgm : creating");
 			this.bgmCache[url] = soundManager.createSound({
 				id: url,
 				url: Tools.resourcePrefix + url,
@@ -137,6 +139,7 @@ var BattleSoundLibrary = (function () {
 			});
 		} catch (e) { console.error("BattleSoundLibrary::loadBgm: ", e); }
 		if (!this.bgmCache[url]) {
+			console.debug("loadBgm : has errored");
 			// couldn't load
 			// suppress crash
 			return (this.bgmCache[url] = this.soundPlaceholder);
@@ -144,17 +147,22 @@ var BattleSoundLibrary = (function () {
 		// this.bgmCache[url].onposition(loopend, function () {
 		// 	this.setPosition(loopstart);
 		// });
+		console.debug("loadBgm : returning: ", this.bgmCache[url]);
 		return this.bgmCache[url];
 	};
 	BattleSoundLibrary.prototype.playBgm = function (url, turnCount) {
 		if (this.bgm === this.loadBgm(url)) {
 			if (!this.bgm.paused && this.bgm.playState) {
+				console.debug("playBgm : Early Return");
 				return;
 			}
 		} else {
+			console.debug("playBgm : stopbgm call");
 			this.stopBgm();
 		}
+		console.debug("playBgm : previous bgm:", this.bgm);
 		this.bgm = this.loadBgm(url).setVolume(this.bgmVolume);
+		console.debug("playBgm : loaded bgm: ", this.bgm);
 		if (!this.muted && this.bgm) {
 			if (this.bgm.paused) {
 				this.bgm.resume();
@@ -2302,6 +2310,10 @@ var Battle = (function () {
 		// has playback gotten to the point where a player has won or tied?
 		// affects whether BGM is playing
 		this.ended = false;
+		// 0 = uninitialized, 1-9 = prebattle (5 = team preview), 
+		// 10-19 = battle underway, 
+		// 20 = battle finished (tie), 21 = battle finished (p1 win), 22 = battle finished (p2 win)
+		this.battleState = 0;
 		this.weather = '';
 		this.pseudoWeather = [];
 		this.weatherTimeLeft = 0;
@@ -2824,10 +2836,20 @@ var Battle = (function () {
 	Battle.prototype.start = function () {
 		this.log('<div>Battle between ' + Tools.escapeHTML(this.p1.name) + ' and ' + Tools.escapeHTML(this.p2.name) + ' started!</div>');
 		if (this.startCallback) this.startCallback(this);
+		this.battleState = 10; //battle underway
+		this.soundStart();
 	};
 	Battle.prototype.winner = function (winner) {
-		if (winner) this.message('' + Tools.escapeHTML(winner) + ' won the battle!');
-		else this.message('Tie between ' + Tools.escapeHTML(this.p1.name) + ' and ' + Tools.escapeHTML(this.p2.name) + '!');
+		if (winner) {
+			this.message('' + Tools.escapeHTML(winner) + ' won the battle!');
+			this.battleState = 20;
+			if (winner == this.mySide.name) this.battleState += 1; //if I won
+			else if (winner == this.yourSide.name) this.battleState += 2; //if you won
+			else this.battleState += 3; //if, for some reason, we can't match the winner name...
+		} else {
+			this.message('Tie between ' + Tools.escapeHTML(this.p1.name) + ' and ' + Tools.escapeHTML(this.p2.name) + '!');
+			this.battleState = 20; //battle finished, tie
+		}
 		this.ended = true;
 		if (!this.fastForward) this.playVictoryTheme();
 	};
@@ -6202,6 +6224,11 @@ var Battle = (function () {
 		case 'teampreview':
 			this.teamPreview(true);
 			this.teamPreviewCount = args[1];
+			this.battleState = 5;
+			break;
+		case 'bg': // forcing the background image
+			break;
+		case 'music': // forcing the music
 			break;
 		case 'switch':
 		case 'drag':
@@ -6289,6 +6316,8 @@ var Battle = (function () {
 			this.log('<div class="debug"><div class="chat"><small style="color:#999">[DEBUG] ' + Tools.escapeHTML(name) + '.</small></div></div>', preempt);
 			break;
 		case 'seed':
+			this.battleState = 1;
+			//fallthrough
 		case 'choice':
 			break;
 		case 'unlink':
@@ -6650,6 +6679,7 @@ var Battle = (function () {
 	// |music|dynamic|gym     - To set the music to change when the last pokemon on the opposing side is left (a la Black/White)
 	
 	Battle.prototype.preloadVictory = function() {
+		console.debug("preloadVictory");
 		var id = musicTable.randVictory();
 		if (window.bgmId && musicTable.meta[window.bgmId+"-win"]) {
 			id = window.bgmId+"-win"; //if there's a matching win music, load that up
@@ -6662,6 +6692,7 @@ var Battle = (function () {
 		this.winm = bgmInfo.url;
 	};
 	Battle.prototype.preloadBgm = function () {
+		console.debug("preloadBgm");
 		var id = musicTable.randBattle();
 		if (window.forceBgm) {
 			id = window.forceBgm;
@@ -6672,20 +6703,27 @@ var Battle = (function () {
 		this.bgm = bgmInfo.url;
 	};
 	Battle.prototype.setMute = function (mute) {
+		console.debug("setMute");
 		BattleSound.setMute(mute);
 	};
 	Battle.prototype.soundStart = function () {
+		console.debug("soundStart");
 		if (!this.bgm) this.preloadBgm();
 		if (!this.winm) this.preloadVictory();
+		if (this.battleState < 10 || this.battleState >= 20) return; //don't play music until battle begins
 		BattleSound.playBgm(this.bgm, this.turn);
 	};
 	Battle.prototype.soundStop = function () {
+		console.debug("soundStop");
 		BattleSound.stopBgm();
 	};
 	Battle.prototype.soundPause = function () {
+		console.debug("soundPause");
 		BattleSound.pauseBgm();
+		BattleSound.stopWinMusic();
 	};
 	Battle.prototype.playVictoryTheme = function() {
+		console.debug("playVictoryTheme");
 		if (!this.winm) this.preloadVictory();
 		BattleSound.playWinMusic(this.winm);
 	};

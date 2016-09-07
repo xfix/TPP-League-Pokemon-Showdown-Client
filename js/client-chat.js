@@ -1035,7 +1035,8 @@
 			this.$joinLeave = null;
 			this.joinLeave = {
 				'join': [],
-				'leave': []
+				'leave': [],
+				'rename': [],
 			};
 
 			this.$userList = this.$('.userlist');
@@ -1182,7 +1183,7 @@
 				case 'n':
 				case 'name':
 				case 'N':
-					this.addJoinLeave('rename', row[1], row[2], true);
+					this.addJoinLeave('rename', row[1], row[2]);
 					break;
 
 
@@ -1300,7 +1301,8 @@
 				this.$joinLeave = null;
 				this.joinLeave = {
 					'join': [],
-					'leave': []
+					'leave': [],
+					'rename': [],
 				};
 				return;
 			} else if (action === 'join') {
@@ -1317,17 +1319,33 @@
 				this.userList.updateUserCount();
 				this.userList.updateNoUsersOnline();
 			} else if (action === 'rename') {
-				if (oldid) delete this.users[toUserid(oldid)];
+				var oldname;
+				if (oldid) {
+					oldname = this.users[toUserid(oldid)];
+					delete this.users[toUserid(oldid)];
+					if (!oldname) oldname = oldid;
+				} else oldname = oldid; //this makes no sense, go with it.
 				this.users[userid] = name;
 				this.userList.remove(oldid);
 				this.userList.add(userid);
-				return;
+				if (oldname == name) return; //don't bother showing the notification
+				
+				// if (this.joinLeave['rename'].length) {
+				// 	var lastRename = this.joinLeave['rename'][this.joinLeave['rename'].length-1];
+				// 	if (lastRename.indexOf(oldname) > 0) {
+						
+				// 	}
+				// }
+				// return;
+				name = oldname+" → "+name;
 			}
+			var showrenames = !Tools.prefs('!showrenames');
 			var allShowjoins = Tools.prefs('showjoins') || {};
 			var showjoins = allShowjoins[Config.server.id];
 			if (silent && (!showjoins || (!showjoins['global'] && !showjoins[this.id]) || showjoins[this.id] === 0)) {
 				return;
 			}
+			if (action === 'rename' && !showrenames) return;
 			if (!this.$joinLeave) {
 				this.$chat.append('<div class="message"><small>Loading...</small></div>');
 				this.$joinLeave = this.$chat.children().last();
@@ -1387,7 +1405,35 @@
 					}
 					message += Tools.escapeHTML(list[j]);
 				}
-				message += ' left<br />';
+				message += ' left';
+			}
+			if (this.joinLeave['rename'].length) {
+				if (this.joinLeave['join'].length || this.joinLeave['leave'].length) {
+					message += '<br/>';
+				}
+				var preList = this.joinLeave['rename'];
+				var list = [];
+				var named = {};
+				for (var j = 0; j < preList.length; j++) {
+					if (!named[preList[j]]) list.push(preList[j]);
+					named[preList[j]] = true;
+				}
+				for (var j = 0; j < list.length; j++) {
+					if (j >= 5) {
+						message += ', and ' + (list.length - 5) + ' others';
+						break;
+					}
+					if (j > 0) {
+						if (j == 1 && list.length == 2) {
+							message += ', and ';
+						} else if (j == list.length - 1) {
+							message += ', and ';
+						} else {
+							message += ', ';
+						}
+					}
+					message += Tools.escapeHTML(list[j]);
+				}
 			}
 			this.$joinLeave.html('<small style="color: #555555">' + message + '</small>');
 		},
@@ -1402,7 +1448,8 @@
 			this.$joinLeave = null;
 			this.joinLeave = {
 				'join': [],
-				'leave': []
+				'leave': [],
+				'rename': [],
 			};
 
 			if (pm) {

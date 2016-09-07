@@ -165,6 +165,7 @@ Sound.prototype = {
         }
         var self = this;
         this.__sourceNode.onended = function(){
+            self.__sourceNode.disconnect();
             self.__sourceNode = null;
         };
         this.__sourceNode.connect(this.__muteNode);
@@ -184,6 +185,10 @@ Sound.prototype = {
         time = (time || 0) + audioCtx.currentTime;
         
         this.__fadeNode.gain.setValueAtTime(1, time+0.1);
+        var srcNode = this.__sourceNode;
+        this.__sourceNode.onended = function(){
+            srcNode.disconnect();
+        };
         this.__sourceNode.stop(time);
         this.__sourceNode = null;
         return true;
@@ -199,6 +204,7 @@ Sound.prototype = {
             this.pauseOffset %= (this.loop[1] - this.loop[0]);
         }
         this.__sourceNode.stop();
+        this.__sourceNode.disconnect();
         this.__sourceNode = null;
         return true;
     },
