@@ -96,6 +96,9 @@
 			text = this.parseCommand(text);
 			if (this.battle && this.battle.ignoreSpects && app.user.get('userid') !== this.battle.p1.id && app.user.get('userid') !== this.battle.p2.id) {
 				this.add("You can't chat in this battle as you're currently ignoring spectators");
+			} else if (text.length > 80000) {
+				app.addPopupMessage("Your message is too long.");
+				return;
 			} else if (text) {
 				this.send(text);
 			}
@@ -963,6 +966,10 @@
 			if (autoscroll) {
 				this.$chatFrame.scrollTop(this.$chat.height());
 			}
+		},
+		destroy: function (alreadyLeft) {
+			app.user.off('change', this.updateUser, this);
+			Room.prototype.destroy.call(this, alreadyLeft);
 		}
 	}, {
 		toggleFormatChar: function (textbox, formatChar) {
@@ -1496,11 +1503,19 @@
 				this.subtleNotifyOnce();
 			}
 
-			if (message.substr(0, 4) === '/me ' || message.substr(0, 5) === '/mee') {
-				Storage.logChat(this.id, '* ' + name + (message.substr(0, 4) === '/me ' ? ' ' : '') + message);
-			} else if (message.substr(0, 10) === '/announce ' || message.substr(0, 1) !== '/') {
+			if (message.slice(0, 4) === '/me ' || message.slice(0, 5) === '/mee') {
+				Storage.logChat(this.id, '* ' + name + (message.slice(0, 4) === '/me ' ? ' ' : '') + message);
+			} else if (message.slice(0, 5) === '/log ') {
+				Storage.logChat(this.id, '' + message.slice(5));
+			} else {
 				Storage.logChat(this.id, '' + name + ': ' + message);
 			}
+		},
+		destroy: function (alreadyLeft) {
+			if (this.tournamentBox) {
+				app.user.off('saveteams', this.tournamentBox.updateTeams, this.tournamentBox);
+			}
+			ConsoleRoom.prototype.destroy.call(this, alreadyLeft);
 		}
 	}, {
 		getTimestamp: function (section, msgTime) {

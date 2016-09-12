@@ -205,12 +205,29 @@
 		 *     triggered if the login server did not return a response
 		 */
 		finishRename: function (name, assertion) {
+			if (assertion.slice(0, 14) === '<!DOCTYPE html') {
+				// some sort of MitM proxy; ignore it
+				var endIndex = assertion.indexOf('>');
+				if (endIndex > 0) assertion = assertion.slice(endIndex + 1);
+			}
+			if (assertion.charAt(0) === '\r') assertion = assertion.slice(1);
+			if (assertion.charAt(0) === '\n') assertion = assertion.slice(1);
+			if (assertion.indexOf('<') >= 0) {
+				if (assertion.indexOf('accessdenied') >= 0) {
+					app.addPopupMessage("Your internet filter is blocking Pokémon Showdown.");
+					return;
+				}
+				app.addPopupMessage("Something is interfering with our connection to the login server.");
+				// send to server anyway in case server knows how to deal with it
+				app.send('/trn ' + name + ',0,' + assertion);
+				return;
+			}
 			if (assertion === ';') {
 				this.trigger('login:authrequired', name);
 			} else if (assertion.substr(0, 2) === ';;') {
 				this.trigger('login:invalidname', name, assertion.substr(2));
-			} else if (assertion.indexOf('\n') >= 0) {
-				this.trigger('login:noresponse');
+			} else if (assertion.indexOf('\n') >= 0 || !assertion) {
+				app.addPopupMessage("Something is interfering with our connection to the login server.");
 			} else {
 				app.send('/trn ' + name + ',0,' + assertion);
 			}

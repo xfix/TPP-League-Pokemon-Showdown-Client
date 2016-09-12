@@ -861,7 +861,7 @@ var Sprite = (function () {
 	Sprite.prototype.behind = function (offset) {
 		return this.z + (this.isBackSprite ? -1 : 1) * offset;
 	};
-	Sprite.prototype.animTransform = function (species, isMega) {
+	Sprite.prototype.animTransform = function (species, isCustomAnim) {
 		if (!this.oldsp) this.oldsp = this.sp;
 		if (species.volatiles && species.volatiles.formechange) species = species.volatiles.formechange[2];
 		var sp = Tools.getSpriteData(species, this.isBackSprite ? 0 : 1, {
@@ -881,11 +881,17 @@ var Sprite = (function () {
 			}, sp));
 			return;
 		}
-		if (isMega) {
+		if (isCustomAnim) {
 			if (species.id === 'kyogreprimal') {
 				BattleOtherAnims.primalalpha.anim(battle, [self]);
 			} else if (species.id === 'groudonprimal') {
 				BattleOtherAnims.primalomega.anim(battle, [self]);
+			} else if (species.id === 'zygardecomplete') {
+				BattleOtherAnims.powerconstruct.anim(battle, [self]);
+			} else if (species.id === 'wishiwashischool') {
+				BattleOtherAnims.schoolingin.anim(battle, [self]);
+			} else if (species.id === 'wishiwashi') {
+				BattleOtherAnims.schoolingout.anim(battle, [self]);
 			} else {
 				BattleOtherAnims.megaevo.anim(battle, [self]);
 			}
@@ -4209,7 +4215,9 @@ var Battle = (function () {
 				var ofpoke = this.getPokemon(kwargs.of);
 				poke.status = '';
 
-				if (effect.id) switch (effect.id) {
+				if (kwargs.silent) {
+					// do nothing
+				} else if (effect.id) switch (effect.id) {
 				case 'psychoshift':
 					actions += '' + poke.getName() + ' moved its status onto ' + ofpoke.getLowerName() + '!';
 					this.resultAnim(poke, 'Cured', 'good');
@@ -4280,7 +4288,7 @@ var Battle = (function () {
 				}
 				break;
 
-			case '-cureteam':
+			case '-cureteam': // For old gens when the whole team was always cured
 				var poke = this.getPokemon(args[1]);
 				for (var k = 0; k < poke.side.pokemon.length; k++) {
 					poke.side.pokemon[k].status = '';
@@ -4604,6 +4612,7 @@ var Battle = (function () {
 				var template = Tools.getTemplate(args[2]);
 				var fromeffect = Tools.getEffect(kwargs.from);
 				var spriteData = {'shiny': poke.sprite.sp.shiny};
+				var isCustomAnim = false;
 				poke.removeVolatile('typeadd');
 				poke.removeVolatile('typechange');
 
@@ -4626,9 +4635,15 @@ var Battle = (function () {
 						actions += "Changed to Blade Forme!";
 					} else if (toId(template.species) === 'aegislash') {
 						actions += "Changed to Shield Forme!";
+					} else if (toId(template.species) === 'wishiwashischool') {
+						actions += "" + poke.getName() + " formed a school!";
+						isCustomAnim = true;
+					} else if (toId(template.species) === 'wishiwashi') {
+						actions += "" + poke.getName() + "'s school was scattered! (placeholder)";
+						isCustomAnim = true;
 					}
 				}
-				poke.sprite.animTransform($.extend(spriteData, template));
+				poke.sprite.animTransform($.extend(spriteData, template), isCustomAnim);
 				poke.addVolatile('formechange'); // the formechange volatile reminds us to revert the sprite change on switch-out
 				poke.volatiles.formechange[2] = template.species;
 				poke.side.updateStatbar();
@@ -4988,6 +5003,7 @@ var Battle = (function () {
 					actions += '' + poke.getName() + "'s encore ended!";
 					break;
 				case 'bide':
+					if (!this.fastForward) BattleOtherAnims.bideunleash.anim(this, [poke.sprite]);
 					actions += "" + poke.getName() + " unleashed its energy!";
 					break;
 				case 'illusion':
@@ -5183,6 +5199,7 @@ var Battle = (function () {
 					actions += '' + poke.getName() + ' is in love with ' + ofpoke.getLowerName() + '!';
 					break;
 				case 'bide':
+					if (!this.fastForward) BattleOtherAnims.bidecharge.anim(this, [poke.sprite]);
 					actions += "" + poke.getName() + " is storing energy!";
 					break;
 				case 'mist':
@@ -5205,6 +5222,14 @@ var Battle = (function () {
 					break;
 
 				// move activations
+				case 'aromatherapy':
+					this.resultAnim(poke, 'Team Cured', 'good');
+					actions += 'A soothing aroma wafted through the area!';
+					break;
+				case 'healbell':
+					this.resultAnim(poke, 'Team Cured', 'good');
+					actions += 'A bell chimed!';
+					break;
 				case 'trick':
 				case 'switcheroo':
 					actions += '' + poke.getName() + ' switched items with its target!';
