@@ -125,10 +125,14 @@ function display_row($row) {
         echo '<td class=meta>--&gt;<td class=meta>', color_nick($sender), ' has joined';
         break;
     case 64:
-        echo '<td class=meta>&lt;--<td class=meta>', color_nick($sender), ' has left';
+        if (!isset($message) || $message == "undefined") $message = ""; 
+        else $message = "(".substr($message, 1, -1).")"; //slice off quotes
+        echo '<td class=meta>&lt;--<td class=meta>', color_nick($sender), ' has left ', $message;
         break;
     case 128:
-        echo '<td class=meta>&lt;--<td class=meta>', color_nick($sender), ' has quit';
+        if (!isset($message) || $message == "undefined") $message = ""; 
+        else $message = "(".$message.")";
+        echo '<td class=meta>&lt;--<td class=meta>', color_nick($sender), ' has quit ', $message;
         break;
     case 256:
         list ($person, $reason) = explode(' ', $message, 2);
