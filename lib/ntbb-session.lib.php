@@ -53,7 +53,6 @@ class NTBBUsers {
 		$raw_query = '
 			INSERT INTO users (userid, password_hash, ip)
 			SELECT :userid, :password_hash, :ip
-			WHERE NOT EXISTS (SELECT 1 FROM users WHERE userid = :userid)
 		';
 		$query = $this->database->prepare($raw_query);
 		$query->bindValue(':userid', $userid);
